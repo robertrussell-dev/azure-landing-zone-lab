@@ -46,9 +46,15 @@ pipeline is enabled on a public repository:
    agent building fork pull requests from a public repository would be a serious
    mistake, because the machine persists between runs.
 
-Status: not yet applied. The Azure DevOps project does not exist at the time of
-writing, and this section is the checklist for standing it up rather than a
-record of what is configured.
+Status. The Azure DevOps project exists and the pipeline runs. Item 3 is
+satisfied: the pipeline uses the Microsoft hosted `Azure Pipelines` pool and
+declares `vmImage: ubuntu-latest`, so no self hosted agent is involved.
+
+Items 1 and 2 are **not yet applied and do not currently apply.** The GitHub
+repository is private, so it cannot be forked and no fork pull request can
+reach the pipeline. They become load bearing the moment the repository is made
+public, and applying them is a prerequisite of that change rather than
+something to do afterwards.
 
 The residual risk is that a stranger can cause code to execute on an ephemeral
 Microsoft hosted VM, after a maintainer comments on the pull request. That is
@@ -73,8 +79,15 @@ becomes decorative. Two things guard against that:
    that has never executed is worse than no pipeline definition, so neither
    should be presented as working until it has.
 
-   Current status: the GitHub Actions workflow runs on push and pull request.
-   The Azure Pipelines definition has not yet been connected to a project.
+   Current status: both run and both pass. The GitHub Actions workflow runs on
+   push and pull request. The Azure Pipelines definition builds the same
+   repository through a GitHub App service connection.
+
+   Notably, the Azure Pipelines run passed first time. Every bug the first
+   GitHub Actions run exposed was in the shared scripts, so Azure Pipelines
+   inherited the fixes and only its own tool installation steps were untested.
+   That is the argument for sharing the checks rather than duplicating them,
+   demonstrated rather than asserted.
 
    Note that public projects in Azure DevOps are retired, and the policy that
    permits them is unavailable to organisations not already using it. An Azure
@@ -94,8 +107,8 @@ are the interesting part rather than noise:
 
 ## The GitHub connection
 
-Azure Pipelines should connect to GitHub with a GitHub App installation rather
-than a personal access token, scoped to this single repository. A personal
+Azure Pipelines connects to GitHub with a GitHub App installation rather than a
+personal access token, scoped to this single repository. A personal
 access token with `repo` scope grants Azure DevOps access to every repository
 the account can reach, which is a much larger blast radius for no benefit.
 

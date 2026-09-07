@@ -145,7 +145,30 @@ new tenant, and the failure it produces does not mention registration:
 az provider register --namespace Microsoft.Subscription
 ```
 
-## 5. A new subscription is not immediately writable
+## 5. Azure Pipelines will not run until the organisation has billing
+
+A new Azure DevOps organisation gets **zero** Microsoft hosted parallel jobs.
+Microsoft made that change to stop free CI compute being used for crypto
+mining, and it applies to private projects as well as public ones.
+
+The symptom is not an error. The run queues against the hosted pool, reports
+`notStarted`, has no validation results, and never begins. Nothing fails and
+nothing explains why.
+
+The fix is to link the organisation to an Azure subscription under
+**Organization settings, Billing**. The free grant is applied automatically
+once billing is configured: one parallel job, sixty minutes per run, 1,800
+minutes a month for private projects. Linking associates billing identity only
+and deploys nothing into the subscription.
+
+There is also a request form at `aka.ms/azpipelines-parallelism-request`, which
+takes several business days. It is only worth using if billing linkage is not
+available.
+
+A queued run picks up on its own once the grant lands, so there is no need to
+cancel and requeue.
+
+## 6. A new subscription is not immediately writable
 
 After the subscription is created, the creator is granted Owner on it. That
 role assignment appears in the assignment store within seconds, and Azure
