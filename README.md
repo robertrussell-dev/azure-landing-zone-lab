@@ -101,7 +101,10 @@ call is refused.
 
 In a real adoption these violations already exist and nobody creates them.
 
-The public IP is the only billable resource here, about 3.60 USD a month.
+The public IP was the only billable resource in the platform, about 3.60 USD a
+month. It was destroyed after the compliance evidence was captured, so the
+subnet without a network security group is the violation that remains live.
+Both are visible in the screenshot above.
 
 ### Evidence
 
@@ -112,6 +115,12 @@ Read the first two rows together. `Network interfaces must not have public IPs
 carrying a public IP was **created successfully and recorded as non
 compliant**. The identical assignment at Corp, with enforcement on, refuses
 that call outright.
+
+That network interface and its public IP no longer exist. A Standard static
+public IP is the only resource in this platform that bills by the hour, so it
+was destroyed once the evidence above was captured. The screenshot is the
+record; the deploy, screenshot, destroy discipline described below applies to
+it as much as to the network stack.
 
 The third row is the Modify effect. Five resources are compliant with the
 `costCenter` requirement and the Terraform that created them never set the tag.

@@ -13,8 +13,20 @@
 # inherited mess.
 #
 # Everything below is free. Virtual networks, subnets and network security
-# groups carry no hourly charge. Nothing here needs destroying for cost
-# reasons, which is why it is not part of the Phase 4 deploy and destroy stack.
+# groups carry no hourly charge.
+#
+# A second violation used to live here: a network interface carrying a public
+# IP, which tripped the Deny assigned at Corp. Because this subscription sits
+# under Corp (audit only) it was created successfully and recorded as non
+# compliant, where under Corp the same call is refused. That is the clearest
+# demonstration in this platform of enforcement following placement rather than
+# policy.
+#
+# It was removed after the compliance evidence was captured, because a Standard
+# static public IP is the only resource here that bills by the hour. The
+# evidence is committed at docs/evidence/policy-portal.png. This is the deploy,
+# screenshot, destroy discipline the network stack uses, applied to a single
+# resource.
 
 # ---------------------------------------------------------------------------
 # Who owns the costCenter tag
@@ -90,72 +102,4 @@ resource "azurerm_subnet" "no_nsg" {
 
   # No network_security_group_association resource, on purpose. That absence is
   # the whole point of this file.
-}
-
-# Violation 2: a network interface carrying a public IP.
-#
-# Trips "Network interfaces should not have public IPs", the Deny assigned at
-# Corp. Because this subscription sits under Corp (audit only) with
-# enforcementMode DoNotEnforce, creating this succeeds and is recorded as non
-# compliant. Under Corp it would be refused outright.
-#
-# That contrast is the single most useful thing in this repository to look at:
-# the same policy, the same resource, different enforcement, decided purely by
-# where the subscription sits.
-#
-# This one is not free. A Standard static public IP is about 0.005 USD per
-# hour, roughly 3.60 USD per month, verified against the retail prices API on
-# 2026-09-06. It is the only billable resource in the lab and exists solely to
-# make the Deny demonstrable.
-resource "azurerm_public_ip" "seed" {
-  provider = azurerm.brownfield
-
-  name                = "pip-legacy-app"
-  resource_group_name = azurerm_resource_group.seed.name
-  location            = azurerm_resource_group.seed.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
-
-  tags = {
-    autoDelete = "true"
-  }
-
-  lifecycle {
-    # Azure Policy owns costCenter. See the note above.
-    ignore_changes = [tags["costCenter"]]
-  }
-}
-
-resource "azurerm_network_interface" "seed" {
-  provider = azurerm.brownfield
-
-  # checkov:skip=CKV_AZURE_119:This interface carries a public IP on purpose.
-  # It exists to prove the Deny assignment at Corp is evaluated but not
-  # enforced under Corp (audit only), where this resource was created
-  # successfully and recorded as non compliant. Under Corp the same call is
-  # refused. Removing the public IP removes the demonstration.
-  #
-  # Worth noting that checkov independently flags the same two violations that
-  # the Azure Policy assignments do. The tools agree; the resources are wrong
-  # deliberately.
-
-  name                = "nic-legacy-app"
-  resource_group_name = azurerm_resource_group.seed.name
-  location            = azurerm_resource_group.seed.location
-
-  ip_configuration {
-    name                          = "ipconfig1"
-    subnet_id                     = azurerm_subnet.no_nsg.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.seed.id
-  }
-
-  tags = {
-    autoDelete = "true"
-  }
-
-  lifecycle {
-    # Azure Policy owns costCenter. See the note above.
-    ignore_changes = [tags["costCenter"]]
-  }
 }
