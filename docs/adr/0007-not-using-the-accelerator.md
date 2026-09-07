@@ -1,6 +1,6 @@
 # ADR 0007: Not using the landing zone accelerator
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-06
 
 ## Context

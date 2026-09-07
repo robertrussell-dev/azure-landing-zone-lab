@@ -1,6 +1,6 @@
 # ADR 0004: Hub and spoke rather than Virtual WAN
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-06
 
 ## Context

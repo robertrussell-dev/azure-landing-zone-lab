@@ -1,6 +1,6 @@
 # ADR 0006: Private DNS zones are owned by the platform
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-06
 
 ## Context
@@ -90,6 +90,14 @@ deploys a private endpoint and immediately depends on resolving it can fail.
 Microsoft documents this for Foundry Agent Service explicitly: deploy before
 the record is resolvable from the subnet and the deployment fails. The workload
 team cannot fix this themselves, because they have no rights in the zone.
+
+This cost is accepted, and mitigated by **vending the private DNS zones ahead
+of the workload deployment rather than reacting to it.** The zones a landing
+zone will need are created and linked as part of subscription vending, so the
+namespace is already resolvable before the workload team deploys anything into
+it. The race remains possible for a service type nobody anticipated, which is
+why adding a zone is a platform request with a turnaround rather than an
+unbounded wait.
 
 **Infrastructure as code drifts by design.** DINE policies add resources the
 workload's own templates did not declare, so the deployed state and the

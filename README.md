@@ -34,8 +34,10 @@ the decisions were made by someone who deployed the result.
 
 Seven ADRs. The Terraform is what makes them checkable.
 
-All seven currently carry `Status: Proposed`. They are drafted and under
-review, and move to `Accepted` as each is reviewed and its reasoning settled.
+All seven carry `Status: Accepted`. Two open questions are recorded as open
+inside the ADRs rather than resolved with an invented answer: whether data
+classification deserves an archetype from day one (0003), and the criterion for
+granting a single subscription exception (0002).
 
 ## What is actually deployed
 

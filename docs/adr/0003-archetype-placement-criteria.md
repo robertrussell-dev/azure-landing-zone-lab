@@ -1,6 +1,6 @@
 # ADR 0003: Archetype placement criteria
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-06
 
 ## Context
@@ -80,9 +80,14 @@ transit the corporate network.
 The cost, and the reason this is not automatic: two landing zones means two
 vending requests, two subscriptions, two sets of role assignments and budgets,
 and a cross boundary integration that somebody operates and debugs. For a small
-application that overhead is real, and a single Corp landing zone is the
-defensible choice. The question to ask at intake is whether the hybrid
-dependency is the whole application or one component of it.
+application that overhead is real, and a single landing zone is the defensible
+choice. The question to ask at intake is whether the hybrid dependency is the
+whole application or one component of it.
+
+When it is neither, when a workload barely touches corporate systems at all,
+the answer is not a single Corp landing zone. It is **Online**. Minimal
+corporate interaction is an argument against Corp membership, not an argument
+for absorbing the whole application into it.
 
 ## What the archetype actually buys
 

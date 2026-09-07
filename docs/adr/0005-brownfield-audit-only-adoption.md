@@ -1,6 +1,6 @@
 # ADR 0005: Brownfield adoption through an audit only duplicate hierarchy
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-06
 
 ## Context

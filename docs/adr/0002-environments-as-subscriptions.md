@@ -1,6 +1,6 @@
 # ADR 0002: Environments are subscriptions, not management groups
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-06
 
 ## Context
@@ -151,10 +151,20 @@ isolation depend on a feature designed for release safety.
 
 The criteria stand. The App Service example is not sufficient to meet them on
 its own, and a request citing it should be asked what specifically breaks.
-Where a genuine exception is granted, the workload gets one subscription,
-separation moves down to resource groups, and RBAC with Privileged Identity
-Management is applied at resource group scope. The exception is recorded at
-subscription vending time rather than discovered later.
+
+**No general criterion for granting the exception has been established.** App
+Service does not qualify on the grounds usually offered. What would qualify is
+not yet defined, so requests are decided individually, and the burden is on the
+requester to identify a platform constraint rather than an inconvenience.
+
+Recording this as undefined is deliberate. A criterion invented to fill the gap
+would be applied inconsistently the first time it met a real request, and a
+written rule nobody believes is worse than an acknowledged judgement call.
+
+Where an exception is granted, the workload gets one subscription, separation
+moves down to resource groups, and RBAC with Privileged Identity Management is
+applied at resource group scope. The exception is recorded at subscription
+vending time rather than discovered later.
 
 ## Protecting the mechanism
 

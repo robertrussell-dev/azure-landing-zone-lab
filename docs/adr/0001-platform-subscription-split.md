@@ -1,6 +1,6 @@
 # ADR 0001: Keep four platform subscriptions
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-06
 
 ## Context
