@@ -18,7 +18,10 @@
 #    broken pipeline on a day nobody touched this repository.
 set -euo pipefail
 
-LYCHEE_VERSION="${LYCHEE_VERSION:-v0.24.2}"
+# The release tag is prefixed with the project name: "lychee-v0.24.2", not
+# "v0.24.2". Getting that wrong produces a 404 and curl exit 22, which reports
+# an HTTP error rather than naming the tag.
+LYCHEE_VERSION="${LYCHEE_VERSION:-lychee-v0.24.2}"
 TARGET="x86_64-unknown-linux-gnu"
 URL="https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_VERSION}/lychee-${TARGET}.tar.gz"
 
