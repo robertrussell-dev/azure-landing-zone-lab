@@ -26,24 +26,28 @@ the decisions were made by someone who deployed the result.
 |---|---|
 | 0001 Platform subscription split | Keep four platform subscriptions. Names the operational cost of doing so, and the trigger condition that would make collapsing Security into Management defensible. |
 | 0002 Environments as subscriptions | Dev, test and production are subscriptions inside one archetype management group. Per environment policy is handled by Audit at the archetype, not by separate management groups. |
-| 0003 Archetype placement criteria | Not yet written. The decision rule a platform team applies when a new workload arrives. |
-| 0004 Hub and spoke versus Virtual WAN | Not yet written. |
-| 0005 Brownfield adoption, audit only | Not yet written. The mechanism is already deployed, see below. |
-| 0006 Private DNS ownership | Not yet written. |
+| 0003 Archetype placement criteria | The archetype follows from one question: does the workload need routed connectivity to on premises through the hub. Internet exposure is not that question. |
+| 0004 Hub and spoke versus Virtual WAN | Hub and spoke here, for a cost reason that does not generalise. Records Microsoft's selection criteria, including the 30 tunnel threshold, as what a production estate should apply instead. |
+| 0005 Brownfield adoption, audit only | Adopted subscriptions land in a duplicated archetype with enforcement off, and move to the real one when compliance is acceptable. Defines what "acceptable" means, which Microsoft leaves open. |
+| 0006 Private DNS ownership | Platform owned, in the Connectivity subscription. Resolves a genuine contradiction inside one Microsoft article, and names the five questions that decide it for a given estate. |
+| 0007 Not using the accelerator | Why this repository hand rolls what the landing zone accelerator would generate, and what that costs. |
 
-Four of the six are outstanding. They are listed rather than omitted so the
-gap is visible.
+Seven ADRs. The Terraform is what makes them checkable.
+
+All seven currently carry `Status: Proposed`. They are drafted and under
+review, and move to `Accepted` as each is reviewed and its reasoning settled.
 
 ## What is actually deployed
 
 | Area | State |
 |---|---|
-| Management groups | 13 groups deployed, verified in the portal |
-| Policy assignments | 4 live, covering Modify, AuditIfNotExists, Deny and DoNotEnforce |
-| DeployIfNotExists | Written, skipped until a Log Analytics workspace exists to target |
-| Subscriptions | 2. One adopted brownfield, one platform management subscription |
+| Management groups | 13, including the intermediate root and the audit only Corp duplicate |
+| Policy assignments | 5 live, covering all five effects |
+| Subscriptions | 2. One adopted brownfield, one platform management subscription, both vended or placed through Terraform |
+| Log Analytics | One workspace in the management subscription, 30 day retention, 0.1 GB daily cap |
 | Budgets | On every subscription, actual and forecast thresholds |
-| Network | Not deployed. See the note on Phase 4 below |
+| Compliance | Evaluated. 4 compliant, 2 non compliant, both deliberate |
+| Hub and spoke network | Not deployed. See the note below |
 
 ### Policy, and why the set is small
 
@@ -56,7 +60,7 @@ default set of several hundred that nobody here could defend individually.
 | AuditIfNotExists | Subnets should have a network security group | intermediate root |
 | Deny | Network interfaces must not have public IPs | Corp only |
 | DoNotEnforce | The same Deny, enforcement off | Corp (audit only) |
-| DeployIfNotExists | Network security group diagnostics | Platform Management, pending |
+| DeployIfNotExists | Network security group diagnostics to the central workspace | Platform Management |
 
 Inheritance is demonstrated by scope. The Modify and Audit assignments apply
 everywhere. The Deny applies only to Corp, because Corp workloads route egress
@@ -80,6 +84,23 @@ required to enforce, with no policy rewritten. There is no additional cost,
 because the hierarchy and the assignments are duplicated and the workloads
 are not.
 
+### The non compliant resources are deliberate
+
+`infra/25-brownfield-seed` creates resources that violate the policy set on
+purpose. Without them the audit only assignment reports nothing, because an
+empty subscription has nothing to evaluate, and the pattern looks broken when
+it is merely inapplicable.
+
+A subnet with no network security group trips the `AuditIfNotExists` at the
+intermediate root. A network interface carrying a public IP trips the Deny
+assigned at Corp, and because the subscription sits under Corp (audit only) it
+was **created successfully and recorded as non compliant**. Under Corp the same
+call is refused.
+
+In a real adoption these violations already exist and nobody creates them.
+
+The public IP is the only billable resource here, about 3.60 USD a month.
+
 ## Constraints, stated plainly
 
 **Empty management groups.** `Identity`, `Security`, `Local` and
@@ -96,10 +117,13 @@ subscriptions, one per day" figure is Microsoft Online Services Program
 behaviour and does not apply to this account. The real limit is that each
 subscription is a thing to pay for and clean up.
 
-**Network stack.** Not deployed. Hub and spoke, peerings and private DNS are
-intended to be deployed on demand, screenshotted, and destroyed the same day,
-because a gateway or firewall left running is the most expensive mistake
-available in a personal lab.
+**Hub and spoke network.** Not deployed. Peerings, a hub and private DNS zones
+are intended to be deployed on demand and destroyed the same day, because a
+gateway or firewall left running is the most expensive mistake available on a
+personal card. ADR 0004 carries the prices.
+
+The only virtual network currently deployed is the deliberately non compliant
+one described above.
 
 **Terraform state is local.** Appropriate for a single operator lab and not
 appropriate for a team. A shared backend with locking would be required the
@@ -119,11 +143,20 @@ Being specific about this matters, because "I used the accelerator" and
   read.
 - The policy assignments and their scope choices (`infra/10-policy`).
 - Subscription vending and placement (`infra/20-subscription-placement`).
-- `modules/policy-assignment`, a local module wrapping a policy assignment and
-  the role assignments its managed identity requires.
+- Three local modules in [`modules/`](modules/), each with more than one caller:
+  `policy-assignment`, `subscription-budget` and `subscription-vending`. The
+  rule applied, and the worked counter example, are in
+  [modules/README.md](modules/README.md).
 
-**Not used:** `Azure/avm-ptn-alz/azurerm`. Noted because it is the obvious
-alternative and its absence is a decision rather than an oversight.
+**Not used:** `Azure/avm-ptn-alz/azurerm`, or the landing zone accelerator.
+That is a decision rather than an oversight, and ADR 0007 records it.
+
+The short version: this repository has **five policy assignments against the
+accelerator's several hundred**, so its compliance posture is a demonstration
+and not a governance baseline. Hand rolling was chosen to understand the
+mechanics before deploying a prebuilt set, on the principle that an estate you
+cannot debug is an estate you cannot operate. For a real tenant the accelerator
+is the right answer.
 
 **Built in policy definitions** are used rather than custom ones wherever they
 exist. Their IDs, allowed effects and required roles were read from the
