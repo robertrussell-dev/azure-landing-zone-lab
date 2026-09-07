@@ -114,3 +114,23 @@ resource "azurerm_management_group" "landing_zone_archetype" {
   display_name               = each.value
   parent_management_group_id = azurerm_management_group.landing_zones.id
 }
+
+# ---------------------------------------------------------------------------
+# Brownfield adoption target
+# ---------------------------------------------------------------------------
+# A duplicate of the Corp archetype carrying the same policy assignments with
+# enforcementMode set to DoNotEnforce.
+#
+# Subscriptions being adopted from an existing estate are placed here first.
+# They are evaluated against the policies they will eventually be held to,
+# and nothing is blocked while that assessment happens. When compliance is
+# acceptable the subscription moves to Corp, and enforcement begins without
+# any policy being rewritten.
+#
+# This duplicates the hierarchy and the assignments. It does not duplicate any
+# workload, so it costs nothing. See ADR 0005.
+resource "azurerm_management_group" "landing_zone_corp_audit" {
+  name                       = "${var.prefix}-lz-corp-audit"
+  display_name               = "Corp (audit only)"
+  parent_management_group_id = azurerm_management_group.landing_zones.id
+}

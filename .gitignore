@@ -20,5 +20,11 @@ crash.*.log
 .DS_Store
 Thumbs.db
 
+# Saved plan files. Binary, and they can contain resource values that were
+# never meant to leave the machine that produced them.
+tfplan
+*.tfplan
+tfplan.*
+
 # Local working notes, not part of the published repo.
 landing-zone-lab-brief.md

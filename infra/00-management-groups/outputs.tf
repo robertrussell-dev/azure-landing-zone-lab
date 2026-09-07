@@ -18,5 +18,6 @@ output "management_group_ids" {
     },
     { for k, v in azurerm_management_group.platform_child : "platform-${k}" => v.id },
     { for k, v in azurerm_management_group.landing_zone_archetype : "lz-${k}" => v.id },
+    { "lz-corp-audit" = azurerm_management_group.landing_zone_corp_audit.id },
   )
 }
