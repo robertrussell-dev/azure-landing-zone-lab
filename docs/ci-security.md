@@ -32,17 +32,23 @@ Azure Pipelines defaults are already the safe ones, and have been since 2023:
 | `Make secrets available to builds of forks` | Off | The setting that leaks secrets to strangers. Never enable it on a public repository |
 | `Make fork builds have the same permissions as regular builds` | Off | Fork builds get a restricted access token |
 
-Settings applied to this project:
+Required configuration, to be verified against the organisation before the
+pipeline is enabled on a public repository:
 
 1. `Limit building pull requests from forked GitHub repositories` set to
-   `Securely build pull requests from forked repositories` at organization level.
-2. `Make secrets available to builds of forks` left off. There are no secrets to
-   leak, but the setting is confirmed off so that adding one later does not
+   `Securely build pull requests from forked repositories` at organisation
+   level.
+2. `Make secrets available to builds of forks` off. There are no secrets to
+   leak today, but confirming it is off means adding one later does not
    silently expose it.
 3. Microsoft hosted agents only. Agent machines are deleted immediately after a
    build completes, so a compromised build has no lasting effect. A self hosted
    agent building fork pull requests from a public repository would be a serious
    mistake, because the machine persists between runs.
+
+Status: not yet applied. The Azure DevOps project does not exist at the time of
+writing, and this section is the checklist for standing it up rather than a
+record of what is configured.
 
 The residual risk is that a stranger can cause code to execute on an ephemeral
 Microsoft hosted VM, after a maintainer comments on the pull request. That is
@@ -63,9 +69,18 @@ becomes decorative. Two things guard against that:
 1. **The checks live in `scripts/`, not in the CI files.** Both definitions
    install tools and then call the same scripts. Neither can silently check
    something different from the other, because neither contains the logic.
-2. **Both actually run on every pull request**, and the README shows the status
-   of both. A pipeline definition that has never executed is worse than no
-   pipeline definition.
+2. **Both are intended to run on every pull request.** A pipeline definition
+   that has never executed is worse than no pipeline definition, so neither
+   should be presented as working until it has.
+
+   Current status: the GitHub Actions workflow runs on push and pull request.
+   The Azure Pipelines definition has not yet been connected to a project.
+
+   Note that public projects in Azure DevOps are retired, and the policy that
+   permits them is unavailable to organisations not already using it. An Azure
+   Pipelines build status badge therefore cannot be rendered for anonymous
+   readers of a public repository, so the Azure DevOps pipeline is verifiable
+   only to someone with access to the project.
 
 What stays in the CI file is genuinely platform specific, and the differences
 are the interesting part rather than noise:
@@ -79,11 +94,10 @@ are the interesting part rather than noise:
 
 ## The GitHub connection
 
-Azure Pipelines connects to GitHub with a GitHub App installation rather than a
-personal access token. The App is scoped to this single repository. A personal
-access token with `repo` scope would grant Azure DevOps access to every
-repository the account can reach, which is a much larger blast radius for no
-benefit.
+Azure Pipelines should connect to GitHub with a GitHub App installation rather
+than a personal access token, scoped to this single repository. A personal
+access token with `repo` scope grants Azure DevOps access to every repository
+the account can reach, which is a much larger blast radius for no benefit.
 
 ## If the pipeline ever needed Azure access
 
