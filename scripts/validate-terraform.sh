@@ -7,10 +7,27 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "==> terraform fmt -check -recursive"
-if ! terraform fmt -check -recursive -diff infra; then
-  echo "FAIL: run 'terraform fmt -recursive infra' and commit the result"
-  exit 1
+# Format check runs over git tracked files only, not over the working tree.
+#
+# "terraform fmt -recursive" walks everything on disk, which includes
+# terraform.tfvars. Those are gitignored and CI never sees them, so a recursive
+# check fails locally and passes in CI for files that are not in the
+# repository. A check that only fails on the developer's machine is a check
+# people learn to ignore.
+echo "==> terraform fmt -check, tracked files only"
+mapfile -t tf_files < <(git ls-files '*.tf' '*.tfvars')
+if [ "${#tf_files[@]}" -eq 0 ]; then
+  echo "SKIP  no tracked Terraform files"
+else
+  fmt_failed=0
+  for f in "${tf_files[@]}"; do
+    terraform fmt -check -diff "$f" > /dev/null || { echo "  needs formatting: $f"; fmt_failed=1; }
+  done
+  if [ "$fmt_failed" -ne 0 ]; then
+    echo "FAIL: run 'terraform fmt' on the files above and commit the result"
+    exit 1
+  fi
+  echo "PASS  ${#tf_files[@]} tracked files correctly formatted"
 fi
 
 failed=0
