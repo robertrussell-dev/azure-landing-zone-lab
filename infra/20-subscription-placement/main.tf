@@ -13,6 +13,10 @@ data "azurerm_management_group" "corp_audit" {
   name = "${var.prefix}-lz-corp-audit"
 }
 
+data "azurerm_management_group" "platform_management" {
+  name = "${var.prefix}-platform-management"
+}
+
 # ---------------------------------------------------------------------------
 # Brownfield placement
 # ---------------------------------------------------------------------------

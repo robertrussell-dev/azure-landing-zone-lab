@@ -52,20 +52,36 @@ Subscriptions are not regional, and sizing is the workload team's business.
 4. **Place the subscription** into the archetype management group. This is a
    separate operation from creation, always.
 
-5. **Apply the budget.** Actual at 80 percent, forecast at 100 percent, with
+5. **Register the resource providers** the workload needs. A newly created
+   subscription has almost none registered, and the failure is a 409 that names
+   the namespace rather than the cause:
+
+   ```
+   MissingSubscriptionRegistration: The subscription is not registered to use
+   namespace 'Microsoft.OperationalInsights'
+   ```
+
+   ```bash
+   az provider register --namespace Microsoft.OperationalInsights --subscription <id>
+   ```
+
+   Registration is asynchronous and takes a few minutes per namespace. Do it as
+   part of vending rather than leaving the first deployment to discover it.
+
+6. **Apply the budget.** Actual at 80 percent, forecast at 100 percent, with
    the on call contact as recipient.
 
-6. **Assign subscription ownership** to the workload team at subscription
+7. **Assign subscription ownership** to the workload team at subscription
    scope. Do not grant them rights at management group scope. Microsoft's
    guidance is explicit that application teams should be granted at
    subscription or resource group scope, because management group grants
    over permission through inheritance.
 
-7. **Verify inherited policy.** Confirm the subscription shows the expected
+8. **Verify inherited policy.** Confirm the subscription shows the expected
    assignments and wait for the first compliance scan before handing over. A
    scan can take up to 30 minutes.
 
-8. **Hand over** with the address allocation, the archetype and its policy
+9. **Hand over** with the address allocation, the archetype and its policy
    implications, and the budget thresholds.
 
 ### Brownfield variant
@@ -119,7 +135,7 @@ az provider register --namespace Microsoft.Subscription
 
 After the subscription is created, the creator is granted Owner on it. That
 role assignment appears in the assignment store within seconds, and Azure
-Resource Manager will still refuse writes for some minutes afterwards:
+Resource Manager refuses every write to the subscription anyway:
 
 ```
 AuthorizationFailed: The client '...' does not have authorization to perform
@@ -127,10 +143,10 @@ action 'Microsoft.Resources/subscriptions/resourcegroups/write' ...
 If access was recently granted, please refresh your credentials.
 ```
 
-The role assignment is genuinely there. `az role assignment list` on the new
-subscription shows Owner. The failure is authorization cache propagation plus a
-cached access token, and the last sentence of the error is the real
-instruction rather than boilerplate.
+The role assignment is genuinely there. `az role assignment list` shows Owner
+at subscription scope, and the portal shows the same. The error's closing
+sentence about refreshing credentials is misleading: refreshing them does not
+help, and neither does waiting.
 
 What to do, in order:
 
@@ -138,7 +154,29 @@ What to do, in order:
    Until this runs, commands against it fail with "subscription not found",
    which looks like a different problem entirely.
 2. `az login` to obtain a token issued after the role assignment.
-3. Retry.
+3. **Place the subscription in the management group hierarchy, then retry.**
+
+Step 3 is the one that actually works, and it is not obvious.
+
+On a subscription created through the alias API, the creator's Owner assignment
+is visible in `az role assignment list` and in the portal, and Resource Manager
+still refuses every write. Waiting does not fix it: this was observed to persist
+for over forty minutes, well past any normal propagation window, and a fresh
+`az login` did not change it either. The portal agreed with the CLI, omitting
+the subscription from the Create Resource Group picker while showing the user
+as Owner on it elsewhere.
+
+Moving the subscription under a management group where the operator holds Owner
+resolved it immediately. Authorization inherited from the management group is
+honoured where the subscription's own assignment was not.
+
+```bash
+az account management-group subscription add   --name <management-group> --subscription <id>
+```
+
+Since placement is a required vending step anyway, the practical guidance is to
+**place the subscription before attempting to deploy into it**, rather than
+treating placement as something tidied up afterwards.
 
 The practical consequence for automation: **creating a subscription and
 configuring it are not one atomic operation.** A pipeline that creates a

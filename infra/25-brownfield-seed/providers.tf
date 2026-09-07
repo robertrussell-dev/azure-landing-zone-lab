@@ -20,14 +20,12 @@ provider "azurerm" {
   tenant_id       = var.tenant_id
 }
 
-# Resources inside the management subscription are created through this
-# aliased provider. The default provider is pinned to the operator's own
-# subscription, and a workspace deployed there instead would be a quiet,
-# hard to spot mistake.
+# The brownfield subscription. Pinned explicitly so this configuration cannot
+# create non compliant resources anywhere else by accident.
 provider "azurerm" {
-  alias = "management"
+  alias = "brownfield"
   features {}
 
-  subscription_id = var.management_subscription_id
+  subscription_id = var.brownfield_subscription_id
   tenant_id       = var.tenant_id
 }
