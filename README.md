@@ -101,6 +101,22 @@ In a real adoption these violations already exist and nobody creates them.
 
 The public IP is the only billable resource here, about 3.60 USD a month.
 
+### Evidence
+
+![Policy compliance](docs/evidence/policy-portal.png)
+
+Read the first two rows together. `Network interfaces must not have public IPs
+(audit only)` reports a violation at Corp (audit only): the network interface
+carrying a public IP was **created successfully and recorded as non
+compliant**. The identical assignment at Corp, with enforcement on, refuses
+that call outright.
+
+The third row is the Modify effect. Five resources are compliant with the
+`costCenter` requirement and the Terraform that created them never set the tag.
+
+The hierarchy itself is at
+[docs/evidence/hierarchy-portal.png](docs/evidence/hierarchy-portal.png).
+
 ## Constraints, stated plainly
 
 **Empty management groups.** `Identity`, `Security`, `Local` and
