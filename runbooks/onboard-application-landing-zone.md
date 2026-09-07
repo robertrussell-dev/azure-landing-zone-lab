@@ -68,6 +68,18 @@ Subscriptions are not regional, and sizing is the workload team's business.
    Registration is asynchronous and takes a few minutes per namespace. Do it as
    part of vending rather than leaving the first deployment to discover it.
 
+   **Register `Microsoft.PolicyInsights` even though no deployment asks for
+   it.** Without it the subscription reports no policy compliance at all: not
+   compliant, not non compliant, simply no records. Nothing fails, and the
+   silence is indistinguishable from a scan that has not run yet, which is a
+   very easy hour to lose. The error only surfaces if you trigger a scan
+   explicitly:
+
+   ```bash
+   az provider register --namespace Microsoft.PolicyInsights --subscription <id>
+   az policy state trigger-scan --subscription <id>
+   ```
+
 6. **Apply the budget.** Actual at 80 percent, forecast at 100 percent, with
    the on call contact as recipient.
 
@@ -78,8 +90,10 @@ Subscriptions are not regional, and sizing is the workload team's business.
    over permission through inheritance.
 
 8. **Verify inherited policy.** Confirm the subscription shows the expected
-   assignments and wait for the first compliance scan before handing over. A
-   scan can take up to 30 minutes.
+   assignments, and confirm compliance records actually exist rather than
+   assuming a slow scan. Zero records usually means `Microsoft.PolicyInsights`
+   is unregistered, not that evaluation is pending. A genuine first scan can
+   still take up to 30 minutes.
 
 9. **Hand over** with the address allocation, the archetype and its policy
    implications, and the budget thresholds.

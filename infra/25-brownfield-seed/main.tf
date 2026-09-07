@@ -16,6 +16,27 @@
 # groups carry no hourly charge. Nothing here needs destroying for cost
 # reasons, which is why it is not part of the Phase 4 deploy and destroy stack.
 
+# ---------------------------------------------------------------------------
+# Who owns the costCenter tag
+# ---------------------------------------------------------------------------
+# The Modify assignment at the intermediate root appends costCenter to any
+# resource created without it. It works: nothing below declares costCenter, and
+# every resource here carries costCenter = lab after creation.
+#
+# That creates a fight. Terraform reads the tag back, does not find it in the
+# configuration, and plans to remove it. Applying that removal triggers the
+# Modify effect again on the next write, which puts the tag back. The result is
+# a plan that is never clean and a pipeline that reports drift forever.
+#
+# The fix is to decide who owns the field and say so. Azure Policy owns
+# costCenter, so Terraform ignores it. The alternative, declaring the tag in
+# every resource, means the policy never has anything to do and its compliance
+# reporting becomes meaningless.
+#
+# This applies to every Modify assignment in an estate, not just to this file.
+# It is the practical cost of policy driven governance alongside infrastructure
+# as code, and it is why Modify assignments should be few and well known.
+
 resource "azurerm_resource_group" "seed" {
   provider = azurerm.brownfield
 
@@ -46,6 +67,11 @@ resource "azurerm_virtual_network" "seed" {
 
   tags = {
     autoDelete = "true"
+  }
+
+  lifecycle {
+    # Azure Policy owns costCenter. See the note above.
+    ignore_changes = [tags["costCenter"]]
   }
 }
 
@@ -88,6 +114,11 @@ resource "azurerm_public_ip" "seed" {
   tags = {
     autoDelete = "true"
   }
+
+  lifecycle {
+    # Azure Policy owns costCenter. See the note above.
+    ignore_changes = [tags["costCenter"]]
+  }
 }
 
 resource "azurerm_network_interface" "seed" {
@@ -106,5 +137,10 @@ resource "azurerm_network_interface" "seed" {
 
   tags = {
     autoDelete = "true"
+  }
+
+  lifecycle {
+    # Azure Policy owns costCenter. See the note above.
+    ignore_changes = [tags["costCenter"]]
   }
 }
