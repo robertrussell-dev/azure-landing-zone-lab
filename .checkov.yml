@@ -1,0 +1,24 @@
+# Checkov configuration.
+#
+# Policy on skips: every entry in skip-check must carry a written justification
+# on the line above it. "It was noisy" is not a justification. If a finding is
+# accepted, the reason is recorded here so a reviewer can judge whether the
+# tradeoff was reasonable, which is the same standard applied to the ADRs.
+#
+# This file starts empty on purpose. Skips are added only after a finding has
+# been read and understood, not pre-emptively to make the first run green.
+
+framework:
+  - terraform
+
+# Directories that hold no deployable infrastructure.
+skip-path:
+  - docs
+  - runbooks
+
+skip-check: []
+
+# Fail the build on any severity. This lab is small enough that there is no
+# excuse for a backlog of accepted findings.
+compact: true
+quiet: true

@@ -1,0 +1,118 @@
+# Validation pipeline, Azure DevOps.
+#
+# This repository carries two CI definitions that run the same checks: this one
+# and .github/workflows/validate.yml. That is deliberate. The reasoning is in
+# docs/ci-security.md.
+#
+# The checks themselves live in scripts/. Both CI definitions install tools and
+# call those scripts, so the two cannot drift apart in what they actually
+# verify. Everything platform specific stays in the CI file, everything shared
+# stays in the script.
+#
+# This pipeline deliberately has NO service connection and NO Azure credentials.
+# The reasoning is worth stating because Azure DevOps makes the opposite easy:
+# creating an ARM service connection is a few clicks, and one scoped to a
+# management group is a standing credential with write access to the whole
+# hierarchy. A repository intended to be read by strangers should not have one
+# attached. Deployment is run interactively by an operator, per the README.
+#
+# Marketplace extension tasks are avoided in favour of script steps, so this
+# pipeline runs in any organisation without an extension install, and a reviewer
+# can read exactly what executes.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  TERRAFORM_VERSION: '1.16.1'
+  TF_IN_AUTOMATION: 'true'
+
+stages:
+  - stage: validate
+    displayName: Validate
+    jobs:
+
+      # -------------------------------------------------------------------
+      - job: docs
+        displayName: Documentation links
+        steps:
+          - checkout: self
+
+          - script: |
+              set -euo pipefail
+              curl -fsSL -o lychee.tar.gz \
+                https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz
+              tar -xzf lychee.tar.gz
+              sudo mv lychee /usr/local/bin/
+              lychee --version
+            displayName: 'Install lychee'
+
+          - script: ./scripts/check-links.sh
+            displayName: 'Check markdown links'
+
+      # -------------------------------------------------------------------
+      - job: terraform
+        displayName: Terraform fmt and validate
+        steps:
+          - script: |
+              set -euo pipefail
+              curl -fsSL -o terraform.zip \
+                "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+              unzip -q terraform.zip
+              sudo mv terraform /usr/local/bin/
+              terraform version
+            displayName: 'Install Terraform $(TERRAFORM_VERSION)'
+
+          - script: ./scripts/validate-terraform.sh
+            displayName: 'terraform fmt and validate'
+
+      # -------------------------------------------------------------------
+      - job: security
+        displayName: Lint and security scan
+        steps:
+          - script: |
+              set -euo pipefail
+              curl -fsSL -o terraform.zip \
+                "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+              unzip -q terraform.zip
+              sudo mv terraform /usr/local/bin/
+            displayName: 'Install Terraform $(TERRAFORM_VERSION)'
+
+          - script: |
+              set -euo pipefail
+              curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+              tflint --version
+            displayName: 'Install tflint'
+
+          - script: ./scripts/lint-terraform.sh
+            displayName: 'tflint'
+
+          - script: |
+              set -euo pipefail
+              pip install --quiet checkov
+              checkov --version
+            displayName: 'Install checkov'
+
+          - script: ./scripts/scan-security.sh checkov-results
+            displayName: 'checkov'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish checkov findings'
+            # Azure DevOps renders JUnit XML natively in the Tests tab, which is
+            # the one place its CI is genuinely nicer than the alternative here.
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: 'checkov-results/*.xml'
+              testRunTitle: 'checkov'
+              failTaskOnFailedTests: false

@@ -1,0 +1,107 @@
+# Validation workflow, GitHub Actions.
+#
+# This repository carries two CI definitions that run the same checks: this one
+# and azure-pipelines.yml. That is deliberate, not an accident of migration.
+# The reasoning is in docs/ci-security.md.
+#
+# The checks themselves live in scripts/. Both CI definitions install tools and
+# call those scripts, so the two cannot drift apart in what they actually
+# verify. Everything platform specific stays in the CI file, everything shared
+# stays in the script.
+#
+# No Azure credentials. This workflow never runs terraform plan or apply.
+#
+# Third party actions are avoided and first party actions are pinned by commit
+# SHA rather than by tag, because a tag is mutable and can be repointed at new
+# code by whoever controls the action repository.
+
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Documentation links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install lychee
+        run: |
+          curl -fsSL -o lychee.tar.gz \
+            https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf lychee.tar.gz
+          sudo mv lychee /usr/local/bin/
+          lychee --version
+
+      - name: Check markdown links
+        run: ./scripts/check-links.sh
+
+  terraform:
+    name: Terraform fmt and validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.1
+          # The wrapper intercepts exit codes, which breaks the pass and fail
+          # logic in the shared scripts.
+          terraform_wrapper: false
+
+      - name: Validate
+        run: ./scripts/validate-terraform.sh
+
+  security:
+    name: Lint and security scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.1
+          terraform_wrapper: false
+
+      - name: Install tflint
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --version
+
+      - name: tflint
+        run: ./scripts/lint-terraform.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install checkov
+        run: pip install --quiet checkov
+
+      - name: checkov
+        run: ./scripts/scan-security.sh checkov-results
+
+      - name: Publish checkov findings
+        # GitHub Actions has no built in test results tab equivalent, so the
+        # JUnit XML is uploaded as an artifact. A third party reporter action
+        # would render it inline, at the cost of running untrusted code in CI.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: checkov-results
+          path: checkov-results/
+          if-no-files-found: ignore

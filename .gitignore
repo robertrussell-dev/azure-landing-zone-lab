@@ -1,0 +1,24 @@
+# Terraform state. Never commit. State can contain resource IDs and secrets.
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+
+# Variable files may contain tenant and subscription IDs specific to one operator.
+*.tfvars
+*.auto.tfvars
+!*.tfvars.example
+
+# The dependency lock file IS committed on purpose, so provider versions are
+# reproducible for anyone who clones this repo.
+!.terraform.lock.hcl
+
+# Local editor and OS noise
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local working notes, not part of the published repo.
+landing-zone-lab-brief.md
