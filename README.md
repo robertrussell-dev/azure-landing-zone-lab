@@ -1,3 +1,4 @@
+[![Board Status](https://dev.azure.com/RRTest22/05d89604-fb82-44cf-a866-8309067450f2/b7d55707-a5cc-497f-8567-70b403bbb8f0/_apis/work/boardbadge/c65b006d-407f-4e20-941f-db4a63dba2ff)](https://dev.azure.com/RRTest22/05d89604-fb82-44cf-a866-8309067450f2/_boards/board/t/b7d55707-a5cc-497f-8567-70b403bbb8f0/Microsoft.RequirementCategory)
 # Azure landing zone reference
 
 An Azure landing zone built with Terraform, and the architecture decision
