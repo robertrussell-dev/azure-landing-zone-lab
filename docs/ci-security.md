@@ -46,15 +46,20 @@ pipeline is enabled on a public repository:
    agent building fork pull requests from a public repository would be a serious
    mistake, because the machine persists between runs.
 
-Status. The Azure DevOps project exists and the pipeline runs. Item 3 is
-satisfied: the pipeline uses the Microsoft hosted `Azure Pipelines` pool and
-declares `vmImage: ubuntu-latest`, so no self hosted agent is involved.
+Status: applied. The repository is public, the Azure DevOps project builds it
+through a GitHub App service connection, and all three controls above are in
+place.
 
-Items 1 and 2 are **not yet applied and do not currently apply.** The GitHub
-repository is private, so it cannot be forked and no fork pull request can
-reach the pipeline. They become load bearing the moment the repository is made
-public, and applying them is a prerequisite of that change rather than
-something to do afterwards.
+Item 3 is visible in the pipeline definition itself, which targets the
+Microsoft hosted `Azure Pipelines` pool with `vmImage: ubuntu-latest` and
+declares no self hosted agent.
+
+Items 1 and 2 are organisation level settings and are **not exposed by the
+Azure DevOps REST API**, so they cannot be asserted from a script or checked in
+CI. They are verified in the portal at **Organization settings, Pipelines,
+Settings**. Anyone auditing this later should look there rather than trying to
+query it, and should treat this paragraph as a claim requiring that check
+rather than as evidence.
 
 The residual risk is that a stranger can cause code to execute on an ephemeral
 Microsoft hosted VM, after a maintainer comments on the pull request. That is

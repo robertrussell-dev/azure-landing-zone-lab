@@ -227,6 +227,13 @@ is a deliberate act done outside this workflow.
 
 ## Validation
 
+[![Validate](https://github.com/robertrussell-dev/azure-landing-zone-lab/actions/workflows/validate.yml/badge.svg)](https://github.com/robertrussell-dev/azure-landing-zone-lab/actions/workflows/validate.yml)
+
+The badge above is GitHub Actions. The Azure Pipelines run cannot show a public
+badge, because public projects in Azure DevOps are retired and the policy
+permitting them is unavailable to organisations not already using it, so that
+pipeline is verifiable only to someone with access to the project.
+
 Two CI definitions run the same checks: `azure-pipelines.yml` and
 `.github/workflows/validate.yml`. The checks themselves live in `scripts/`, so
 the two cannot drift in what they verify. Neither holds an Azure credential.
