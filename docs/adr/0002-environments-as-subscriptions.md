@@ -81,8 +81,12 @@ responsibility split, the platform team audits and the application team
 implements, and stops there. The escalation path is an operating model decision
 and this platform makes it explicitly.
 
-**Escalation.** Non compliance opens a remediation plan with an agreed date. If
-the date passes, the control is escalated from `Audit` to `Deny` at that
+**Escalation.** Non compliance raises a ticket automatically, assigned to the
+owning team's backlog with a remediation date. Governance that depends on
+someone noticing a dashboard is not governance, so the finding has to arrive
+where the team already plans work.
+
+If the date passes, the control is escalated from `Audit` to `Deny` at that
 subscription for new resources, while existing resources are grandfathered. The
 non compliant workload keeps running. The team cannot deploy anything new until
 it is fixed.

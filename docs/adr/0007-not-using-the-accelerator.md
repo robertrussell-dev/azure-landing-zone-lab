@@ -24,7 +24,9 @@ governance breadth, it is the correct choice and hand rolling is not.
 ## Why
 
 This platform was built to develop operational understanding of the mechanics
-before adopting a prebuilt set of them.
+before adopting a prebuilt set of them. Introduce too much prebuilt template
+before understanding it and the result is harder to reason about and harder to
+debug, not easier.
 
 The principle underneath that: **you cannot operate what you cannot debug.**
 The accelerator assigns several hundred policies. When one of them blocks a
@@ -81,5 +83,7 @@ to explain any part of it.
 - Operating the accelerator is a separate skill, with substantial configuration
   surface of its own, and building these parts by hand does not exercise it.
 - Adopting the accelerator later is the expected path rather than a reversal.
-  This decision would then be revised, and the mechanics learned here are what
-  make its output reviewable.
+  The trigger is demonstrated proficiency operating what is here, plus a real
+  need for the breadth and standardisation it provides. This decision would
+  then be revised, and the mechanics learned here are what make its output
+  reviewable.

@@ -86,8 +86,10 @@ Enforcement is turned on when all of the following hold:
    the resources are fine. It does not prove the team's pipeline produces
    compliant resources, and the pipeline is what will hit the Deny.
 
-Point four is the one most likely to be skipped and the one that actually
-predicts whether enforcement will hurt.
+Point four is the one most likely to be skipped, and it delays every adoption
+by roughly a sprint. That delay is accepted deliberately: it is the only one of
+the four that tests the thing that will actually break, which is the team's
+pipeline rather than the resources sitting in the subscription.
 
 ## Alternatives considered
 
@@ -104,9 +106,13 @@ requiring a subscription move by the platform team.
 Not chosen here for one reason: the duplicate hierarchy makes the state visible
 in the portal tree. Anyone can see which subscriptions are being assessed and
 which are governed, without querying enrollment resources. At this size that
-legibility is worth more than the saved management groups. With many
-subscriptions in flight the trade reverses, and `Enroll` becomes the better
-mechanism.
+legibility is worth more than the saved management groups.
+
+The trade reverses at some number of in flight subscriptions, beyond which the
+duplicated groups cost more than the visibility is worth. That number is not
+established here, and asserting one would be inventing it. What is clear is
+that the review should be triggered by adoptions running concurrently rather
+than by the size of the estate.
 
 **Resource selectors for gradual rollout.** An assignment can carry
 `resourceSelectors` that narrow evaluation by resource location or type, so
@@ -125,9 +131,10 @@ long before it is an engineering one.
 - The hierarchy carries a management group per archetype under adoption. With
   three archetypes that is manageable. With many, this approach does not scale
   and `Enroll` mode should be revisited.
-- The audit only group is not a permanent home. A subscription that sits there
-  indefinitely has quietly become ungoverned, so time in the audit group should
-  itself be reported.
+- The audit only group is not a permanent home. **Ninety days is the limit.** A
+  subscription still there after that triggers a review and escalation rather
+  than another month of assessment, because a subscription that never leaves
+  has quietly become ungoverned while appearing to be in progress.
 - Enforcement is a management group move, which means it is one operation, it
   is auditable, and it is reversible by moving back. That reversibility is the
   main practical argument for this approach over editing assignments in place.

@@ -157,11 +157,14 @@ guidance is explicit that the hierarchy should not re-create the organisational
 chart, and organisational structure changes more often than connectivity
 requirements do. A reorganisation should not trigger a subscription migration.
 
-**Place by data classification, for example a PCI archetype.** Not done here,
-but it is the correct pattern when a compliance regime applies to a subset of
-workloads and not the estate. A new archetype under Landing Zones is the safest
-place to extend the hierarchy. This becomes a second placement dimension rather
-than a replacement for the connectivity rule.
+**Place by data classification, for example a PCI archetype.** Not done here.
+Connectivity remains the primary question and classification is a second
+dimension layered on top, not a replacement for it. Whether classification
+should get its own archetype from day one rather than being added when a
+regime actually applies is unresolved.
+
+When it is added, a new archetype under Landing Zones is the safest place to
+extend the hierarchy.
 
 **Ask the workload team to choose.** Rejected. They optimise for their own
 delivery, and the archetype encodes a platform commitment about routing and

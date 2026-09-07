@@ -27,6 +27,12 @@ architecture. Every platform subscription is another thing to run.
 Keep all four. Do not collapse Security into Management, and do not collapse
 the platform into a single subscription.
 
+The reason is organisational before it is technical. At enterprise scale these
+areas have dedicated people: a network team, an identity team, a security
+operations function. Separate subscriptions let access be granted along those
+lines rather than across them, and let one area be locked down or audited
+without touching the others.
+
 ## The trade-off
 
 Four subscriptions costs administrative surface area, and the cost is
@@ -125,10 +131,14 @@ security operations function: the same team runs the platform and the security
 tooling, or monitoring is outsourced to a managed provider who is granted
 scoped access regardless of subscription layout.
 
-The trigger to watch for is not a headcount. It is the first time someone's job
-is to review what the platform team did. Before that point the separation is
-notional, because the same people hold both roles either way. After it, the
-separation is the job, and the migration cost below becomes due.
+The trigger is role overlap, not headcount. Collapse is defensible while one
+person is responsible for several of these areas, because the separation is
+notional anyway: the same individual holds both sets of rights whichever way
+the subscriptions are drawn.
+
+It stops being defensible at the first hire whose job is to review what the
+platform team did. At that point the separation is the job, and the migration
+cost below becomes due.
 
 **Collapse all four into one platform subscription.** Rejected. Beyond the
 audit argument, it puts domain controllers, the hub and the SIEM inside one
