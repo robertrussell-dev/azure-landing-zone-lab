@@ -78,6 +78,11 @@ resource "azurerm_virtual_network" "seed" {
 resource "azurerm_subnet" "no_nsg" {
   provider = azurerm.brownfield
 
+  # checkov:skip=CKV2_AZURE_31:This subnet has no network security group on
+  # purpose. It exists to make the AuditIfNotExists assignment at the
+  # intermediate root report a real finding. Attaching one would remove the
+  # only thing this resource is here to demonstrate.
+
   name                 = "snet-no-nsg"
   resource_group_name  = azurerm_resource_group.seed.name
   virtual_network_name = azurerm_virtual_network.seed.name
@@ -123,6 +128,16 @@ resource "azurerm_public_ip" "seed" {
 
 resource "azurerm_network_interface" "seed" {
   provider = azurerm.brownfield
+
+  # checkov:skip=CKV_AZURE_119:This interface carries a public IP on purpose.
+  # It exists to prove the Deny assignment at Corp is evaluated but not
+  # enforced under Corp (audit only), where this resource was created
+  # successfully and recorded as non compliant. Under Corp the same call is
+  # refused. Removing the public IP removes the demonstration.
+  #
+  # Worth noting that checkov independently flags the same two violations that
+  # the Azure Policy assignments do. The tools agree; the resources are wrong
+  # deliberately.
 
   name                = "nic-legacy-app"
   resource_group_name = azurerm_resource_group.seed.name
