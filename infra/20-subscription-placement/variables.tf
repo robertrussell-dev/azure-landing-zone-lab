@@ -35,16 +35,10 @@ variable "budget_alert_emails" {
   type        = list(string)
 }
 
-variable "create_management_subscription" {
-  description = "Whether to create the management subscription. Creation is a billing account operation, so it is behind a flag rather than implied by an apply."
+variable "create_subscriptions" {
+  description = "Whether to vend subscriptions. Creation is a billing account operation, so it is behind a flag rather than implied by an apply."
   type        = bool
   default     = false
-}
-
-variable "management_subscription_name" {
-  description = "Display name and alias for the management subscription. The alias is immutable."
-  type        = string
-  default     = "sub-management"
 }
 
 variable "billing_scope_id" {

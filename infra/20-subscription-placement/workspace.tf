@@ -19,7 +19,7 @@
 
 resource "azurerm_resource_group" "management_logs" {
   provider = azurerm.management
-  count    = var.create_management_subscription ? 1 : 0
+  count    = var.create_subscriptions ? 1 : 0
 
   name     = "rg-management-logs"
   location = var.location
@@ -32,7 +32,7 @@ resource "azurerm_resource_group" "management_logs" {
 
 resource "azurerm_log_analytics_workspace" "management" {
   provider = azurerm.management
-  count    = var.create_management_subscription ? 1 : 0
+  count    = var.create_subscriptions ? 1 : 0
 
   name                = "law-${var.prefix}-management"
   resource_group_name = azurerm_resource_group.management_logs[0].name

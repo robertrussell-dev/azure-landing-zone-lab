@@ -1,67 +1,69 @@
 # Modules
 
-Three modules. Each has more than one caller, which is the test applied here.
+Three of them. My rule is two callers before I pull anything out, and
+`subscription-vending` doesn't meet it.
 
 | Module | Callers | What it does |
 |---|---|---|
-| [`policy-assignment`](policy-assignment/) | 5 | A policy assignment at management group scope, plus the role assignments its managed identity needs. |
-| [`subscription-budget`](subscription-budget/) | 2 | A subscription budget with actual and forecast alert thresholds. |
-| [`subscription-vending`](subscription-vending/) | 1, growing with the estate | Create a subscription against a billing scope, place it in a management group, budget it. Composes `subscription-budget`. |
+| [`policy-assignment`](policy-assignment/) | 5 | Policy assignment at management group scope, and the role assignments its identity needs. |
+| [`subscription-budget`](subscription-budget/) | 2 | Subscription budget, actual and forecast thresholds. |
+| [`subscription-vending`](subscription-vending/) | 1 | Creates a subscription against a billing scope, places it, budgets it. Calls `subscription-budget`. |
 
-## When a module earns its place
+## The two caller rule
 
-**At the second caller.** Not before.
+One call site and I leave it inline.
 
-A module wrapping a single resource with exactly one call site adds a
-variable-passing boundary and a layer of indirection in exchange for nothing.
-A reviewer is entitled to ask why it exists, and "so that the repository has a
-modules folder" is not an answer.
+A module wrapping a single resource doesn't buy you anything at one caller. You
+still have to open it to see what it makes, so all you've added is a hop and a
+list of variables to thread through. Usually the real reason for doing it is
+that the repo looks more serious with a modules folder in it.
 
-The management group hierarchy in `infra/00-management-groups` is the worked
-counter-example. It is thirteen resources with one caller and it is
-deliberately **not** a module, because the point of that directory is that
-every group and every parent relationship is readable in one file. Wrapping it
-would make a reader chase indirection to answer "what does this create".
+`infra/00-management-groups` is the one I'd point at. Thirteen resources, one
+caller, still a flat file. That directory is laid out the way it is so you can
+read the whole tree without jumping around, and making it a module would undo
+the only thing it has going for it.
 
-`subscription-vending` is the one entry above that bends the rule, and
-knowingly. It has a single caller today. It is a module because it is the
-platform capability an application team consumes, the caller count grows with
-every landing zone the platform vends, and the sequencing it encodes (create,
-then place, then budget, and why deployment into the subscription cannot happen
-in the same apply) is knowledge that belongs somewhere reusable rather than
-inline in one root module.
+Then there's `subscription-vending`, which has one caller and is a module
+anyway. It's what an app team actually consumes, and every landing zone the
+platform vends adds a caller, so that number only moves up. It also pins down
+an ordering (create, then place, then budget) and the reason you can't deploy
+into the subscription in the same apply, and I didn't want that inline in a
+root module where nobody would find it. Although I am extracting on callers I
+don't have yet, which is the thing I just finished saying not to do. It could
+go either way.
 
-## What these modules are trying to demonstrate
+## Interface stuff
 
-Interface design over resource wrapping. Specifically:
+`subscription_id` takes a bare GUID, not a resource ID. Everyone passes the
+resource ID once, and the error you get back at apply time doesn't point at
+what you did, so it's checked at the variable instead.
 
-- **Inputs validated rather than trusted.** `subscription_id` must be a bare
-  GUID, because passing a full resource ID is the common mistake and it
-  otherwise fails at apply time with an unhelpful error. A budget must have at
-  least one contact, because a budget that alerts nobody is decoration.
-- **Behaviour switched by data, not by flags.** Passing
-  `role_definition_ids` to `policy-assignment` is what creates a managed
-  identity, so an Audit assignment never grows an identity it cannot use.
-- **Comments that carry the reason, not the mechanics.** Every non-obvious
-  line says why it is there. The `time_sleep` before a role assignment is the
-  clearest case: without the note it reads as superstition, and with it, it
-  reads as a documented `PrincipalNotFound` race.
-- **Documented limits.** `subscription-vending` says plainly what it does not
-  do and why Terraform cannot do it, rather than leaving the next person to
-  discover that a provider cannot be configured for a subscription that does
-  not exist at plan time.
+Budgets need at least one contact address. A budget with none plans and applies
+perfectly happily and then alerts nobody.
 
-## Refactoring into modules
+`policy-assignment` creates the managed identity when you pass
+`role_definition_ids`, and not otherwise. I didn't want a `create_identity`
+boolean, because then there are two inputs that can contradict each other and
+an Audit assignment can end up carrying an identity with nothing to do.
 
-Both extractions here were done with `moved` blocks, and both plans came back
-`0 to add, 0 to change, 0 to destroy`.
+Comments say why rather than what. The `time_sleep` in front of the role
+assignment is the one that matters. On its own it reads like something added to
+get a flaky apply to pass, so the comment says it's the `PrincipalNotFound`
+race and roughly how long the wait needs to be. Whoever reads it next can work
+out whether it's still needed.
 
-That matters more than it sounds. Restructuring changes a resource's address,
-and Terraform reads an address change as destroy-then-create. For a budget that
-is noise. For a subscription it means cancellation, which is exactly what
-`prevent_destroy` on `azurerm_subscription` caught, twice, during this
-refactor.
+`subscription-vending` writes down what it can't do, mostly that it can't
+create anything inside the new subscription. You can't configure a provider
+against a subscription ID that doesn't exist yet at plan time.
 
-`moved` blocks are the reviewable version of `terraform state mv`: they live in
-the configuration, they appear in the plan, and the next person can see what
-happened.
+## moved blocks
+
+Both extractions planned `0 to add, 0 to change, 0 to destroy`.
+
+Pulling a resource into a module changes its address, and Terraform reads that
+as a destroy plus a create. For a budget that's fine. For `azurerm_subscription`
+it's a cancellation, and `prevent_destroy` caught it twice while I was doing
+this.
+
+`terraform state mv` would get to the same place. I used `moved` blocks because
+they sit in the config and turn up in the plan, so there's something to review.

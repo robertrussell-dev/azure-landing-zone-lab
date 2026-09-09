@@ -17,6 +17,18 @@ data "azurerm_management_group" "platform_management" {
   name = "${var.prefix}-platform-management"
 }
 
+data "azurerm_management_group" "platform_connectivity" {
+  name = "${var.prefix}-platform-connectivity"
+}
+
+data "azurerm_management_group" "corp" {
+  name = "${var.prefix}-lz-corp"
+}
+
+data "azurerm_management_group" "online" {
+  name = "${var.prefix}-lz-online"
+}
+
 # ---------------------------------------------------------------------------
 # Brownfield placement
 # ---------------------------------------------------------------------------
