@@ -162,10 +162,9 @@ reason, not for ordering ARM would have worked out.
 **Placement is a separate resource, deliberately.** The alias API can place the
 subscription itself, through `additionalProperties.managementGroupId`. It isn't
 used. A subscription being adopted from an existing estate is moved with
-`Microsoft.Management/managementGroups/subscriptions` and nothing else, so
-using the same resource for a new one keeps a single code path - which is
-exactly what `bicep/20-subscription-placement` relies on for the brownfield
-case.
+`Microsoft.Management/managementGroups/subscriptions` and nothing else. Using
+the same resource for a new one keeps a single code path, which is exactly what
+`bicep/20-subscription-placement` relies on for the brownfield case.
 
 **There is no `prevent_destroy`.** The Terraform module sets it on
 `azurerm_subscription` because `terraform destroy` would otherwise cancel a

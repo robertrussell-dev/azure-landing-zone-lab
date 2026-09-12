@@ -134,13 +134,12 @@ this module pins. Microsoft's own troubleshooting page names the error and
 prescribes the property:
 [Troubleshoot Azure RBAC](https://learn.microsoft.com/azure/role-based-access-control/troubleshooting#azure-role-assignments).
 
-Worth being precise about what the difference actually is, because it's easy to
-tell as a Bicep-is-better story and that isn't it. The Terraform module sets
-`principal_type = "ServicePrincipal"` as well. It carries the wait *in addition*
-to the property, and I haven't gone back to test whether removing the wait now
-passes reliably - the sleep went in because applies were failing, and I've left
-it. So the honest statement is that this module doesn't need a wait and the
-Terraform one has one, not that the property is missing over there.
+Worth being precise, because this is easy to tell as a Bicep-is-better story
+and that isn't what it is. The Terraform module sets
+`principal_type = "ServicePrincipal"` too, so the property isn't missing over
+there. It carries the wait *as well as* the property, and whether the wait is
+still earning its place now that the property is set is untested. So the claim
+here is a narrow one: this module doesn't carry a wait, the Terraform one does.
 
 **`definitionVersion` exists because what-if found it.** Built-in definitions
 are versioned, and an assignment records which versions it tracks. Nothing in

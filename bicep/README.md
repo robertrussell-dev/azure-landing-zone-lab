@@ -6,12 +6,12 @@ architecture decisions in [`docs/adr`](../docs/adr/) describe this tree as
 accurately as they describe the Terraform one, because none of them turned on
 the tool.
 
-It exists for one reason: the decisions are the point of this repository, and
-writing the same decisions twice is the cheapest way to find out which parts of
-the Terraform version were architecture and which parts were Terraform.
+I wrote it for one reason. The decisions are the point of this repository, and
+writing them twice is the cheapest way I know to find out which parts of the
+Terraform version were architecture and which parts were just Terraform.
 
-Some of it was neither, which is the interesting bit. Those are collected in
-[What's actually different](#whats-actually-different).
+Some of it turned out to be neither, which is the interesting bit. Those are
+collected in [What's actually different](#whats-actually-different).
 
 ## Layout
 
@@ -36,8 +36,12 @@ picture:
 
 ## Deploying
 
+[runbooks/deploy-and-destroy.md](../runbooks/deploy-and-destroy.md) walks both
+implementations end to end, including the order and the teardown. This section
+is the reference for the Bicep commands themselves.
+
 Each root takes a `.bicepparam` file. Copy the committed example, which is a
-real parameter file rather than sample text - CI compiles the examples against
+real parameter file rather than sample text. CI compiles the examples against
 their templates, so a renamed parameter breaks the build rather than turning up
 at deployment time.
 
@@ -66,7 +70,7 @@ is deliberate and is explained in the file header and in
 [Scope replaces the provider](#scope-replaces-the-provider). Any management
 group the operator can deploy to works, not only the tenant root: targeting
 `contoso` gives the identical result. The tenant root is what the command
-above uses because it is the only one guaranteed to exist before the
+above uses because it's the only one guaranteed to exist before the
 hierarchy does.
 
 Then the rest, each at its own scope:
@@ -122,8 +126,7 @@ all.
 
 ## Destroying
 
-There isn't a `bicep destroy`, and this tree deliberately doesn't try to fake
-one.
+There isn't a `bicep destroy`, and I haven't tried to fake one.
 
 - Complete mode deletes what a template doesn't declare, but it's
   [resource group scoped only](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes)
@@ -131,8 +134,8 @@ one.
   except the seeded network and the workspace.
 - [Deployment stacks](https://learn.microsoft.com/azure/azure-resource-manager/bicep/deployment-stacks)
   are the supported answer and do work at every scope. Adopting them is a real
-  decision - `denySettings` changes who can touch a managed resource outside
-  the stack - and it isn't made here.
+  decision, because `denySettings` changes who can touch a managed resource
+  from outside the stack, and I haven't made it.
 - So: `az group delete`, `az policy assignment delete`, `az account management-group delete`,
   bottom up, same order as the Terraform destroy.
 
@@ -152,7 +155,7 @@ reach whatever you have rights to, management groups included. A Bicep
 deployment has a scope instead, every `resource` in a file has to belong to
 that scope, and a module is how you cross a boundary.
 
-That reshapes the tree, and the reshaping is not always forced.
+That reshapes the tree, and the reshaping isn't always forced.
 
 `20-subscription-placement` is a **tenant** deployment and can't be anything
 else, because `Microsoft.Subscription/aliases` is a tenant only resource type.
@@ -173,9 +176,8 @@ grant you can scope and the other isn't.
 
 None of this is theoretical. The account that built this hierarchy through
 Terraform couldn't run a what-if against it in Bicep until the
-[permission wall](#the-permission-wall-and-what-was-done-about-it) was dealt with, and
-after the restructure only one of the two roots still needs a grant to get
-past it.
+[permission wall](#the-permission-wall-and-what-was-done-about-it) was dealt
+with. After the restructure, only one of the two roots still needs a grant.
 
 It also means a file can be a module for a reason that has nothing to do with
 reuse. `20-subscription-placement/management-logs.bicep` exists because a
@@ -194,8 +196,8 @@ more than one tenant can't send an apply to the wrong one with a stray
 Nothing in a Bicep file can do that. The scope comes from the CLI and the
 signed in context, and the template has no say. The closest available guard is
 the `deployedToTenantId` output, which surfaces the answer in a what-if before
-the create - a check you have to read rather than one that stops you. This is a
-straightforward loss and it's worth naming as one.
+the create. That's a check you have to read rather than one that stops you.
+It's a straightforward loss and I'd rather name it than not.
 
 ### There is no state, and that cuts both ways
 
@@ -233,7 +235,8 @@ so a redeploy strips `costCenter` and the policy puts it back on the next
 evaluation. Nothing reports it. There's no plan to be dirty and no
 `ignore_changes` to settle it with.
 
-Worse, not better. A visible argument you have to resolve beats an invisible
+Worse, not better, and I'd say so even though it's my own tree. A visible
+argument you have to resolve beats an invisible
 loop nobody notices.
 
 ### Two things Bicep does that Terraform can't
@@ -241,8 +244,8 @@ loop nobody notices.
 **Vending is one deployment, not two applies.** The Terraform
 `subscription-vending` module documents that it can't create anything inside
 the subscription it creates, because a provider needs a `subscription_id` at
-plan time. Bicep hits the same wall - a resource name and a module scope both
-have to be resolvable before the deployment starts - and can get past it, by
+plan time. Bicep hits the same wall: a resource name and a module scope both
+have to be resolvable before the deployment starts. It can get past it, by
 passing the ID one level down as a parameter. So placement and the budget
 happen in the run that creates the subscription. The trick and the exact
 compiler error are in
@@ -409,7 +412,7 @@ group whose placement the ADRs actually argue about:
 
 The intermediate root was declared without `details.parent`, on the correct
 theory that omitting it places a group under the tenant root. The Terraform
-version relies on the same default. But an omission is not a statement, and
+version relies on the same default. But an omission isn't a statement, and
 against an existing group what-if reads it as removing the parent. Naming the
 parent explicitly - the tenant root management group's ID is the tenant ID -
 costs one line and makes the tree's most argued-over edge a declaration rather
@@ -447,7 +450,8 @@ expression:
     "[format('{0}T00:00:00Z', utcNow('yyyy-MM-01'))]"
 ```
 
-`utcNow()` is evaluated at deployment time, so a preview cannot tell you
+`utcNow()` is evaluated at deployment time, so a preview can't
+tell you
 whether the date is about to change. Today it resolves to the value already
 there and nothing moves. That is the concrete argument for pinning `startDate`
 in the parameter file once a budget exists, which the module README already
@@ -474,7 +478,7 @@ root: enough to build the entire hierarchy through Terraform, and not enough to
 run a tenant deployment against it, because `Microsoft.Authorization/*` does not
 include `Microsoft.Resources/deployments/*`.
 
-There is no least-privilege fix at that scope. A custom role carrying only
+There's no least-privilege fix at that scope. A custom role carrying only
 `Microsoft.Resources/deployments/*` can't be assigned at `/`, because Azure
 [forbids `assignableScopes` of `/` for custom roles](https://learn.microsoft.com/azure/role-based-access-control/custom-roles#custom-role-limits).
 Only built-in roles reach root scope, and the narrowest one carrying that action
@@ -489,7 +493,7 @@ Microsoft
 for principals that can't deploy at the tenant. The hierarchy it produces is
 byte for byte what it produced before, verified by re-running the what-if: 13
 resources, 13 `Nochange`, and the report still lists them at scope `/` because
-that is genuinely where they live. Targeting the tenant root management group
+that's genuinely where they live. Targeting the tenant root management group
 and targeting `contoso` both give the identical result, so the deployment can
 run from any management group the operator holds rights on.
 
@@ -500,11 +504,11 @@ this directory can be authorised with `Microsoft.Resources/deployments/*` and
 grant is described, not demonstrated.** The account here now holds Owner at `/`,
 which satisfies every scope and therefore masks whether a tighter one would
 have been sufficient. Proving it would mean giving the lab operator less access,
-which is not a change worth making to produce a screenshot.
+which isn't a change worth making just to produce a screenshot.
 
 **`20-subscription-placement` still needs it.** `Microsoft.Subscription/aliases`
-is tenant only and there is no equivalent escape, so this one is a tenant
-deployment or it is nothing.
+is tenant only and there's no equivalent escape, so this one is a tenant
+deployment or it's nothing.
 
 **Owner at `/` is assigned to the lab operator, deliberately and permanently.**
 So is the elevated access it sits alongside. Both are recorded here rather than
@@ -512,8 +516,8 @@ left to be discovered, because a repository about governance should not have
 undocumented standing access at tenant root. In a real estate neither would be
 acceptable: Microsoft's guidance is that elevated access is temporary, and
 standing Owner at `/` is the widest grant Azure offers. This is a single user,
-two subscription personal tenant where the alternative is re-elevating for every
-preview, and the trade was made with the cost known.
+two subscription personal tenant where the alternative is re-elevating for
+every preview, and I made that trade knowing what it costs.
 
 The honest summary is that the restructure halved the problem rather than
 solving it. One root now sits at a scope you can reason about; the other still
@@ -521,8 +525,8 @@ requires the widest grant Azure has.
 
 ## What isn't here
 
-**[ALZ-Bicep](https://github.com/Azure/ALZ-Bicep) isn't used**, for the same
-reason `Azure/avm-ptn-alz/azurerm` isn't used on the Terraform side. ADR 0007
+**I didn't use [ALZ-Bicep](https://github.com/Azure/ALZ-Bicep)**, for the same
+reason I didn't use `Azure/avm-ptn-alz/azurerm` on the Terraform side. ADR 0007
 records that decision and it applies unchanged. Five policy assignments against
 the accelerator's several hundred: what this shows is the mechanics, not a
 governance baseline.

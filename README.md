@@ -232,6 +232,11 @@ its managed identity.
 
 ## Deploying
 
+[runbooks/deploy-and-destroy.md](runbooks/deploy-and-destroy.md) is the
+step-by-step version of this section and the next one, for both
+implementations, including the two stages you have to run twice and what
+happens when you try to tear it all down.
+
 Directories are numbered in deployment order. Each one is an independent root
 module with its own state, and resolves management group scopes by name instead
 of reading another directory's state, so there's no shared backend and no
@@ -275,6 +280,10 @@ cd ../00-management-groups         && terraform destroy
 
 Reverse order. Nothing in the deployed set bills more than trivial amounts, so
 this is hygiene rather than cost.
+
+That command fails on `20-subscription-placement` if you vended subscriptions,
+which is deliberate and is dealt with in
+[the runbook](runbooks/deploy-and-destroy.md#terraform-destroy-on-20-will-fail-by-design).
 
 `azurerm_subscription` has `prevent_destroy` on it. Destroying it cancels the
 subscription, and I didn't want a `terraform destroy` quietly cancelling a

@@ -25,13 +25,13 @@ also the only way to change scope. A deployment targets one scope, every
 `resource` in the file has to belong to it, and a module is what crosses the
 boundary.
 
-So some of the files under `bicep/` are modules because they're reused, and
-some are modules because a resource group is a subscription level resource and
-a workspace inside it isn't. `20-subscription-placement/management-logs.bicep`
+So some of the files under `bicep/` are modules because I reused them, and some
+are modules because a resource group is a subscription level resource and a
+workspace inside it isn't. `20-subscription-placement/management-logs.bicep`
 is the second kind. It has one caller and always will, and it's still a
 separate file.
 
-That's why the two caller rule only governs what lands in this directory.
+That's why I only apply the two caller rule to what lands in this directory.
 Scope shims stay next to the root module that needs them, because they're not
 reusable and pretending otherwise would fill `modules/` with files nobody can
 call.
@@ -44,8 +44,8 @@ address change as destroy plus create. `prevent_destroy` on
 `azurerm_subscription` caught that twice while the modules were being
 extracted.
 
-There's no equivalent here and nothing to write. ARM identifies a resource by
-its type, name and scope. Moving the declaration into a module, renaming the
+I had nothing to write here. ARM identifies a resource by its type, name and
+scope. Moving the declaration into a module, renaming the
 symbol, reordering a loop: none of it changes any of those three, so the next
 deployment matches the existing resource and does nothing.
 
@@ -75,9 +75,9 @@ nobody spends them again.
 
 **Empty string instead of null.** Terraform's `null` means "not set" and
 `policy-assignment` uses it for `location` and `non_compliance_message`. Bicep
-parameters can't default to null without declaring the type as nullable, so
-these default to `''` and the module tests with `empty()`. Same behaviour,
-slightly worse spelling.
+parameters can't default to null without declaring the type as nullable, so I
+defaulted these to `''` and tested with `empty()`. Same behaviour, slightly
+worse spelling.
 
 **Conditional creation reads the same and works differently.** Terraform uses
 `count = condition ? 1 : 0` and callers index into `[0]`. Bicep puts the
