@@ -4,9 +4,9 @@ A subscription budget with an actual-spend alert and a forecast alert.
 
 ## Why this is a module
 
-Two callers today: the adopted brownfield subscription and the platform
-management subscription. Every subscription this platform vends gets one, so
-the caller count grows with the estate.
+Three callers today: the adopted brownfield subscription, every subscription
+`subscription-vending` creates, and the connectivity network in
+`90-optional-network`.
 
 ## Usage
 

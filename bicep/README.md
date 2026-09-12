@@ -315,7 +315,9 @@ the Bicep at the same prefix and what-if compares the two, which is the closest
 this repository gets to proving the translation is faithful without deploying
 it.
 
-All four roots have now been checked. Two of them needed a tenant root grant
+All four roots with a deployed Terraform counterpart have now been checked.
+`90-optional-network` has nothing deployed to compare against, so its what-if
+only shows creates. Two of the four needed a tenant root grant
 to get there, which is its own finding and is
 [recorded below](#the-permission-wall-and-what-was-done-about-it).
 
@@ -537,7 +539,7 @@ running in the tenant, and the evidence in [`docs/evidence`](../docs/evidence/)
 came from it. "It builds" and "it deployed" are different claims and only one
 of them is being made.
 
-All four roots have been checked against the live estate with what-if, which is
+All five roots have been checked against the live estate with what-if, which is
 a weaker claim than deployment and a much stronger one than compilation. The
 hierarchy comes back identical, all five policy assignments match, and every
 remaining difference is

@@ -106,27 +106,35 @@ module brownfieldBudget '../modules/subscription-budget/main.bicep' = {
 //
 // Placement is the archetype decision from ADR 0003 made concrete: it is what
 // determines the policy set and role assignments each subscription inherits.
+//
+// vend marks which entries actually get created. The list is the whole plan;
+// vend = false keeps a subscription in it, placed and named, without paying for
+// it yet.
 var subscriptions = [
   {
     displayName: 'sub-management'
     managementGroupName: '${prefix}-platform-management'
+    vend: true
   }
   {
     displayName: 'sub-connectivity'
     managementGroupName: '${prefix}-platform-connectivity'
+    vend: true
   }
   {
     displayName: 'sub-corp-payments-prod'
     managementGroupName: '${prefix}-lz-corp'
+    vend: false
   }
   {
     displayName: 'sub-online-portal-prod'
     managementGroupName: '${prefix}-lz-online'
+    vend: true
   }
 ]
 
 module subscriptionVending '../modules/subscription-vending/main.bicep' = [
-  for vendedSubscription in subscriptions: if (createSubscriptions) {
+  for vendedSubscription in subscriptions: if (createSubscriptions && vendedSubscription.vend) {
     name: take('vend-${vendedSubscription.displayName}', 64)
     params: {
       displayName: vendedSubscription.displayName

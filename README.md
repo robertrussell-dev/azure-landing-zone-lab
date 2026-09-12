@@ -12,9 +12,10 @@ were architecture and which parts were Terraform, and
 [bicep/README.md](bicep/README.md) is a list of everything that turned out to
 be the second kind. The Terraform is the copy that's deployed; the Bicep
 compiles, lints and scans in CI and has never been applied to the tenant. All
-four of its roots have been run through `what-if` against the live estate: the
-management group hierarchy comes back identical and all five policy assignments
-match, which is the real evidence that the two trees describe the same thing.
+five of its roots have been run through `what-if` against the live estate. For
+the four with a deployed Terraform counterpart, the management group hierarchy
+comes back identical and all five policy assignments match, which is the real
+evidence that the two trees describe the same thing.
 The four defects that found, and every remaining difference, are in
 [bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate).
 
@@ -71,7 +72,7 @@ for a single subscription exception (0002).
 |---|---|
 | Management groups | 13, counting the intermediate root and the audit only Corp duplicate |
 | Policy assignments | 5 live, covering all five effects |
-| Subscriptions | 4. One adopted brownfield, plus `sub-management`, `sub-connectivity` and `sub-online-portal-prod` vended through Terraform. `corp-payments-prod` is in the vending map but not created |
+| Subscriptions | 4. One adopted brownfield, plus `sub-management`, `sub-connectivity` and `sub-online-portal-prod` vended through Terraform. `corp-payments-prod` is in the vending map with `vend = false` |
 | Log Analytics | One workspace in the management subscription, 30 day retention, 0.1 GB daily cap |
 | Budgets | On every subscription, actual and forecast thresholds |
 | Compliance | Evaluated. 4 compliant, 2 non compliant, both on purpose |
@@ -155,10 +156,12 @@ The third row is the Modify effect. Five resources are compliant with the
 The hierarchy screenshot is at
 [docs/evidence/hierarchy-portal.png](docs/evidence/hierarchy-portal.png).
 
-Both screenshots were captured on 6 and 7 September 2026. The hierarchy has not
-changed since, which the Bicep what-if in
-[bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate)
-independently confirms: 13 groups, no differences.
+Both screenshots were captured on 6 and 7 September 2026. The hierarchy one is
+older than the tree: it predates the `Corp (audit only)` group and the
+subscription placements, so it shows 12 groups and DemoSubscription still under
+the tenant root. The [diagram above](#hierarchy) is current, and the Bicep
+what-if in [bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate)
+confirms the live tree matches it: 13 groups, no differences.
 
 ## Constraints
 
@@ -216,11 +219,13 @@ to be specific:
   tenant that's the right choice. For this I wanted the tree readable.
 - The policy assignments and where they're scoped (`terraform/10-policy`).
 - Subscription vending and placement (`terraform/20-subscription-placement`).
-- Three local modules in [`terraform/modules/`](terraform/modules/): `policy-assignment`,
-  `subscription-budget` and `subscription-vending`. The rule I used for pulling
-  them out, and the one place I broke it, are in
+- The hub and spoke network (`terraform/90-optional-network`), built from the
+  address plan in [docs/ip-plan.md](docs/ip-plan.md).
+- Four local modules in [`terraform/modules/`](terraform/modules/): `policy-assignment`,
+  `subscription-budget`, `subscription-vending` and `spoke-network`. The rule I
+  used for pulling them out, and the two places I broke it, are in
   [terraform/modules/README.md](terraform/modules/README.md).
-- All of the above again in [`bicep/`](bicep/), including the same three
+- All of the above again in [`bicep/`](bicep/), including the same four
   modules in [`bicep/modules/`](bicep/modules/). Where a Bicep file exists that
   has no Terraform counterpart it's because a Bicep module is the only way to
   change deployment scope, and [bicep/modules/README.md](bicep/modules/README.md)

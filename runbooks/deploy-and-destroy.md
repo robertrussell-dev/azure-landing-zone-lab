@@ -129,8 +129,9 @@ The central workspace is created through an aliased provider pointed at
 it. `terraform plan` succeeds anyway with that variable unset, which was
 checked rather than assumed. The apply is where it matters.
 
-1. Apply with `create_subscriptions = true`. The subscriptions get vended and
-   placed.
+1. Apply with `create_subscriptions = true`. Every subscription marked
+   `vend = true` in `subscriptions.tf` gets vended and placed. The rest stay in
+   the map without being created, so flip one to `true` when you want it.
 2. Read the new management subscription's GUID:
    `az account list --all --query "[?name=='sub-management'].id" -o tsv`
 3. Put it in `terraform.tfvars` as `management_subscription_id`.

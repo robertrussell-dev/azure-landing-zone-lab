@@ -7,9 +7,9 @@ The Bicep counterpart of
 
 ## Why this is a module
 
-Two callers today: the adopted brownfield subscription and every subscription
-`subscription-vending` creates. Every subscription this platform vends gets
-one, so the caller count grows with the estate.
+Three callers today: the adopted brownfield subscription, every subscription
+`subscription-vending` creates, and the connectivity network in
+`90-optional-network`.
 
 ## Usage
 
