@@ -29,8 +29,8 @@ variable "policy_definition_id" {
 }
 
 variable "parameters" {
-  description = "Policy parameters as a flat map. The module wraps each value in the {\"value\": x} shape Azure expects."
-  type        = map(any)
+  description = "Policy parameters by name. Values can be strings, lists or objects, which is why this is any rather than map(any): a map needs every value to share one type. The module wraps each value in the {\"value\": x} shape Azure expects."
+  type        = any
   default     = {}
 }
 

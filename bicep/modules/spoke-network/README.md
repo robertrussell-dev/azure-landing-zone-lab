@@ -46,6 +46,8 @@ module spoke '../modules/spoke-network/main.bicep' = [
 | `firewallPrivateIp` | string | `''` | Empty leaves the route table in place and unpopulated. |
 | `useRemoteGateways` | bool | `false` | Azure rejects the peering if this is true and the hub has no gateway. |
 | `peerPrefixes` | array | `[]` | Other archetypes' supernets, routed to the firewall. |
+| `subnetNsgPolicyAssignmentId` | string | `''` | The subnet NSG audit assignment. When set, `snet-appgw` gets a Waiver against it. |
+| `appgwWaiverExpiresOn` | string | `2027-09-12T00:00:00Z` | When that waiver lapses. |
 | `tags` | object | `{}` | |
 
 The resource group is the module's deployment scope, not a parameter.
@@ -84,4 +86,6 @@ convention.
 no network security group and no route table, because Application Gateway v2
 needs inbound 65200-65535 from `GatewayManager` and a default route to a
 firewall breaks its control plane. Both would do harm until a gateway is
-actually deployed there.
+actually deployed there. The subnet carries a Waiver against the NSG audit, with
+an expiry, so the decision shows in the compliance report and comes back up for
+review.

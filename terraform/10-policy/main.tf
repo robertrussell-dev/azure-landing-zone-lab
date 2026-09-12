@@ -1,8 +1,9 @@
 # Policy assignments.
 #
-# Deliberately a small set. Five assignments that can each be explained beat
+# Deliberately a small set. Seven assignments that can each be explained beat
 # the full Azure landing zone default set, which is hundreds of policies nobody
-# in this repo could defend individually.
+# in this repo could defend individually. Five each show one policy effect; the
+# last two are the subscription baseline.
 #
 # Scopes are resolved by data source lookup rather than by reading the state of
 # terraform/00-management-groups. The management group names are deterministic,
@@ -35,7 +36,9 @@ data "azurerm_management_group" "platform_management" {
 # zone write ups often claim it is.
 locals {
   definitions = {
-    # AuditIfNotExists. Allowed effects: AuditIfNotExists, Disabled.
+    # AuditIfNotExists. Allowed effects: AuditIfNotExists, Disabled. It reads a
+    # Defender for Cloud assessment rather than the subnet, so it only reports
+    # correctly where Defender is on; modules/subscription-baseline turns it on.
     subnets_need_nsg = "/providers/Microsoft.Authorization/policyDefinitions/e71308d3-144b-4262-b144-efdc3cc90517"
 
     # Modify. Requires a managed identity holding Contributor.
@@ -47,12 +50,20 @@ locals {
     # DeployIfNotExists. Requires an identity holding Log Analytics
     # Contributor and Monitoring Contributor.
     nsg_diagnostics = "/providers/Microsoft.Authorization/policyDefinitions/98a2e215-5382-489e-bd29-32e7190a39ba"
+
+    # DeployIfNotExists. Same two roles as nsg_diagnostics.
+    activity_log = "/providers/Microsoft.Authorization/policyDefinitions/2465583e-4e78-4c15-b6be-a36cbc7c8b0f"
+
+    # DeployIfNotExists. Requires Monitoring Policy Contributor. Creates a
+    # resource group, an action group and an alert rule in each subscription.
+    service_health = "/providers/Microsoft.Authorization/policyDefinitions/98903777-a9f6-47f5-90a9-acaf62ab01a8"
   }
 
   role_ids = {
     contributor               = "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
     log_analytics_contributor = "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
     monitoring_contributor    = "/providers/Microsoft.Authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa"
+    monitoring_policy_contrib = "/providers/Microsoft.Authorization/roleDefinitions/47be4a87-7950-4631-9daf-b664a405f074"
   }
 }
 
@@ -176,5 +187,68 @@ module "deploy_nsg_diagnostics" {
 
   parameters = {
     logAnalytics = var.log_analytics_workspace_id
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Intermediate root: the subscription baseline
+# ---------------------------------------------------------------------------
+# Both of these configure every subscription under the intermediate root,
+# including ones vended later, which is why they are policy rather than
+# per subscription resources. DeployIfNotExists only acts when a subscription is
+# created or updated, so existing subscriptions need a one off remediation task;
+# the runbook covers it.
+
+# Activity log to the central workspace. Activity log ingestion into Log
+# Analytics is free, as are its first 90 days of retention.
+module "deploy_activity_log" {
+  source = "../modules/policy-assignment"
+  count  = var.log_analytics_workspace_id == null ? 0 : 1
+
+  name                 = "dine-activity-log"
+  display_name         = "Send subscription activity logs to the central workspace"
+  description          = "Every subscription streams its activity log to the platform workspace, so there is one place to answer who changed what, including in subscriptions vended after this was assigned."
+  management_group_id  = data.azurerm_management_group.intermediate_root.id
+  policy_definition_id = local.definitions.activity_log
+  location             = var.location
+
+  role_definition_ids = [
+    local.role_ids.log_analytics_contributor,
+    local.role_ids.monitoring_contributor,
+  ]
+
+  parameters = {
+    logAnalytics = var.log_analytics_workspace_id
+  }
+}
+
+# Service Health alerts. Emails whoever is listed when Azure has an incident,
+# planned maintenance or an advisory affecting a subscription. The alert rule is
+# free and so are the first 1,000 emails a month.
+module "deploy_service_health_alerts" {
+  source = "../modules/policy-assignment"
+  count  = length(var.alert_emails) == 0 ? 0 : 1
+
+  name                 = "dine-service-health"
+  display_name         = "Configure Service Health alerts in every subscription"
+  description          = "Each subscription gets a Service Health alert rule and an action group, so an Azure incident affecting it reaches the platform team rather than being found in the portal afterwards."
+  management_group_id  = data.azurerm_management_group.intermediate_root.id
+  policy_definition_id = local.definitions.service_health
+  location             = var.location
+
+  role_definition_ids = [local.role_ids.monitoring_policy_contrib]
+
+  parameters = {
+    resourceGroupName     = "rg-service-health-alerts"
+    resourceGroupLocation = var.location
+    actionGroupResources = {
+      actionGroupEmail    = var.alert_emails
+      eventHubResourceId  = []
+      functionResourceId  = ""
+      functionTriggerUrl  = ""
+      logicappCallbackUrl = ""
+      logicappResourceId  = ""
+      webhookServiceUri   = []
+    }
   }
 }

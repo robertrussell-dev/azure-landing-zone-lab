@@ -61,3 +61,16 @@ module "budget" {
 
   depends_on = [azurerm_management_group_subscription_association.this]
 }
+
+# Resource providers and Defender's free tier. The same people who get the
+# budget alerts get the security alerts.
+module "baseline" {
+  source = "../subscription-baseline"
+
+  subscription_id         = azurerm_subscription.this.subscription_id
+  security_contact_emails = var.budget_contact_emails
+
+  # Writes inside the new subscription, so it waits for placement for the same
+  # reason the budget does. See the README.
+  depends_on = [azurerm_management_group_subscription_association.this]
+}

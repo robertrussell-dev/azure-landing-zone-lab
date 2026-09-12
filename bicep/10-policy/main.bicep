@@ -1,8 +1,9 @@
 // Policy assignments.
 //
-// Deliberately a small set. Five assignments that can each be explained beat
+// Deliberately a small set. Seven assignments that can each be explained beat
 // the full Azure landing zone default set, which is hundreds of policies nobody
-// in this repo could defend individually.
+// in this repo could defend individually. Five each show one policy effect; the
+// last two are the subscription baseline.
 //
 // Scopes are resolved by name, not by reading the output of another deployment.
 // The management group names are deterministic, derived from the same prefix,
@@ -36,6 +37,9 @@ param costCenterTagValue string = 'lab'
 @description('Full resource ID of the workspace the DeployIfNotExists assignment targets. Empty until bicep/20 creates it, which leaves that assignment out of the deployment. See the README for why this is sequenced that way.')
 param logAnalyticsWorkspaceId string = ''
 
+@description('Addresses the Service Health alerts in every subscription notify. Empty leaves that assignment out.')
+param alertEmails array = []
+
 // Built in definition IDs, read from the platform rather than typed from
 // memory. Effects and required roles were verified with
 // "az policy definition show" before use, because a definition's allowed
@@ -48,7 +52,9 @@ param logAnalyticsWorkspaceId string = ''
 // spells out by hand, and will not silently produce a management group scoped
 // ID if this file is ever deployed from somewhere else in the tree.
 var definitions = {
-  // AuditIfNotExists. Allowed effects: AuditIfNotExists, Disabled.
+  // AuditIfNotExists. Allowed effects: AuditIfNotExists, Disabled. It reads a
+  // Defender for Cloud assessment rather than the subnet, so it only reports
+  // correctly where Defender is on; modules/subscription-baseline turns it on.
   subnetsNeedNsg: tenantResourceId('Microsoft.Authorization/policyDefinitions', 'e71308d3-144b-4262-b144-efdc3cc90517')
 
   // Modify. Requires a managed identity holding Contributor.
@@ -60,6 +66,13 @@ var definitions = {
   // DeployIfNotExists. Requires an identity holding Log Analytics Contributor
   // and Monitoring Contributor.
   nsgDiagnostics: tenantResourceId('Microsoft.Authorization/policyDefinitions', '98a2e215-5382-489e-bd29-32e7190a39ba')
+
+  // DeployIfNotExists. Same two roles as nsgDiagnostics.
+  activityLog: tenantResourceId('Microsoft.Authorization/policyDefinitions', '2465583e-4e78-4c15-b6be-a36cbc7c8b0f')
+
+  // DeployIfNotExists. Requires Monitoring Policy Contributor. Creates a
+  // resource group, an action group and an alert rule in each subscription.
+  serviceHealth: tenantResourceId('Microsoft.Authorization/policyDefinitions', '98903777-a9f6-47f5-90a9-acaf62ab01a8')
 }
 
 var roleIds = {
@@ -71,6 +84,10 @@ var roleIds = {
   monitoringContributor: tenantResourceId(
     'Microsoft.Authorization/roleDefinitions',
     '749f88d5-cbae-40b8-bcfc-e573ddc772fa'
+  )
+  monitoringPolicyContributor: tenantResourceId(
+    'Microsoft.Authorization/roleDefinitions',
+    '47be4a87-7950-4631-9daf-b664a405f074'
   )
 }
 
@@ -195,6 +212,67 @@ module deployNsgDiagnostics '../modules/policy-assignment/main.bicep' = if (!emp
   }
 }
 
+// ---------------------------------------------------------------------------
+// Intermediate root: the subscription baseline
+// ---------------------------------------------------------------------------
+// Both of these configure every subscription under the intermediate root,
+// including ones vended later, which is why they are policy rather than per
+// subscription resources. DeployIfNotExists only acts when a subscription is
+// created or updated, so existing subscriptions need a one off remediation
+// task; the runbook covers it.
+
+// Activity log to the central workspace. Activity log ingestion into Log
+// Analytics is free, as are its first 90 days of retention.
+module deployActivityLog '../modules/policy-assignment/main.bicep' = if (!empty(logAnalyticsWorkspaceId)) {
+  scope: managementGroup(prefix)
+  name: 'assign-dine-activity-log'
+  params: {
+    name: 'dine-activity-log'
+    displayName: 'Send subscription activity logs to the central workspace'
+    policyDescription: 'Every subscription streams its activity log to the platform workspace, so there is one place to answer who changed what, including in subscriptions vended after this was assigned.'
+    policyDefinitionId: definitions.activityLog
+    location: location
+    roleDefinitionIds: [
+      roleIds.logAnalyticsContributor
+      roleIds.monitoringContributor
+    ]
+    parameters: {
+      logAnalytics: logAnalyticsWorkspaceId
+    }
+  }
+}
+
+// Service Health alerts. Emails whoever is listed when Azure has an incident,
+// planned maintenance or an advisory affecting a subscription. The alert rule
+// is free and so are the first 1,000 emails a month.
+module deployServiceHealthAlerts '../modules/policy-assignment/main.bicep' = if (!empty(alertEmails)) {
+  scope: managementGroup(prefix)
+  name: 'assign-dine-service-health'
+  params: {
+    name: 'dine-service-health'
+    displayName: 'Configure Service Health alerts in every subscription'
+    policyDescription: 'Each subscription gets a Service Health alert rule and an action group, so an Azure incident affecting it reaches the platform team rather than being found in the portal afterwards.'
+    policyDefinitionId: definitions.serviceHealth
+    location: location
+    roleDefinitionIds: [
+      roleIds.monitoringPolicyContributor
+    ]
+    parameters: {
+      resourceGroupName: 'rg-service-health-alerts'
+      resourceGroupLocation: location
+      actionGroupResources: {
+        actionGroupEmail: alertEmails
+        eventHubResourceId: []
+        functionResourceId: ''
+        functionTriggerUrl: ''
+        logicappCallbackUrl: ''
+        logicappResourceId: ''
+        webhookServiceUri: []
+      }
+    }
+  }
+}
+
 @description('Policy assignment IDs by short name.')
 output assignmentIds object = union(
   {
@@ -207,6 +285,16 @@ output assignmentIds object = union(
     ? {}
     : {
         deployNsgDiagnostics: deployNsgDiagnostics!.outputs.id
+      },
+  empty(logAnalyticsWorkspaceId)
+    ? {}
+    : {
+        deployActivityLog: deployActivityLog!.outputs.id
+      },
+  empty(alertEmails)
+    ? {}
+    : {
+        deployServiceHealthAlerts: deployServiceHealthAlerts!.outputs.id
       }
 )
 

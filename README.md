@@ -6,7 +6,7 @@ reference and a learning artifact rather than a production deployment, and I've
 tried to be specific below about what's in it and what isn't.
 
 The same landing zone is also written in Bicep, in [`bicep/`](bicep/). Same
-hierarchy, same five assignments, same ADRs. Writing it twice is the cheapest
+hierarchy, same seven assignments, same ADRs. Writing it twice is the cheapest
 way I know to find out which parts of the Terraform were architecture and which
 were just Terraform, and [bicep/README.md](bicep/README.md) lists everything
 that turned out to be the second kind.
@@ -14,7 +14,7 @@ that turned out to be the second kind.
 The Terraform is the copy that's deployed. The Bicep compiles, lints and scans
 in CI but has never been applied. Instead, all five of its roots have been run
 through `what-if` against the live estate, and for the four with a deployed
-Terraform counterpart the hierarchy comes back identical and all five policy
+Terraform counterpart the hierarchy comes back identical and all seven policy
 assignments match. The four defects that turned up, and every remaining
 difference, are in [bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate).
 
@@ -69,17 +69,21 @@ for a single subscription exception (0002).
 | Area | State |
 |---|---|
 | Management groups | 13, counting the intermediate root and the audit only Corp duplicate |
-| Policy assignments | 5 live, covering all five effects |
+| Policy assignments | 7 live: five that each show one effect, and two that make up the subscription baseline |
 | Subscriptions | 4. One adopted brownfield, plus `sub-management`, `sub-connectivity` and `sub-online-portal-prod` vended through Terraform. `corp-payments-prod` is in the vending map with `vend = false` |
 | Log Analytics | One workspace in the management subscription, 30 day retention, 0.1 GB daily cap |
 | Budgets | On every subscription, actual and forecast thresholds |
-| Compliance | Evaluated. 4 compliant, 2 non compliant, both on purpose |
-| Hub and spoke network | Written, not deployed. The free layer costs nothing at rest, see below |
+| Subscription baseline | Every subscription sends its activity log to the workspace and has Service Health alerts, both through policy. Each also has Defender for Cloud's free posture tier and a security contact, from vending |
+| Tenant settings | New subscriptions land in Sandboxes by default, and creating management groups needs permission. A narrow `hierarchy deployer` role is defined but not assigned |
+| Compliance | Evaluated. The deliberate violations are non compliant, and seven platform subnets carry policy exemptions |
+| Hub and spoke network | Free layer deployed in `sub-connectivity` at 0 dollars a month. Every billable device is off, see below |
 
-### Policy, and why there are only five
+### Policy, and why there are so few
 
-Five assignments I can each explain, rather than the accelerator's several
-hundred that I couldn't defend one at a time.
+Seven assignments I can each explain, rather than the accelerator's several
+hundred that I couldn't defend one at a time. Five of them each show one policy
+effect. The other two are the subscription baseline: every subscription under
+the intermediate root gets them automatically, including ones vended later.
 
 | Effect | Assignment | Scope |
 |---|---|---|
@@ -88,6 +92,8 @@ hundred that I couldn't defend one at a time.
 | Deny | Network interfaces must not have public IPs | Corp only |
 | DoNotEnforce | The same Deny, enforcement off | Corp (audit only) |
 | DeployIfNotExists | Network security group diagnostics to the central workspace | Platform Management |
+| DeployIfNotExists | Activity log to the central workspace | intermediate root |
+| DeployIfNotExists | Service Health alerts in every subscription | intermediate root |
 
 ![Policy assignment inheritance](docs/diagrams/policy-inheritance.svg)
 
@@ -97,8 +103,26 @@ and a public IP on a network interface goes around that path. Online doesn't
 carry it, since direct internet connectivity is the whole point of that
 archetype.
 
-Nothing gets deployed through Azure Policy. Microsoft's guidance is a flat no
-on that, and doing it would undercut what this repo is for anyway.
+No workloads get deployed through Azure Policy. Microsoft's guidance is
+[a flat no on that](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/enterprise-scale/faq#should-we-use-azure-policy-to-deploy-workloads),
+and doing it would undercut what this repo is for anyway. What policy does
+deploy is supporting settings: diagnostic settings and Service Health alert
+rules, the same kind of thing Microsoft's own reference implementation deploys
+this way.
+
+The subnet audit has a dependency that isn't obvious. The built in definition
+doesn't look at the subnet. It reads a Defender for Cloud assessment and treats
+the subnet as compliant only when that assessment is healthy. With Defender off,
+there's no assessment, so every subnet reports non compliant whether it has a
+network security group or not. That's one reason the subscription baseline turns
+Defender's free tier on everywhere. Its first assessments take up to a day to
+arrive, so a newly baselined subscription reads non compliant until they do.
+
+Exemptions cover the subnets that must stay without one. The five Azure
+platform subnets in the hub are exempt as Mitigated, because the service that
+owns each one protects it. The Application Gateway subnet in each spoke is a
+Waiver that expires in a year, because its network security group belongs with
+a gateway nobody has deployed yet.
 
 ### Brownfield adoption
 
@@ -194,11 +218,11 @@ address plan in [docs/ip-plan.md](docs/ip-plan.md). It splits in two:
 
 ![Hub and spoke network](docs/diagrams/hub-spoke-network.svg)
 
-Neither layer is deployed right now, but `sub-connectivity` exists, so it has
-somewhere to go. Both plan and what-if clean against the tenant.
+The free layer is deployed in `sub-connectivity`, and a plan against it comes
+back clean. The billable layer isn't deployed.
 
-The only virtual network up right now is the deliberately non compliant one
-described above.
+The only other virtual network is the deliberately non compliant one described
+above, in the brownfield subscription.
 
 **Terraform state is local.** Fine for one person on a lab, not fine for a
 team. A shared backend with locking would be needed the moment a second person
@@ -219,11 +243,11 @@ to be specific:
 - Subscription vending and placement (`terraform/20-subscription-placement`).
 - The hub and spoke network (`terraform/90-optional-network`), built from the
   address plan in [docs/ip-plan.md](docs/ip-plan.md).
-- Four local modules in [`terraform/modules/`](terraform/modules/): `policy-assignment`,
-  `subscription-budget`, `subscription-vending` and `spoke-network`. The rule I
-  used for pulling them out, and the two places I broke it, are in
-  [terraform/modules/README.md](terraform/modules/README.md).
-- All of the above again in [`bicep/`](bicep/), including the same four
+- Five local modules in [`terraform/modules/`](terraform/modules/): `policy-assignment`,
+  `subscription-budget`, `subscription-vending`, `subscription-baseline` and
+  `spoke-network`. The rule I used for pulling them out, and the two places I
+  broke it, are in [terraform/modules/README.md](terraform/modules/README.md).
+- All of the above again in [`bicep/`](bicep/), including the same five
   modules in [`bicep/modules/`](bicep/modules/). Where a Bicep file exists that
   has no Terraform counterpart it's because a Bicep module is the only way to
   change deployment scope, and [bicep/modules/README.md](bicep/modules/README.md)
@@ -233,19 +257,20 @@ to be specific:
 zone accelerator. That's a decision rather than an oversight and ADR 0007
 records it.
 
-Short version: five policy assignments here against the accelerator's several
+Short version: seven policy assignments here against the accelerator's several
 hundred, so what this shows is the mechanics, not a governance baseline. I hand
 rolled it to understand how the pieces fit before deploying a prebuilt set. For
 a real tenant the accelerator is the right answer.
 
 **Built in policy definitions** wherever they exist, rather than custom ones. I
 read their IDs, allowed effects and required roles off the platform with
-`az policy definition show` rather than taking them from a blog post. Two
+`az policy definition show` rather than taking them from a blog post. Three
 things that turned up doing that are recorded in comments at the call sites.
 The subnet network security group built in only permits `AuditIfNotExists` or
-`Disabled`, so it can't be the Deny example it usually gets presented as. And
-the tagging Modify built in wants Contributor rather than Tag Contributor for
-its managed identity.
+`Disabled`, so it can't be the Deny example it usually gets presented as, and it
+reads a Defender for Cloud assessment rather than the subnet itself. And the
+tagging Modify built in wants Contributor rather than Tag Contributor for its
+managed identity.
 
 ## Deploying
 

@@ -69,7 +69,7 @@ module "deny_public_ip_audit" {
 | `description` | string | required | Why this is assigned here. Written for whoever hits it. |
 | `management_group_id` | string | required | Full resource ID of the scope. |
 | `policy_definition_id` | string | required | Definition or initiative resource ID. |
-| `parameters` | map(any) | `{}` | Flat map. The module wraps each value in the `{"value": x}` shape Azure expects. |
+| `parameters` | any | `{}` | Parameters by name. Values can be strings, lists or objects, which is why this isn't `map(any)`: a map needs every value to share one type. The module wraps each value in the `{"value": x}` shape Azure expects. |
 | `enforce` | bool | `true` | `false` sets `enforcementMode` to `DoNotEnforce`. |
 | `role_definition_ids` | list(string) | `[]` | Non-empty creates a system-assigned identity and grants these roles at the assignment scope. |
 | `location` | string | `null` | Required when `role_definition_ids` is non-empty. |

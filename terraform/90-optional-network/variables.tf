@@ -13,6 +13,11 @@ variable "connectivity_subscription_id" {
   type        = string
 }
 
+variable "prefix" {
+  description = "Management group prefix used by terraform/00-management-groups. The exemptions name the subnet network security group assignment at the intermediate root, whose ID is built from it."
+  type        = string
+}
+
 variable "location" {
   description = "Region for the hub and the spokes."
   type        = string

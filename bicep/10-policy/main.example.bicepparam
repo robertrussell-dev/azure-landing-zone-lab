@@ -9,3 +9,9 @@ param costCenterTagValue = 'lab'
 // subscription. The DeployIfNotExists assignment is skipped while it is empty.
 // bicep/20-subscription-placement outputs the ID once it has created one.
 param logAnalyticsWorkspaceId = ''
+
+// Service Health alerts in every subscription notify these. Leave empty to
+// skip that assignment.
+param alertEmails = [
+  'you@example.com'
+]

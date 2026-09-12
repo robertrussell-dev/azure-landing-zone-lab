@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 5.4"
     }
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
   }
 }
 
@@ -19,4 +23,10 @@ provider "azurerm" {
 
   subscription_id = var.subscription_id
   tenant_id       = var.tenant_id
+}
+
+# Used only for the hierarchy settings in tenant.tf, which azurerm has no
+# resource for.
+provider "azapi" {
+  tenant_id = var.tenant_id
 }

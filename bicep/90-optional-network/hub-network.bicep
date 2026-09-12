@@ -13,6 +13,9 @@ param location string
 @description('The hub prefix. A /20 out of the platform /16. Every subnet below is derived from it.')
 param hubAddressSpace string
 
+@description('ID of the policy assignment that audits subnets without a network security group. Empty skips the exemptions.')
+param subnetNsgPolicyAssignmentId string = ''
+
 @description('Tags applied to every resource.')
 param tags object = {}
 
@@ -37,8 +40,8 @@ var subnetPrefixes = {
 // AzureFirewallManagementSubnet and RouteServerSubnet do not support one.
 // AzureBastionSubnet needs a specific rule set that is meaningless until Bastion
 // exists, and GatewaySubnet accepts one but Microsoft advises against it,
-// because a wrong rule breaks the control plane. The audit assignment at the
-// intermediate root reports all five, correctly.
+// because a wrong rule breaks the control plane. Each of the five carries a
+// policy exemption, below.
 resource nsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: 'nsg-hub-shared'
   location: location
@@ -166,6 +169,44 @@ resource hub 'Microsoft.Network/virtualNetworks@2024-05-01' = {
     ]
   }
 }
+
+// ---------------------------------------------------------------------------
+// Policy exemptions
+// ---------------------------------------------------------------------------
+// The audit assignment at the intermediate root flags every subnet without a
+// network security group, and the built in definition makes no exception for
+// the platform subnets above. An exemption records the decision where the
+// compliance report shows it, rather than leaving five permanent findings.
+//
+// Mitigated, not Waiver: the risk the audit looks for is handled by the service
+// that owns each subnet, so this is not a temporary allowance.
+var subnetsWithoutNsg = [
+  'GatewaySubnet'
+  'AzureFirewallSubnet'
+  'AzureFirewallManagementSubnet'
+  'AzureBastionSubnet'
+  'RouteServerSubnet'
+]
+
+resource subnetWithoutNsg 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = [
+  for subnetName in subnetsWithoutNsg: {
+    parent: hub
+    name: subnetName
+  }
+]
+
+resource hubNoNsgExemption 'Microsoft.Authorization/policyExemptions@2022-07-01-preview' = [
+  for (subnetName, i) in subnetsWithoutNsg: if (!empty(subnetNsgPolicyAssignmentId)) {
+    scope: subnetWithoutNsg[i]
+    name: 'exempt-nsg-${toLower(subnetName)}'
+    properties: {
+      displayName: '${subnetName} cannot carry the baseline network security group'
+      description: 'Azure either rejects a network security group on this subnet or advises against one, and the service that owns it provides its own protection.'
+      policyAssignmentId: subnetNsgPolicyAssignmentId
+      exemptionCategory: 'Mitigated'
+    }
+  }
+]
 
 @description('Resource ID of the hub virtual network.')
 output virtualNetworkId string = hub.id

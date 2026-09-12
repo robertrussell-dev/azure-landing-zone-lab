@@ -1,13 +1,14 @@
 # Modules
 
-Four of them. My rule is two callers before I pull anything out, and two of
+Five of them. My rule is two callers before I pull anything out, and two of
 these don't meet it.
 
 | Module | Callers | What it does |
 |---|---|---|
-| [`policy-assignment`](policy-assignment/) | 5 | Policy assignment at management group scope, and the role assignments its identity needs. |
-| [`subscription-budget`](subscription-budget/) | 2 | Subscription budget, actual and forecast thresholds. |
-| [`subscription-vending`](subscription-vending/) | 1 | Creates a subscription against a billing scope, places it, budgets it. Calls `subscription-budget`. |
+| [`policy-assignment`](policy-assignment/) | 7 | Policy assignment at management group scope, and the role assignments its identity needs. |
+| [`subscription-budget`](subscription-budget/) | 3 | Subscription budget, actual and forecast thresholds. |
+| [`subscription-baseline`](subscription-baseline/) | 2 | Registers the resource providers the platform uses and turns on Defender for Cloud's free tier and a security contact. |
+| [`subscription-vending`](subscription-vending/) | 1 | Creates a subscription against a billing scope, places it, budgets it, baselines it. Calls `subscription-budget` and `subscription-baseline`. |
 | [`spoke-network`](spoke-network/) | 1 | One spoke virtual network, its subnets, route table and both halves of the hub peering. |
 
 ![Module call graph](../../docs/diagrams/module-call-graph.svg)
@@ -61,9 +62,11 @@ get a flaky apply to pass, so the comment says it's the `PrincipalNotFound`
 race and roughly how long the wait needs to be. Whoever reads it next can work
 out whether it's still needed.
 
-`subscription-vending` writes down what it can't do, mostly that it can't
+`subscription-vending` writes down what it can't do, mostly that azurerm can't
 create anything inside the new subscription. You can't configure a provider
 against a subscription ID that doesn't exist yet at plan time.
+`subscription-baseline` gets around that with azapi, which addresses the new
+subscription by resource ID instead of through a provider block.
 
 ## moved blocks
 

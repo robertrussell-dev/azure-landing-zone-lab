@@ -25,6 +25,12 @@ variable "cost_center_tag_value" {
   default     = "lab"
 }
 
+variable "alert_emails" {
+  description = "Addresses the Service Health alerts in every subscription notify. Empty leaves that assignment out."
+  type        = list(string)
+  default     = []
+}
+
 variable "log_analytics_workspace_id" {
   description = "Full resource ID of the workspace the DeployIfNotExists assignment targets. Null until terraform/20 creates it, which leaves the DeployIfNotExists assignment out of the plan. See README for why this is sequenced that way."
   type        = string

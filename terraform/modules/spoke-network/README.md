@@ -64,6 +64,8 @@ module "spoke" {
 | `firewall_private_ip` | string | `""` | Empty leaves the route table in place and unpopulated. |
 | `use_remote_gateways` | bool | `false` | Azure rejects the peering if this is true and the hub has no gateway. |
 | `peer_prefixes` | list(string) | `[]` | Other archetypes' supernets, routed to the firewall. |
+| `subnet_nsg_policy_assignment_id` | string | `""` | The subnet NSG audit assignment. When set, `snet-appgw` gets a Waiver against it. |
+| `appgw_waiver_expires_on` | string | `2027-09-12T00:00:00Z` | When that waiver lapses. |
 | `tags` | map(string) | `{}` | |
 
 ## Outputs
@@ -104,5 +106,7 @@ anything.
 no network security group and no route table. Application Gateway v2 needs
 inbound 65200-65535 from `GatewayManager` to stay manageable, and a default
 route to a firewall breaks its control plane, so both would do harm rather than
-good until an actual gateway is deployed there. The audit assignment at the
-intermediate root will report the subnet, correctly.
+good until an actual gateway is deployed there. When the caller passes
+`subnet_nsg_policy_assignment_id`, the subnet gets a Waiver against the audit
+assignment at the intermediate root, expiring on `appgw_waiver_expires_on`, so
+the decision is recorded and comes back up for review.

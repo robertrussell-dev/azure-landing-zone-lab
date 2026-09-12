@@ -47,12 +47,12 @@
   <rect class="bg" x="0" y="0" width="1000" height="996"/>
 
   <text class="title" x="20" y="26">Module call graph, both implementations</text>
-  <text class="cap" x="20" y="44">Roots on the left, what they call to the right. Counted from source, not memory: five call sites into policy-assignment, three budget callers in each.</text>
+  <text class="cap" x="20" y="44">Roots on the left, what they call to the right. Counted from source, not memory: seven call sites into policy-assignment, and the same callers of every module in each.</text>
 
   <!-- ================= TERRAFORM ================= -->
   <rect class="panel" x="20" y="60" width="960" height="372"/>
   <text class="ph" x="34" y="82">Terraform</text>
-  <text class="phs" x="110" y="82">four modules, and every edge is reuse</text>
+  <text class="phs" x="110" y="82">five modules, and every edge is reuse</text>
 
   <rect class="root" x="30" y="92" width="195" height="38"/>
   <text class="nm" x="40" y="109">00-management-groups</text>
@@ -60,11 +60,11 @@
 
   <rect class="root" x="30" y="142" width="195" height="38"/>
   <text class="nm" x="40" y="159">10-policy</text>
-  <text class="ns" x="40" y="173">5 module blocks</text>
+  <text class="ns" x="40" y="173">7 module blocks</text>
 
   <rect class="root" x="30" y="196" width="195" height="38"/>
   <text class="nm" x="40" y="213">20-subscription-placement</text>
-  <text class="ns" x="40" y="227">2 module blocks, 4 instances</text>
+  <text class="ns" x="40" y="227">3 module blocks, 5 instances</text>
 
   <rect class="root" x="30" y="300" width="195" height="38"/>
   <text class="nm" x="40" y="317">25-brownfield-seed</text>
@@ -81,12 +81,12 @@
   <path class="edge" d="M 225 375 L 261 375" marker-end="url(#a4)"/>
   <text class="el" x="228" y="369">x1</text>
 
-  <path class="edge" d="M 225 361 L 245 361 L 245 212 L 731 212" marker-end="url(#a4)"/>
-  <text class="el" x="520" y="225">x1, the connectivity budget</text>
+  <path class="edge" d="M 180 394 L 180 412 L 950 412 L 950 215 L 934 215" marker-end="url(#a4)"/>
+  <text class="el" x="520" y="408">x1, the connectivity budget</text>
 
   <rect class="mod" x="265" y="142" width="195" height="38"/>
   <text class="nm" x="275" y="159">policy-assignment</text>
-  <text class="ns" x="275" y="173">5 callers</text>
+  <text class="ns" x="275" y="173">7 callers</text>
 
   <rect class="mod" x="265" y="250" width="195" height="38"/>
   <text class="nm" x="275" y="267">subscription-vending</text>
@@ -97,7 +97,7 @@
   <text class="ns" x="745" y="227">3 callers</text>
 
   <path class="edge" d="M 225 161 L 261 161" marker-end="url(#a4)"/>
-  <text class="el" x="228" y="155">x5</text>
+  <text class="el" x="228" y="155">x7</text>
 
   <path class="edge" d="M 225 205 L 731 205" marker-end="url(#a4)"/>
   <text class="el" x="300" y="200">x1, the brownfield budget</text>
@@ -108,10 +108,20 @@
   <path class="edge" d="M 460 269 L 690 269 L 690 222 L 731 222" marker-end="url(#a4)"/>
   <text class="el" x="500" y="264">x1, a module calling a module</text>
 
+  <rect class="mod" x="500" y="300" width="195" height="38"/>
+  <text class="nm" x="510" y="317">subscription-baseline</text>
+  <text class="ns" x="510" y="331">2 callers</text>
+
+  <path class="edge" d="M 460 280 L 480 280 L 480 310 L 496 310" marker-end="url(#a4)"/>
+  <text class="el" x="500" y="295">x1, every vended subscription</text>
+
+  <path class="edge" d="M 225 231 L 238 231 L 238 328 L 496 328" marker-end="url(#a4)"/>
+  <text class="el" x="290" y="324">x1, the brownfield baseline</text>
+
   <!-- ================= BICEP ================= -->
   <rect class="panel" x="20" y="444" width="960" height="414"/>
   <text class="ph" x="34" y="466">Bicep</text>
-  <text class="phs" x="86" y="466">the same four modules, plus six files that are modules only because a module is how you change scope</text>
+  <text class="phs" x="86" y="466">the same five modules, plus six files that are modules only because a module is how you change scope</text>
 
   <rect class="root" x="30" y="476" width="195" height="38"/>
   <text class="nm" x="40" y="493">00-management-groups</text>
@@ -119,11 +129,11 @@
 
   <rect class="root" x="30" y="526" width="195" height="38"/>
   <text class="nm" x="40" y="543">10-policy</text>
-  <text class="ns" x="40" y="557">5 declarations</text>
+  <text class="ns" x="40" y="557">7 declarations</text>
 
   <rect class="root" x="30" y="580" width="195" height="38"/>
   <text class="nm" x="40" y="597">20-subscription-placement</text>
-  <text class="ns" x="40" y="611">3 declarations, 4 instances</text>
+  <text class="ns" x="40" y="611">4 declarations, 6 instances</text>
 
   <rect class="root" x="30" y="742" width="195" height="38"/>
   <text class="nm" x="40" y="759">25-brownfield-seed</text>
@@ -131,7 +141,7 @@
 
   <rect class="mod" x="265" y="526" width="195" height="38"/>
   <text class="nm" x="275" y="543">policy-assignment</text>
-  <text class="ns" x="275" y="557">5 callers</text>
+  <text class="ns" x="275" y="557">7 callers</text>
 
   <rect class="mod" x="265" y="634" width="195" height="38"/>
   <text class="nm" x="275" y="651">subscription-vending</text>
@@ -158,7 +168,7 @@
   <text class="ns" x="745" y="611">3 callers</text>
 
   <path class="edge" d="M 225 545 L 261 545" marker-end=""/>
-  <text class="el" x="228" y="539">x5</text>
+  <text class="el" x="228" y="539">x7</text>
 
   <path class="edge" d="M 225 589 L 731 589" marker-end=""/>
   <text class="el" x="470" y="584">x1, the brownfield budget</text>
@@ -173,6 +183,15 @@
   <text class="el" x="600" y="629">the extra hop</text>
 
   <path class="edge" d="M 460 707 L 496 707" marker-end=""/>
+
+  <rect class="mod" x="735" y="688" width="195" height="38"/>
+  <text class="nm" x="745" y="705">subscription-baseline</text>
+  <text class="ns" x="745" y="719">2 callers</text>
+
+  <path class="edge" d="M 695 663 L 720 663 L 720 700 L 731 700" marker-end=""/>
+
+  <path class="edge" d="M 252 707 L 252 735 L 715 735 L 715 716 L 731 716" marker-end=""/>
+  <text class="el" x="500" y="749">x1, the brownfield baseline</text>
   <path class="edge" d="M 225 761 L 261 761" marker-end=""/>
 
   <!-- ===== 90-optional-network ===== -->
@@ -212,9 +231,9 @@
   <rect class="shim" x="390" y="872" width="26" height="14"/>
   <text class="key" x="424" y="883">scope shim, lives beside its caller</text>
 
-  <text class="note" x="20" y="910">Read the two panels against each other. The blue nodes are the same four in both, which is the point: composition is the same idea in either language. Everything amber is</text>
+  <text class="note" x="20" y="910">Read the two panels against each other. The blue nodes are the same five in both, which is the point: composition is the same idea in either language. Everything amber is</text>
   <text class="note" x="20" y="926">Bicep needing a nested deployment to cross a scope boundary, so it has one caller by construction and the two caller rule never applies to it.</text>
-  <text class="note" x="20" y="946">The graphs differ in exactly one place: the extra hop between vending and budget, which is the BCP120 workaround rather than reuse. Everything</text>
-  <text class="note" x="20" y="962">else, including all three callers of subscription-budget, is the same shape in both languages.</text>
+  <text class="note" x="20" y="946">The graphs differ in exactly one place: the extra hop from vending to budget and baseline, which is the BCP120 workaround rather than reuse.</text>
+  <text class="note" x="20" y="962">Everything else, including every caller of subscription-budget and subscription-baseline, is the same shape in both languages.</text>
   <text class="cap" x="20" y="982">Counts are of declarations, not instances: one block under for_each or a loop is one edge on this diagram and several resources at apply time.</text>
 </svg>

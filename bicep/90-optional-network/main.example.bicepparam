@@ -5,6 +5,7 @@
 using 'main.bicep'
 
 param location = 'westus2'
+param prefix = 'contoso' // same as 00-management-groups
 param hubAddressSpace = '10.0.0.0/20'
 
 // ---------------------------------------------------------------------------

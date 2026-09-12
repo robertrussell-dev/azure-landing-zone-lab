@@ -250,6 +250,69 @@ resource landingZoneCorpAudit 'Microsoft.Management/managementGroups@2023-04-01'
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tenant wide settings on the tenant root group
+// ---------------------------------------------------------------------------
+// Both belong on the tenant root group, so this file runs there rather than at
+// any management group: the role is created at the deployment's own scope, and
+// hierarchy settings only exist on the tenant root group. Both are free.
+
+// Named from the tenant ID rather than the deployment scope, so the settings
+// can only ever land on the tenant root group.
+resource tenantRootGroup 'Microsoft.Management/managementGroups@2023-04-01' existing = {
+  scope: tenant()
+  name: tenant().tenantId
+}
+
+// Where a new subscription lands when nobody says otherwise, and who may create
+// management groups. Sandboxes is the least trusted placement, so a
+// subscription created outside vending starts with no route to on premises
+// until someone decides where it belongs. Without
+// requireAuthorizationForGroupCreation any user in the tenant can create
+// management groups under the tenant root.
+resource hierarchySettings 'Microsoft.Management/managementGroups/settings@2023-04-01' = {
+  parent: tenantRootGroup
+  name: 'default'
+  properties: {
+    // The name, not the resource ID. The API stores and returns the name.
+    defaultManagementGroup: sandboxes.name
+    requireAuthorizationForGroupCreation: true
+  }
+}
+
+// A least privilege role for the hierarchy. The root scope "/" accepts built in
+// roles only, so the narrowest grant there is Contributor over the whole tenant.
+// The tenant root group accepts custom roles, so the narrow alternative can be
+// a real role: enough to create, move and delete management groups and run the
+// deployments that do it. It covers the groups, which is the part that changes
+// over time; the hierarchy settings and the role itself are one off setup that
+// needs broader access.
+//
+// Defined, not assigned. The action list covers what this file creates; it has
+// not been exercised through an assignment. The ID matches the Terraform tree so
+// both describe the same role.
+resource hierarchyDeployer 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+  name: '9eeae106-cb05-4621-8e59-1f2bea524ec3'
+  properties: {
+    roleName: '${prefix} hierarchy deployer'
+    description: 'Create, move and delete management groups under the tenant root group, and run the deployments that do it. Nothing else.'
+    type: 'CustomRole'
+    permissions: [
+      {
+        actions: [
+          'Microsoft.Management/managementGroups/read'
+          'Microsoft.Management/managementGroups/write'
+          'Microsoft.Management/managementGroups/delete'
+          'Microsoft.Resources/deployments/*'
+        ]
+      }
+    ]
+    assignableScopes: [
+      managementGroup().id
+    ]
+  }
+}
+
 @description('Resource ID of the intermediate root management group.')
 output intermediateRootId string = intermediateRoot.id
 

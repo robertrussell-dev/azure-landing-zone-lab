@@ -26,4 +26,10 @@ provider "azurerm" {
 
   subscription_id = var.connectivity_subscription_id
   tenant_id       = var.tenant_id
+
+  # A freshly vended subscription has no resource providers registered, and
+  # nothing here can be created until Microsoft.Network is. Registering costs
+  # nothing, and doing it here means a new subscription needs no manual step.
+  resource_provider_registrations = "none"
+  resource_providers_to_register  = ["Microsoft.Network"]
 }

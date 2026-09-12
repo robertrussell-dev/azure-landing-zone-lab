@@ -103,6 +103,9 @@ resource "azurerm_subnet" "hub" {
       name = "delegation"
       service_delegation {
         name = delegation.value
+        # Azure adds this action to the delegation itself. Declaring it keeps
+        # every later plan from trying to remove it again.
+        actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
       }
     }
   }
@@ -114,8 +117,8 @@ resource "azurerm_subnet" "hub" {
 # AzureFirewallManagementSubnet and RouteServerSubnet do not support one.
 # AzureBastionSubnet needs a specific rule set that is meaningless until Bastion
 # exists, and GatewaySubnet accepts one but Microsoft advises against it,
-# because a wrong rule breaks the control plane. The audit assignment at the
-# intermediate root reports all five, correctly.
+# because a wrong rule breaks the control plane. Each of the five carries a
+# policy exemption, below.
 resource "azurerm_network_security_group" "hub_shared" {
   provider = azurerm.connectivity
 
@@ -146,4 +149,39 @@ resource "azurerm_subnet_network_security_group_association" "hub_shared" {
 
   subnet_id                 = azurerm_subnet.hub[each.key].id
   network_security_group_id = azurerm_network_security_group.hub_shared.id
+}
+
+# ---------------------------------------------------------------------------
+# Policy exemptions
+# ---------------------------------------------------------------------------
+# The audit assignment at the intermediate root flags every subnet without a
+# network security group, and the built in definition makes no exception for
+# the platform subnets above. An exemption records the decision where the
+# compliance report shows it, rather than leaving five permanent findings for
+# someone to rediscover and question.
+#
+# Mitigated, not Waiver: the risk the audit looks for is handled by the service
+# that owns each subnet, so this is not a temporary allowance.
+locals {
+  subnet_nsg_assignment_id = "/providers/Microsoft.Management/managementGroups/${var.prefix}/providers/Microsoft.Authorization/policyAssignments/audit-subnet-nsg"
+
+  subnets_without_nsg = toset([
+    "GatewaySubnet",
+    "AzureFirewallSubnet",
+    "AzureFirewallManagementSubnet",
+    "AzureBastionSubnet",
+    "RouteServerSubnet",
+  ])
+}
+
+resource "azurerm_resource_policy_exemption" "hub_no_nsg" {
+  provider = azurerm.connectivity
+  for_each = local.subnets_without_nsg
+
+  name                 = "exempt-nsg-${lower(each.key)}"
+  display_name         = "${each.key} cannot carry the baseline network security group"
+  description          = "Azure either rejects a network security group on this subnet or advises against one, and the service that owns it provides its own protection."
+  resource_id          = azurerm_subnet.hub[each.key].id
+  policy_assignment_id = local.subnet_nsg_assignment_id
+  exemption_category   = "Mitigated"
 }

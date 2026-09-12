@@ -10,7 +10,17 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.13"
     }
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
   }
+}
+
+# Used by modules/subscription-baseline, which works across subscriptions by
+# resource ID. It needs no subscription of its own.
+provider "azapi" {
+  tenant_id = var.tenant_id
 }
 
 provider "azurerm" {

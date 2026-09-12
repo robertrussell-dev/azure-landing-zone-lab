@@ -27,6 +27,9 @@ targetScope = 'subscription'
 @description('Region for the hub and the spokes.')
 param location string = 'westus2'
 
+@description('Management group prefix used by bicep/00-management-groups. The exemptions name the subnet network security group assignment at the intermediate root, whose ID is built from it.')
+param prefix string
+
 @description('The hub prefix. A /20 out of the platform /16, per docs/ip-plan.md. The subnet layout is derived from it.')
 param hubAddressSpace string = '10.0.0.0/20'
 
@@ -87,6 +90,14 @@ param budgetAlertEmails array = []
 @minValue(1)
 param monthlyBudgetAmount int = 50
 
+// The assignment that audits subnets without a network security group. The hub
+// and each spoke exempt the subnets that must stay without one.
+var subnetNsgAssignmentId = extensionResourceId(
+  tenantResourceId('Microsoft.Management/managementGroups', prefix),
+  'Microsoft.Authorization/policyAssignments',
+  'audit-subnet-nsg'
+)
+
 var tags = {
   autoDelete: 'false'
 }
@@ -103,6 +114,7 @@ module hubNetwork 'hub-network.bicep' = {
   params: {
     location: location
     hubAddressSpace: hubAddressSpace
+    subnetNsgPolicyAssignmentId: subnetNsgAssignmentId
     tags: tags
   }
 }
@@ -147,6 +159,7 @@ module spoke '../modules/spoke-network/main.bicep' = [
       // Every archetype supernet except this spoke's own. One route per
       // archetype covers all 64 spokes that fit in it.
       peerPrefixes: map(filter(items(archetypeSupernets), entry => entry.key != s.archetype), entry => entry.value)
+      subnetNsgPolicyAssignmentId: subnetNsgAssignmentId
       tags: union(tags, {
         archetype: s.archetype
       })

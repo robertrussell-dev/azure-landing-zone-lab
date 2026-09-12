@@ -183,3 +183,21 @@ resource "azurerm_virtual_network_peering" "hub_to_spoke" {
   # other side, by use_remote_gateways.
   allow_gateway_transit = true
 }
+
+# ---------------------------------------------------------------------------
+# Policy exemption for snet-appgw
+# ---------------------------------------------------------------------------
+# Waiver rather than Mitigated: the subnet is bare because nothing is deployed
+# in it yet, and the network security group belongs with the gateway when one
+# arrives. The expiry forces that to be looked at again.
+resource "azurerm_resource_policy_exemption" "appgw_no_nsg" {
+  count = var.subnet_nsg_policy_assignment_id == "" ? 0 : 1
+
+  name                 = "exempt-nsg-appgw-${var.name}"
+  display_name         = "snet-appgw in ${var.name} has no network security group until a gateway is deployed"
+  description          = "Application Gateway v2 needs inbound 65200-65535 from GatewayManager, so the baseline group would break it. The rules belong with the gateway deployment."
+  resource_id          = azurerm_subnet.this["appgw"].id
+  policy_assignment_id = var.subnet_nsg_policy_assignment_id
+  exemption_category   = "Waiver"
+  expires_on           = var.appgw_waiver_expires_on
+}

@@ -66,6 +66,18 @@ variable "peer_prefixes" {
   default     = []
 }
 
+variable "subnet_nsg_policy_assignment_id" {
+  description = "ID of the policy assignment that audits subnets without a network security group. When set, snet-appgw gets a time boxed waiver against it. Empty skips the exemption."
+  type        = string
+  default     = ""
+}
+
+variable "appgw_waiver_expires_on" {
+  description = "When the snet-appgw waiver lapses, as an RFC 3339 timestamp. A waiver with no end date is a finding nobody looks at again."
+  type        = string
+  default     = "2027-09-12T00:00:00Z"
+}
+
 variable "tags" {
   description = "Tags applied to every resource in the spoke."
   type        = map(string)

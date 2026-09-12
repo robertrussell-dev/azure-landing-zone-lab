@@ -1,7 +1,8 @@
 # subscription-vending
 
 Creates an Azure subscription against a billing scope, places it in a
-management group, and gives it a budget.
+management group, gives it a budget, and applies the platform baseline through
+[`subscription-baseline`](../subscription-baseline/).
 
 This is the platform capability an application team consumes. It exists so
 that onboarding a landing zone is one reviewed change rather than a sequence of
@@ -54,37 +55,44 @@ module "corp_payments_prod" {
 
 ## What this module does not do, and why
 
-**It does not deploy resources inside the new subscription.**
+**It does not deploy workload resources inside the new subscription.**
 
-This is a Terraform limitation rather than a design preference. A provider
-block needs a `subscription_id` at plan time, and the subscription does not
-exist until apply. You cannot configure a provider for a subscription this
+This is a Terraform limitation rather than a design preference. An azurerm
+provider block needs a `subscription_id` at plan time, and the subscription does
+not exist until apply. You cannot configure a provider for a subscription this
 module is about to create in the same run.
+
+The platform baseline is the exception. `subscription-baseline` uses azapi,
+which addresses a subscription by resource ID rather than through a provider
+block, so it works on a subscription created earlier in the same apply.
 
 So vending a landing zone is **two applies**:
 
-1. This module creates and places the subscription and gives it a budget.
+1. This module creates, places, budgets and baselines the subscription.
 2. A second configuration, with an `azurerm` provider aliased to the new
-   subscription ID, registers resource providers and deploys into it.
+   subscription ID, deploys the workload into it.
 
 A module that pretended otherwise would work once, from a state file that
 already had the subscription, and fail for the next person running it from
 scratch.
 
-**It does not register resource providers.** Same reason: that is an operation
-inside the subscription. A new subscription has almost none registered, and the
-failure is a 409 naming the namespace rather than the cause:
+**It registers only the providers the platform uses.** A new subscription has
+almost none registered, and the failure is a 409 naming the namespace rather
+than the cause:
 
 ```
 MissingSubscriptionRegistration: The subscription is not registered to use
 namespace 'Microsoft.OperationalInsights'
 ```
 
-Register `Microsoft.PolicyInsights` even though nothing asks for it. Without
-it the subscription reports **no policy compliance at all**, and the silence is
-indistinguishable from a scan that has not run yet.
+The baseline registers `Microsoft.Security`, `Microsoft.Insights` and
+`Microsoft.PolicyInsights`. The last is the one nothing asks for: without it the
+subscription reports **no policy compliance at all**, and the silence is
+indistinguishable from a scan that has not run yet. Anything a workload needs
+beyond those it registers itself; Microsoft advises against registering
+providers nothing uses.
 
-The `remaining_steps` output lists these so they are surfaced rather than
+The `remaining_steps` output lists what is left, so it is surfaced rather than
 remembered.
 
 ## Operational notes

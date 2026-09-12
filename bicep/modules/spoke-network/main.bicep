@@ -34,6 +34,12 @@ param useRemoteGateways bool = false
 @description('Prefixes belonging to other archetypes, routed to the firewall so spoke to spoke traffic is inspected. Peering is not transitive, so without these the spokes cannot reach each other at all.')
 param peerPrefixes array = []
 
+@description('ID of the policy assignment that audits subnets without a network security group. When set, snet-appgw gets a time boxed waiver against it. Empty skips the exemption.')
+param subnetNsgPolicyAssignmentId string = ''
+
+@description('When the snet-appgw waiver lapses. A waiver with no end date is a finding nobody looks at again.')
+param appgwWaiverExpiresOn string = '2027-09-12T00:00:00Z'
+
 @description('Tags applied to every resource in the spoke.')
 param tags object = {}
 
@@ -216,6 +222,29 @@ resource hubToSpoke 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@20
     // The hub offers its gateway. Whether a spoke takes it is decided on the
     // other side, by useRemoteGateways.
     allowGatewayTransit: true
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Policy exemption for snet-appgw
+// ---------------------------------------------------------------------------
+// Waiver rather than Mitigated: the subnet is bare because nothing is deployed
+// in it yet, and the network security group belongs with the gateway when one
+// arrives. The expiry forces that to be looked at again.
+resource appgwSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = {
+  parent: spoke
+  name: 'snet-appgw'
+}
+
+resource appgwNoNsgExemption 'Microsoft.Authorization/policyExemptions@2022-07-01-preview' = if (!empty(subnetNsgPolicyAssignmentId)) {
+  scope: appgwSubnet
+  name: 'exempt-nsg-appgw-${name}'
+  properties: {
+    displayName: 'snet-appgw in ${name} has no network security group until a gateway is deployed'
+    description: 'Application Gateway v2 needs inbound 65200-65535 from GatewayManager, so the baseline group would break it. The rules belong with the gateway deployment.'
+    policyAssignmentId: subnetNsgPolicyAssignmentId
+    exemptionCategory: 'Waiver'
+    expiresOn: appgwWaiverExpiresOn
   }
 }
 

@@ -10,6 +10,12 @@ output "assignment_ids" {
     length(module.deploy_nsg_diagnostics) > 0 ? {
       deploy_nsg_diagnostics = module.deploy_nsg_diagnostics[0].id
     } : {},
+    length(module.deploy_activity_log) > 0 ? {
+      deploy_activity_log = module.deploy_activity_log[0].id
+    } : {},
+    length(module.deploy_service_health_alerts) > 0 ? {
+      deploy_service_health_alerts = module.deploy_service_health_alerts[0].id
+    } : {},
   )
 }
 

@@ -69,7 +69,7 @@
   <text class="grn" x="866" y="85">FREE AT REST</text>
   <text class="n" x="34" y="101">rg-hub-network in the connectivity subscription. 4096 addresses, nine subnets, and not one hourly charge until a flag in the band below is switched on.</text>
 
-  <text class="hd" x="34" y="123">MANDATORY NAMES, CASE SENSITIVE</text>
+  <text class="hd" x="34" y="123">MANDATORY NAMES, CASE SENSITIVE, EXEMPT FROM THE NSG AUDIT</text>
   <text class="hd" x="510" y="123">NAMED BY THIS REPO</text>
 
   <text class="mn"  x="34"  y="141">GatewaySubnet</text>
@@ -220,5 +220,5 @@
   <text class="note" x="20" y="738">cannot reach on premises whatever it is called. That is ADR 0003 as a deployment rather than a convention, and it is visible in the archetype_enforcement output.</text>
   <text class="note" x="20" y="762">Both spokes carry a route to the other archetype's whole /16, because peering is not transitive and the firewall is the only path between them. One route covers all 64</text>
   <text class="note" x="20" y="778">spokes that fit in that supernet, which is why the address plan split Corp from Online by block. Routes are only written when a firewall exists, so the table is never a black hole.</text>
-  <text class="cap" x="20" y="796">snet-appgw is deliberately bare: Application Gateway v2 needs inbound 65200-65535 from GatewayManager, and a default route to a firewall breaks its control plane.</text>
+  <text class="cap" x="20" y="796">snet-appgw is bare on purpose, under a time boxed policy waiver: Application Gateway v2 needs inbound 65200-65535 from GatewayManager, and a firewall route breaks it.</text>
 </svg>

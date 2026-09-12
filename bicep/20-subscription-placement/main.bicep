@@ -91,6 +91,16 @@ module brownfieldBudget '../modules/subscription-budget/main.bicep' = {
   }
 }
 
+// The subscription baseline for the adopted brownfield subscription. Vended
+// subscriptions get theirs from modules/subscription-vending.
+module brownfieldBaseline '../modules/subscription-baseline/main.bicep' = {
+  scope: subscription(brownfieldSubscriptionId)
+  name: 'baseline-${brownfieldSubscriptionName}'
+  params: {
+    securityContactEmails: budgetAlertEmails
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Subscription vending
 // ---------------------------------------------------------------------------

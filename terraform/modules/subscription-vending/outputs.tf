@@ -21,8 +21,7 @@ output "budget_id" {
 output "remaining_steps" {
   description = "What vending deliberately does not do, surfaced so it is not forgotten. See the module README."
   value = [
-    "Register resource providers in the new subscription. A new subscription has almost none, and the failure is a 409 naming the namespace rather than the cause.",
-    "Register Microsoft.PolicyInsights specifically, or the subscription reports no policy compliance at all, silently.",
+    "Register any resource providers the workload needs beyond the platform baseline. A new subscription has almost none, and the failure is a 409 naming the namespace rather than the cause.",
     "Configure an azurerm provider for this subscription ID and deploy workload resources in a second apply.",
     "Assign workload team access at subscription or resource group scope, never at management group scope.",
   ]

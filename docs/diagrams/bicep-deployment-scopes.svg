@@ -102,15 +102,16 @@
   <rect class="dep" x="212" y="220" width="180" height="44"/>
   <text class="depl" x="222" y="236">DEPLOYMENT RUNS HERE</text>
   <text class="cmd" x="222" y="252">az deployment mg</text>
-  <text class="resd" x="222" y="280">tenant root MG, or any</text>
-  <text class="resd" x="222" y="293">MG you have rights on</text>
+  <rect class="res" x="212" y="268" width="180" height="40"/>
+  <text class="resl" x="222" y="284">custom role, hierarchy</text>
+  <text class="resd" x="222" y="298">settings, on tenant root</text>
 
   <!-- 10: deployment runs here, resources here too -->
   <rect class="dep" x="404" y="220" width="180" height="44"/>
   <text class="depl" x="414" y="236">DEPLOYMENT RUNS HERE</text>
   <text class="cmd" x="414" y="252">az deployment mg</text>
   <rect class="res" x="404" y="268" width="180" height="40"/>
-  <text class="resl" x="414" y="284">5 policy assignments</text>
+  <text class="resl" x="414" y="284">7 policy assignments</text>
   <text class="resl" x="414" y="298">+ identity role grants</text>
 
   <!-- ================= Subscription band ================= -->
@@ -120,7 +121,7 @@
 
   <!-- 20: budgets -->
   <rect class="res" x="596" y="338" width="180" height="40"/>
-  <text class="resl" x="606" y="354">budgets</text>
+  <text class="resl" x="606" y="354">budgets, Defender baseline</text>
   <text class="resd" x="606" y="369">module, scope: subscription()</text>
   <rect class="res" x="596" y="382" width="180" height="32"/>
   <text class="resl" x="606" y="402">resource group</text>
@@ -155,7 +156,7 @@
   <text class="resl" x="798" y="500">vnet + subnet</text>
   <text class="resd" x="798" y="515">module, scope: rg symbol</text>
   <rect class="res" x="980" y="484" width="180" height="40"/>
-  <text class="resl" x="990" y="500">hub, 2 spokes, appliances</text>
+  <text class="resl" x="990" y="500">hub, spokes, exemptions</text>
   <text class="resd" x="990" y="515">3 modules, scope: rg</text>
 
   <!-- ================= flows ================= -->

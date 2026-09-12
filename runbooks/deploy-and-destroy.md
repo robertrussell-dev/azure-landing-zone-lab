@@ -20,6 +20,7 @@ a what-if, and the detail is in
 |---|---|---|
 | Terraform | `>= 1.9.0`, CI pins `1.16.1` | `required_version` in every root |
 | azurerm provider | `~> 5.4` | pinned, and `.terraform.lock.hcl` is committed |
+| azapi provider | `~> 2.12` | `00` and `20` only, for what azurerm has no resource for or can only do one subscription at a time |
 | Bicep CLI | `v0.47.16` | pinned in [scripts/install-bicep.sh](../scripts/install-bicep.sh) |
 | Azure CLI | any recent | only used to sign in and to deploy Bicep |
 
@@ -48,7 +49,7 @@ What each stage needs:
 
 | Stage | Terraform | Bicep |
 |---|---|---|
-| `00-management-groups` | management group write at tenant root | deployment rights on a management group |
+| `00-management-groups` | management group, hierarchy settings and role definition write at the tenant root group | deployment rights on a management group, plus the same writes at the tenant root group |
 | `10-policy` | Owner at the intermediate root | same |
 | `20-subscription-placement` | Owner at the intermediate root, plus billing scope rights to vend | **Owner or Contributor at `/`** |
 | `25-brownfield-seed` | Contributor on the adopted subscription | same |
@@ -94,6 +95,12 @@ az account management-group list --query "length([?starts_with(name,'contoso')])
 Thirteen. Filter on the prefix rather than counting the whole list, which also
 returns the tenant root group and so answers 14.
 
+This stage also changes two tenant wide settings on the tenant root group. New
+subscriptions land in `contoso-sandboxes` unless something places them, and
+creating management groups needs write permission on the tenant root group,
+where by default any user can. It also defines a narrow `contoso hierarchy
+deployer` role without assigning it to anyone.
+
 ### 2.2 Policy, first pass
 
 ```bash
@@ -102,10 +109,11 @@ cp terraform.tfvars.example terraform.tfvars   # same prefix as 00
 terraform init && terraform plan -out=tfplan && terraform apply tfplan
 ```
 
-Leave `log_analytics_workspace_id` commented out. Four of the five assignments
-go in. The DeployIfNotExists one is skipped on purpose: with no workspace to
-point at it would create an identity, grant it two roles across the hierarchy,
-and remediate nothing.
+Leave `log_analytics_workspace_id` commented out. The two assignments that
+send logs to the workspace are skipped on purpose: with no workspace to point
+at they would create identities, grant them roles across the hierarchy, and
+remediate nothing. Set `alert_emails` and the Service Health one goes in now,
+so five of the seven; leave it empty and it's four.
 
 ### 2.3 Subscription placement
 
@@ -140,7 +148,8 @@ checked rather than assumed. The apply is where it matters.
 
 ### 2.4 Policy, second pass
 
-Now the workspace exists, so the fifth assignment can be made.
+Now the workspace exists, so the two assignments that send logs to it can be
+made.
 
 `20-subscription-placement` has no output for it, so read the ID off Azure:
 
@@ -160,8 +169,32 @@ cd ../10-policy
 terraform plan -out=tfplan && terraform apply tfplan
 ```
 
-Verify all five: `az policy assignment list --disable-scope-strict-match -o table`,
+Verify all seven: `az policy assignment list --disable-scope-strict-match -o table`,
 or read the compliance blade.
+
+**Remediate the subscriptions that already exist.** DeployIfNotExists only acts
+on something created or updated after it's assigned, so the activity log and
+Service Health assignments do nothing for the subscriptions already vended
+until they're remediated. Scan each subscription, wait for the scans to finish,
+then remediate at the intermediate root:
+
+```bash
+az policy state trigger-scan --subscription <GUID>   # once per subscription
+
+MG=/providers/Microsoft.Management/managementGroups/contoso
+az policy remediation create --management-group contoso --name remediate-activity-log \
+  --policy-assignment $MG/providers/Microsoft.Authorization/policyAssignments/dine-activity-log
+az policy remediation create --management-group contoso --name remediate-service-health \
+  --policy-assignment $MG/providers/Microsoft.Authorization/policyAssignments/dine-service-health
+```
+
+A remediation only fixes what the last scan found, so a subscription whose scan
+hadn't finished needs a second one. The scan also needs `Microsoft.PolicyInsights`
+registered in the subscription; vending's baseline does that, and a
+subscription with it missing fails the scan with a message saying so.
+
+Subscriptions vended from now on don't need any of this. They're evaluated
+when they're created, and remediated automatically.
 
 ### 2.5 Brownfield seed, optional
 
@@ -193,6 +226,11 @@ terraform init && terraform plan -out=tfplan && terraform apply tfplan
 Check the plan's `standing_monthly_cost_usd` output before applying. With every
 flag false it reads 0 and the note says so.
 
+Run it after `10-policy`. Seven of its subnets are exempted from the subnet
+audit assignment, and an exemption needs the assignment to exist. Nothing needs
+registering by hand either: the provider registers `Microsoft.Network` in the
+connectivity subscription itself.
+
 **Turning anything on.** Each device has its own flag and each flag names its
 price; the table is also in the
 [hub and spoke diagram](../docs/diagrams/hub-spoke-network.svg). All five plus
@@ -215,7 +253,7 @@ day teardown around one.
 
 ## 3. Deploy with Bicep
 
-Same five stages. Different commands, and a different scope for each one, which
+Same six stages. Different commands, and a different scope for each one, which
 is the part that doesn't carry across. The map is in
 [docs/diagrams/bicep-deployment-scopes.svg](../docs/diagrams/bicep-deployment-scopes.svg).
 
@@ -267,6 +305,14 @@ pass a runtime subscription ID across a nested deployment boundary. The
 workspace still needs `managementSubscriptionId`, so 3.3 is still two runs if
 you are vending from scratch.
 
+After 3.4, remediate the existing subscriptions exactly as in 2.4. A
+subscription the Bicep tree vended won't have `Microsoft.PolicyInsights`
+registered, because no template declares it, so register it before the scan:
+
+```bash
+az provider register --namespace Microsoft.PolicyInsights --subscription <GUID>
+```
+
 ## 4. Destroy the Terraform tree
 
 Reverse order. Nothing in the deployed set bills more than trivial amounts, so
@@ -289,6 +335,27 @@ just want the meter to stop:
 cd terraform/90-optional-network
 terraform apply -var deploy_firewall=false -var deploy_bastion=false   -var deploy_vpn_gateway=false -var deploy_expressroute_gateway=false   -var deploy_route_server=false
 ```
+
+### What destroying leaves behind
+
+**Anything policy deployed.** The two baseline assignments create resources in
+every subscription that Terraform never created and so never destroys. Removing
+the assignments leaves them in place:
+
+```bash
+# once per subscription
+az group delete --name rg-service-health-alerts --subscription <GUID> --yes
+az monitor diagnostic-settings subscription delete --name subscriptionToLa \
+  --subscription <GUID> --yes
+```
+
+**Defender for Cloud stays on its free tier.** The `CloudPosture` plan can't be
+deleted, so destroying the baseline leaves it at `Free`, which costs nothing.
+Defender's own benchmark assignment at each subscription stays too.
+
+**The hierarchy settings go back to the defaults** when `00` is destroyed: new
+subscriptions land under the tenant root again, and anyone can create
+management groups.
 
 ### `terraform destroy` on 20 will fail, by design
 
@@ -363,9 +430,14 @@ az consumption budget delete --budget-name budget-demo --subscription <GUID>
 az policy assignment delete --name append-costcenter \
   --scope /providers/Microsoft.Management/managementGroups/contoso
 # repeat for audit-subnet-nsg, deny-nic-public-ip (twice, two scopes),
-# dine-nsg-diagnostics
+# dine-nsg-diagnostics, dine-activity-log and dine-service-health, then clear up
+# what the last two deployed: see "What destroying leaves behind" in section 4
 
-# 5.5 management groups, deepest first
+# 5.5 the tenant root settings and the custom role
+az account management-group hierarchy-settings delete --name <tenant ID>
+az role definition delete --name "contoso hierarchy deployer"   --scope /providers/Microsoft.Management/managementGroups/<tenant ID>
+
+# 5.6 management groups, deepest first
 az account management-group delete --name contoso-lz-corp-audit
 # ... then the rest of tier 2, then tier 1, then contoso
 ```
@@ -402,6 +474,10 @@ Rename operation.
 
 **The tenant root group.** Not managed by this repository and not deletable.
 `contoso` hangs off it, and removing `contoso` leaves the tenant as it was.
+
+**Resource provider registrations.** A provider can only be unregistered once
+nothing in the subscription uses it, and a registration costs nothing, so they
+stay.
 
 ## Quick reference
 

@@ -44,6 +44,8 @@ module "spoke" {
     if archetype != each.value.archetype
   ]
 
+  subnet_nsg_policy_assignment_id = local.subnet_nsg_assignment_id
+
   tags = {
     autoDelete = "false"
     archetype  = each.value.archetype

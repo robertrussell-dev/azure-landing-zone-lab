@@ -75,6 +75,19 @@ module budget '../subscription-budget/main.bicep' = {
   ]
 }
 
+// Defender's free tier and security contact. The same people who get the
+// budget alerts get the security alerts.
+module baseline '../subscription-baseline/main.bicep' = {
+  scope: subscription(subscriptionId)
+  name: take('baseline-${budgetName}', 64)
+  params: {
+    securityContactEmails: budgetContactEmails
+  }
+  dependsOn: [
+    placement
+  ]
+}
+
 @description('Resource ID of the budget.')
 output budgetId string = budget.outputs.id
 

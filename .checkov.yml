@@ -5,8 +5,8 @@
 # accepted, the reason is recorded here so a reviewer can judge whether the
 # tradeoff was reasonable, which is the same standard applied to the ADRs.
 #
-# This file starts empty on purpose. Skips are added only after a finding has
-# been read and understood, not pre-emptively to make the first run green.
+# Skips are added only after a finding has been read and understood, not
+# pre-emptively to make a run green.
 #
 # Two frameworks, because the repository holds the same landing zone twice.
 # Terraform is scanned as written. Bicep is compiled to ARM JSON first and
@@ -24,7 +24,24 @@ skip-path:
   - docs
   - runbooks
 
-skip-check: []
+skip-check:
+  # Defender for Cloud plans, from modules/subscription-baseline. The baseline
+  # sets the free Foundational CSPM tier on purpose: this lab runs at no
+  # standing cost, and the paid plans bill per protected resource. CKV_AZURE_84
+  # and CKV_AZURE_87 also fire on the CloudPosture pricing resource, which is
+  # neither the Storage plan nor the Key Vault plan they describe.
+  - CKV_AZURE_19
+  - CKV_AZURE_84
+  - CKV_AZURE_87
+  # Security contact, same module. These read the retired securityContacts
+  # schema (alertNotifications, alertsToAdmins). The 2023 API the module uses
+  # sets the same things through notificationsSources, alerts of High severity,
+  # and notificationsByRole, Owner, which the checks do not recognise.
+  - CKV_AZURE_21
+  - CKV_AZURE_22
+  # Microsoft retired the security contact phone number requirement; its built
+  # in policy is marked deprecated.
+  - CKV_AZURE_20
 
 # Fail the build on any severity. This lab is small enough that there is no
 # excuse for a backlog of accepted findings.
