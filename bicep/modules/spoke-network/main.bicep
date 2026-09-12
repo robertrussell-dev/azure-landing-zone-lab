@@ -1,15 +1,10 @@
 // One spoke virtual network, its subnets, its route table and both halves of
 // the peering with the hub.
 //
-// The Bicep counterpart of terraform/modules/spoke-network. Everything here is
-// free to leave running: virtual networks, subnets, peerings, network security
-// groups and route tables carry no hourly charge, which is the reason ADR 0004
-// chose hub and spoke over Virtual WAN for a lab on a personal card.
-//
-// Subnets are derived from the spoke's own prefix rather than listed, so a
-// spoke cannot be handed a subnet outside its allocation. cidrSubnet does the
-// same arithmetic Terraform's cidrsubnet does, and the two produce identical
-// prefixes.
+// The Bicep counterpart of terraform/modules/spoke-network, and free to leave
+// running. Subnets are derived from the spoke's own prefix rather than listed,
+// so a spoke can never be handed a subnet outside its allocation. cidrSubnet
+// produces the same prefixes as Terraform's cidrsubnet.
 
 @description('Short spoke name, for example corp-payments-prod. Used in every resource name.')
 param name string

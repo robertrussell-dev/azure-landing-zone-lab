@@ -1,16 +1,9 @@
 // Everything in this file bills by the hour from the moment it exists.
 //
 // Nothing here is on by default. Each flag names its own price in main.bicep,
-// and standingMonthlyCostUsd adds up whatever is switched on so the number
-// shows in a what-if rather than on an invoice.
-//
-// The discipline this is built for is the one the README already describes:
-// bring a device up, capture whatever you needed it for, destroy it the same
-// day. A gateway left running over a weekend costs more than everything else in
-// this repository has cost in total.
-//
-// Prices are West US 2, USD, retail, checked against the Azure retail prices
-// API on 2026-09-12.
+// and standingMonthlyCostUsd adds up whatever is switched on, so the number
+// shows in a what-if rather than on an invoice. Bring a device up, use it,
+// destroy it the same day.
 
 @description('Region.')
 param location string
@@ -18,7 +11,7 @@ param location string
 @description('Name of the hub virtual network these attach to.')
 param hubVirtualNetworkName string
 
-@description('Azure Firewall. Standard is about 912 per month, Basic about 288.')
+@description('Azure Firewall.')
 param deployFirewall bool = false
 
 @description('Firewall SKU tier.')
@@ -29,16 +22,16 @@ param deployFirewall bool = false
 ])
 param firewallSkuTier string = 'Standard'
 
-@description('VPN gateway, VpnGw1, about 139 per month.')
+@description('VPN gateway, VpnGw1.')
 param deployVpnGateway bool = false
 
-@description('ExpressRoute gateway, Standard, about 139 per month. The gateway only; the circuit is a carrier contract.')
+@description('ExpressRoute gateway, Standard. The gateway only; the circuit is a carrier contract.')
 param deployExpressRouteGateway bool = false
 
-@description('Azure Bastion, Standard, about 212 per month.')
+@description('Azure Bastion, Standard.')
 param deployBastion bool = false
 
-@description('Azure Route Server, about 73 per month.')
+@description('Azure Route Server.')
 param deployRouteServer bool = false
 
 @description('Tags applied to every resource.')

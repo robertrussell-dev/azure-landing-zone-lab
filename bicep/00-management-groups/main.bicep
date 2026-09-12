@@ -1,44 +1,27 @@
 // Management group hierarchy, composed by hand.
 //
-// The Bicep counterpart of terraform/00-management-groups. Same tree, same reasons,
-// recorded in the same ADRs. The Azure Verified Modules ALZ pattern module, and
-// its Bicep sibling ALZ-Bicep, would generate this and a great deal more. Both
-// are deliberately not used, for the reason in ADR 0007: the point of this
-// directory is that every group and every parent relationship is visible and
-// explainable in one file.
+// The Bicep counterpart of terraform/00-management-groups: same tree, same
+// reasons. ALZ-Bicep would generate this and a great deal more; ADR 0007 records
+// why it is not used.
 //
-// Depth note: Azure allows six levels below the tenant root group. This tree
-// uses three, which leaves room to insert a level later without restructuring.
-//
-// Scope. Management groups are tenant level resources, but this is not a
-// tenant deployment. It runs at the tenant root management group and creates
-// each group with scope: tenant():
+// Scope. Management groups are tenant level resources, but this runs at the
+// tenant root management group and creates each group with scope: tenant():
 //
 //   az deployment mg create --management-group-id <tenantId> \
 //     --location westus2 --template-file main.bicep \
 //     --parameters main.bicepparam
 //
-// The groups land in exactly the same place either way. What changes is where
-// the deployment record is written, and so what the operator needs rights to.
-//
-// A tenant deployment needs a role assignment at "/", the true root scope.
-// That scope takes built in roles only, so the narrowest grant available there
-// is Contributor over the entire tenant. The tenant root management group is
-// an ordinary RBAC scope: it accepts custom roles, so a principal can be given
-// Microsoft.Resources/deployments/* and Microsoft.Management/managementGroups/*
-// there and nothing else. That is the reason for the change, and it is the
-// difference between a grant you can scope and one you cannot.
-//
-// Microsoft documents this shape specifically for principals that cannot
-// deploy at the tenant:
+// The groups land in the same place either way. What changes is the access the
+// operator needs. A tenant deployment needs a role at "/", which takes built in
+// roles only, so the narrowest grant there is Contributor over the whole
+// tenant. The tenant root management group accepts custom roles, so the grant
+// can be limited to deployments and management groups. Microsoft documents this
+// shape for principals that cannot deploy at the tenant:
 // https://learn.microsoft.com/azure/azure-resource-manager/bicep/deploy-to-management-group#management-group
 //
-// The cost is that the deployment scope and the resource scope no longer
-// match, which is one more thing to hold in your head when reading the file.
-// Every group below therefore states scope: tenant() rather than inheriting
-// it. 20-subscription-placement has no equivalent escape, because
-// Microsoft.Subscription/aliases is tenant scoped and cannot be created from
-// anywhere else.
+// The cost is that every group below has to state scope: tenant() explicitly.
+// 20-subscription-placement has no such option, because subscription aliases
+// are tenant scoped.
 
 targetScope = 'managementGroup'
 

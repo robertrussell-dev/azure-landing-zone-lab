@@ -52,6 +52,7 @@ What each stage needs:
 | `10-policy` | Owner at the intermediate root | same |
 | `20-subscription-placement` | Owner at the intermediate root, plus billing scope rights to vend | **Owner or Contributor at `/`** |
 | `25-brownfield-seed` | Contributor on the adopted subscription | same |
+| `90-optional-network` | Contributor on `sub-connectivity` | same |
 
 The Bicep row for `20` is the one that bites. `Microsoft.Subscription/aliases`
 is a tenant-only resource type, so that root is a tenant deployment and needs a
@@ -65,8 +66,8 @@ management group grants nothing there. See section 4 of
 
 ## 2. Deploy with Terraform
 
-Five stages, and stages 2 and 4 are the same directory run twice. That isn't a
-mistake, see 2.4.
+Six stages, the last two optional. Stages 2 and 4 are the same directory run
+twice. That isn't a mistake, see 2.4.
 
 ### 2.1 Management groups
 
@@ -193,9 +194,9 @@ Check the plan's `standing_monthly_cost_usd` output before applying. With every
 flag false it reads 0 and the note says so.
 
 **Turning anything on.** Each device has its own flag and each flag names its
-price. Roughly, per month: firewall 912 on Standard or 288 on Basic, Bastion
-212, VPN gateway 139, ExpressRoute gateway 139, Route Server 73. All five plus
-their public IPs is 1,495.
+price; the table is also in the
+[hub and spoke diagram](../docs/diagrams/hub-spoke-network.svg). All five plus
+their public IPs is 1,495 a month.
 
 ```bash
 terraform apply -var deploy_firewall=true -auto-approve=false

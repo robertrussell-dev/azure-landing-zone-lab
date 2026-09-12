@@ -1,10 +1,9 @@
 # Management group hierarchy, composed by hand.
 #
 # The Azure Verified Modules ALZ pattern module would generate this and a great
-# deal more. It is not used here for the hierarchy, because the point of this
-# directory is that every group and every parent relationship is visible and
-# explainable in one file. See docs/adr for the reasoning and the README for
-# where AVM is used instead.
+# deal more. It is not used, because the point of this directory is that every
+# group and every parent relationship is visible and explainable in one file.
+# ADR 0007 records the reasoning.
 #
 # Depth note: Azure allows six levels below the tenant root group. This tree
 # uses three, which leaves room to insert a level later without restructuring.

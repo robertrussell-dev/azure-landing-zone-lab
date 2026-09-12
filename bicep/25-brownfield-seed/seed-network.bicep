@@ -7,18 +7,13 @@
 @description('Region for the seeded resources.')
 param location string
 
-// Violation 1: a subnet with no network security group attached.
+// The violation: a subnet with no network security group. It trips the
+// AuditIfNotExists assignment at the intermediate root, which reports and never
+// blocks, so it is non compliant everywhere in the hierarchy.
 //
-// Trips "Subnets should be associated with a Network Security Group", assigned
-// as AuditIfNotExists at the intermediate root. Reports, never blocks, so this
-// is non compliant everywhere in the hierarchy rather than only under the audit
-// only archetype.
-//
-// The subnet is declared inline rather than as a separate
-// Microsoft.Network/virtualNetworks/subnets resource. Both work, and mixing
-// them does not: a child subnet resource and an inline subnets array on the
-// same virtual network overwrite each other on alternating deployments. Inline
-// is the safe default when one file owns the whole network.
+// The subnet is inline rather than a separate subnets resource. Mixing the two
+// on one virtual network makes them overwrite each other on alternate
+// deployments, so inline is the safe default when one file owns the network.
 resource seed 'Microsoft.Network/virtualNetworks@2025-09-01' = {
   name: 'vnet-legacy-app'
   location: location
@@ -42,16 +37,11 @@ resource seed 'Microsoft.Network/virtualNetworks@2025-09-01' = {
             '10.240.0.0/26'
           ]
 
-          // Set explicitly because the default moves with the API version.
-          // Older versions default it to true, 2025-09-01 defaults it to
-          // false, and Azure is retiring default outbound access entirely.
-          // Inheriting a default that changes underneath you is how a subnet
-          // silently loses internet egress on an unrelated version bump. There
-          // is nothing in this subnet that needs egress.
-          //
-          // The Terraform tree has true here, inherited from the provider's
-          // older API version rather than chosen. That is the disagreement
-          // this line settles.
+          // Set explicitly because the default moves with the API version:
+          // true on older versions, false on 2025-09-01. A default that
+          // changes underneath you is how a subnet silently loses egress on an
+          // unrelated version bump. The Terraform tree inherits true from the
+          // provider's older API version.
           defaultOutboundAccess: false
 
           // No networkSecurityGroup property, on purpose. That absence is the

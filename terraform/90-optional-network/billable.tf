@@ -1,20 +1,12 @@
 # Everything in this file bills by the hour from the moment it exists.
 #
 # Nothing here is on by default. Each flag names its own price in
-# variables.tf, and the standing_monthly_cost output adds up whatever is
-# currently switched on so the number is visible in a plan rather than
-# discovered on an invoice.
-#
-# The discipline this is built for is the one the README already describes:
-# bring a device up, capture whatever you needed it for, destroy it the same
-# day. A gateway left running over a weekend costs more than everything else
-# in this repository has cost in total.
-#
-# Prices are West US 2, USD, retail, checked against the Azure retail prices
-# API on 2026-09-12.
+# variables.tf, and the standing_monthly_cost_usd output adds up whatever is
+# switched on, so the number shows in a plan rather than on an invoice. Bring a
+# device up, use it, destroy it the same day.
 
 # ---------------------------------------------------------------------------
-# Azure Firewall, about 912 per month on Standard
+# Azure Firewall
 # ---------------------------------------------------------------------------
 resource "azurerm_public_ip" "firewall" {
   provider = azurerm.connectivity
@@ -92,7 +84,7 @@ resource "azurerm_firewall" "hub" {
 }
 
 # ---------------------------------------------------------------------------
-# VPN gateway, about 139 per month on VpnGw1
+# VPN gateway
 # ---------------------------------------------------------------------------
 # Slow to create and slow to destroy, 30 to 45 minutes each way. That is worth
 # knowing before planning a same day teardown around it.
@@ -143,7 +135,7 @@ resource "azurerm_virtual_network_gateway" "vpn" {
 }
 
 # ---------------------------------------------------------------------------
-# ExpressRoute gateway, about 139 per month on Standard
+# ExpressRoute gateway
 # ---------------------------------------------------------------------------
 # The gateway only. The circuit is a carrier contract and is not something this
 # repository can or should create.
@@ -199,7 +191,7 @@ resource "azurerm_public_ip" "expressroute" {
 }
 
 # ---------------------------------------------------------------------------
-# Azure Bastion, about 212 per month on Standard
+# Azure Bastion
 # ---------------------------------------------------------------------------
 resource "azurerm_public_ip" "bastion" {
   provider = azurerm.connectivity
@@ -245,7 +237,7 @@ resource "azurerm_bastion_host" "hub" {
 }
 
 # ---------------------------------------------------------------------------
-# Azure Route Server, about 73 per month
+# Azure Route Server
 # ---------------------------------------------------------------------------
 # Only earns its place if a BGP speaking network virtual appliance is peering
 # with it, and there is not one here. It exists so the subnet in the address

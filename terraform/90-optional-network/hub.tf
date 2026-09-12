@@ -1,18 +1,11 @@
-# The hub virtual network, and every subnet the worked address plan calls for.
+# The hub virtual network and every subnet in docs/ip-plan.md.
 #
-# The plan this implements is docs/ip-plan.md. Nothing here is invented: the
-# prefixes, the subnet names and the sizes all come from that document, and the
-# derivations below are what prove the plan is systematic rather than a list of
-# numbers that happen not to collide.
+# Every prefix is derived from hub_address_space rather than typed, which is
+# what proves the plan is systematic rather than numbers that happen not to
+# collide. Everything in this file is free to leave running.
 #
-# Everything in this file is free. A virtual network with ten subnets in it
-# costs nothing per hour, which is what makes it reasonable to leave the shape
-# of the network deployed permanently and bring only the appliances up on
-# demand.
-#
-# Four of these subnet names are mandatory and case sensitive. Azure will not
-# attach the service if they are spelled anything else, and the failure is a
-# deployment error rather than a warning.
+# Five of the subnet names are mandatory and case sensitive: Azure will not
+# attach the service to a subnet spelled any other way.
 
 resource "azurerm_resource_group" "hub" {
   provider = azurerm.connectivity
@@ -47,14 +40,9 @@ resource "azurerm_virtual_network" "hub" {
 }
 
 locals {
-  # The four mandatory /26s tile the first /24 of the hub exactly. That is
-  # deliberate in the plan and it survives here because every prefix is
-  # derived from hub_address_space rather than typed.
-  #
-  # RouteServerSubnet is a /26, not the /27 that older material and one
-  # surviving Microsoft tutorial still show. A /27 fails at create time, and
-  # widening it to /26 is what pushed the DNS resolver endpoints from
-  # 10.0.1.32 and 10.0.1.48 up to 10.0.1.64 and 10.0.1.80.
+  # The first four /26s tile the first /24 of the hub exactly. RouteServerSubnet
+  # is also a /26, not the /27 some older material shows: a /27 fails at create
+  # time. The DNS resolver endpoints start after it, at 10.0.1.64.
   hub_subnets = {
     GatewaySubnet = {
       prefix     = cidrsubnet(var.hub_address_space, 6, 0)
@@ -99,15 +87,8 @@ resource "azurerm_subnet" "hub" {
   provider = azurerm.connectivity
   for_each = local.hub_subnets
 
-  # checkov:skip=CKV2_AZURE_31:Four of these subnets cannot or should not carry
-  # a network security group. AzureFirewallSubnet and
-  # AzureFirewallManagementSubnet do not support one at all and Azure rejects
-  # the association. RouteServerSubnet does not support one either.
-  # AzureBastionSubnet supports one only with a specific rule set that is
-  # meaningless until Bastion exists, and a wrong rule there breaks the service
-  # rather than protecting it. GatewaySubnet accepts one and Microsoft advises
-  # against it for the same reason. Every subnet that can safely carry the
-  # baseline group is associated with it above.
+  # checkov:skip=CKV2_AZURE_31:Five of these subnets must not carry the baseline
+  # network security group. The comment on hub_shared below says why.
 
   name                 = each.key
   resource_group_name  = azurerm_resource_group.hub.name
@@ -127,17 +108,14 @@ resource "azurerm_subnet" "hub" {
   }
 }
 
-# Four subnets get the baseline network security group: the two general purpose
-# ones and both DNS resolver endpoints. Delegation does not prevent a subnet
-# from carrying one.
-#
-# The other five do not, and cannot safely. AzureFirewallSubnet,
-# AzureFirewallManagementSubnet and RouteServerSubnet do not support one at all.
-# AzureBastionSubnet supports one only with a specific rule set that is
-# meaningless until Bastion exists. GatewaySubnet accepts one and Microsoft
-# advises against it, because the wrong rule breaks the control plane. So the
-# subnets left without one are left that way on purpose, and the audit
-# assignment at the intermediate root will report them.
+# The baseline network security group goes on the four subnets that can safely
+# carry one: the two general purpose ones and both DNS resolver endpoints
+# (delegation does not prevent it). The other five cannot. AzureFirewallSubnet,
+# AzureFirewallManagementSubnet and RouteServerSubnet do not support one.
+# AzureBastionSubnet needs a specific rule set that is meaningless until Bastion
+# exists, and GatewaySubnet accepts one but Microsoft advises against it,
+# because a wrong rule breaks the control plane. The audit assignment at the
+# intermediate root reports all five, correctly.
 resource "azurerm_network_security_group" "hub_shared" {
   provider = azurerm.connectivity
 

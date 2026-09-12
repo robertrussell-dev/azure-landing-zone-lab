@@ -189,10 +189,9 @@ the hub subnets can all be derived from one parent prefix in code.
 `RouteServerSubnet` is a /26, not a /27. Plenty of older material says /27 and
 Microsoft's own DDoS tutorial still shows one, but the current Route Server
 quickstarts all state /26 minimum and a /27 fails at create time. It matters
-here because a /26 starting at `10.0.1.0` runs to `10.0.1.63`, which is exactly
-where the two DNS Private Resolver /28s sat in an earlier draft of this plan.
-Widening the subnet without moving them is a silent overlap, so the resolver
-endpoints start at `10.0.1.64`.
+here because a /26 starting at `10.0.1.0` runs to `10.0.1.63`, so anything laid
+out for a /27 there, like resolver /28s at `10.0.1.32` and `10.0.1.48`, would
+silently overlap it. The resolver endpoints start at `10.0.1.64`.
 
 Subnet names in backticks are literal. Azure won't attach the service if they're
 spelled anything else, and the failure is a deployment error rather than a

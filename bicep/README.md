@@ -223,9 +223,9 @@ What goes with it:
 
 ### The Modify policy fight is silent instead of loud
 
-`terraform/25-brownfield-seed` has a long comment about the `costCenter` tag: the
-Modify assignment appends it, Terraform reads it back, doesn't find it in the
-configuration, and plans to remove it. The plan is never clean until somebody
+In `terraform/25-brownfield-seed` the Modify assignment appends `costCenter`,
+Terraform reads it back, doesn't find it in the configuration, and plans to
+remove it. The plan is never clean until somebody
 decides who owns the field, and `ignore_changes` is how that decision gets
 written down.
 

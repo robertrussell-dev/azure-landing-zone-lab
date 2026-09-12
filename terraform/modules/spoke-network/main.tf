@@ -1,16 +1,9 @@
 # One spoke virtual network, its subnets, its route table and both halves of
-# the peering with the hub.
+# the peering with the hub. Everything here is free to leave running; the
+# things that bill are in the root module, behind flags.
 #
-# Everything in this module is free to leave running. Virtual networks,
-# subnets, peerings, network security groups and route tables carry no hourly
-# charge, which is the whole reason ADR 0004 chose hub and spoke over Virtual
-# WAN for a lab on a personal card. The things that do bill are in the root
-# module, behind flags.
-#
-# Subnets are derived from the spoke's own prefix rather than listed. That is
-# not cleverness for its own sake: it makes it impossible to hand a spoke a
-# subnet outside its allocation, which is the mistake an address plan exists to
-# prevent.
+# Subnets are derived from the spoke's own prefix rather than listed, so a spoke
+# can never be handed a subnet outside its allocation.
 
 locals {
   # A /22 splits into four /24s. Three are used and the fourth is carved
@@ -69,14 +62,9 @@ resource "azurerm_virtual_network" "this" {
 resource "azurerm_subnet" "this" {
   for_each = local.subnets
 
-  # checkov:skip=CKV2_AZURE_31:Three of the four subnets are associated with the
-  # baseline network security group below, through
-  # azurerm_subnet_network_security_group_association. The graph check does not
-  # follow that association across a module boundary, so it reports all four.
-  # The fourth, snet-appgw, genuinely has none: Application Gateway v2 needs
-  # inbound 65200-65535 from GatewayManager to stay manageable, so a baseline
-  # deny group there would break the gateway rather than protect it. That subnet
-  # is reserved and empty until a gateway is deployed with its own rules.
+  # checkov:skip=CKV2_AZURE_31:Three subnets get the baseline network security
+  # group through the association below, which this check cannot follow across
+  # a module boundary. The fourth, snet-appgw, has none on purpose; see locals.
 
   name                 = "snet-${each.key}"
   resource_group_name  = var.resource_group_name

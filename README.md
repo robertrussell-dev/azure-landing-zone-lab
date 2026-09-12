@@ -6,18 +6,17 @@ reference and a learning artifact rather than a production deployment, and I've
 tried to be specific below about what's in it and what isn't.
 
 The same landing zone is also written in Bicep, in [`bicep/`](bicep/). Same
-hierarchy, same five assignments, same ADRs. It's there because writing the
-decisions twice is the cheapest way to find out which parts of the Terraform
-were architecture and which parts were Terraform, and
-[bicep/README.md](bicep/README.md) is a list of everything that turned out to
-be the second kind. The Terraform is the copy that's deployed; the Bicep
-compiles, lints and scans in CI and has never been applied to the tenant. All
-five of its roots have been run through `what-if` against the live estate. For
-the four with a deployed Terraform counterpart, the management group hierarchy
-comes back identical and all five policy assignments match, which is the real
-evidence that the two trees describe the same thing.
-The four defects that found, and every remaining difference, are in
-[bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate).
+hierarchy, same five assignments, same ADRs. Writing it twice is the cheapest
+way I know to find out which parts of the Terraform were architecture and which
+were just Terraform, and [bicep/README.md](bicep/README.md) lists everything
+that turned out to be the second kind.
+
+The Terraform is the copy that's deployed. The Bicep compiles, lints and scans
+in CI but has never been applied. Instead, all five of its roots have been run
+through `what-if` against the live estate, and for the four with a deployed
+Terraform counterpart the hierarchy comes back identical and all five policy
+assignments match. The four defects that turned up, and every remaining
+difference, are in [bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate).
 
 ## Layout
 
@@ -30,9 +29,8 @@ runbooks/      operational procedures, tool independent
 scripts/       the CI checks, shared by both pipelines
 ```
 
-Both trees are named after their language rather than one of them being the
-default. That's the whole reason `terraform/` isn't called `infra/`: with two
-implementations in the repo, an unlabelled directory is a guess.
+Both trees are named after their language. With two implementations in the
+repo, an unlabelled `infra/` would be a guess.
 
 ## Hierarchy
 
