@@ -6,9 +6,11 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
-. ./scripts/tools.sh
 
-ensure_tool tflint install-tflint.sh || exit 1
+if ! command -v tflint > /dev/null 2>&1; then
+  echo "FAIL: tflint not found. See \"Running the checks locally\" in README.md." >&2
+  exit 1
+fi
 
 failed=0
 for dir in terraform/[0-9]*/; do

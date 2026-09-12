@@ -12,9 +12,11 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
-. ./scripts/tools.sh
 
-ensure_tool bicep install-bicep.sh || exit 1
+if ! command -v bicep > /dev/null 2>&1; then
+  echo "FAIL: bicep not found. See \"Running the checks locally\" in README.md." >&2
+  exit 1
+fi
 
 failed=0
 found=0

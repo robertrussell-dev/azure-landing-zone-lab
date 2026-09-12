@@ -1,49 +1,35 @@
 #!/usr/bin/env bash
-# Install the lychee link checker.
+# Install the lychee link checker on a Linux CI runner.
 #
-# Shared by both CI definitions and by check-links.sh, which calls it when the
-# binary is missing. Tool installation that is genuinely identical belongs in a
-# script for the same reason the checks themselves do.
+# Shared by both CI definitions. Tool installation that is genuinely identical
+# belongs in a script for the same reason the checks themselves do. To run the
+# checks locally, install the tools once with a package manager instead; see
+# "Running the checks locally" in README.md.
 #
 # The version is pinned. "latest" makes the build depend on whatever was
 # released this morning, which turns an unrelated upstream change into a broken
 # pipeline on a day nobody touched this repository.
 set -euo pipefail
 
-. "$(dirname "$0")/tools.sh"
-
 # The release tag carries the project name: "lychee-v0.24.2", not "v0.24.2".
 LYCHEE_VERSION="${LYCHEE_VERSION:-lychee-v0.24.2}"
-
-tools_platform
-
-# lychee names its assets by Rust target triple.
-case "$tools_arch" in
-  amd64) rust_arch="x86_64" ;;
-  arm64) rust_arch="aarch64" ;;
-esac
-
-case "$tools_os" in
-  linux)   target="${rust_arch}-unknown-linux-gnu"; archive_ext="tar.gz"; binary="lychee" ;;
-  darwin)  target="${rust_arch}-apple-darwin";      archive_ext="tar.gz"; binary="lychee" ;;
-  windows) target="x86_64-pc-windows-msvc";         archive_ext="zip";    binary="lychee.exe" ;;
-esac
-
-if tools_installed "$binary" "${LYCHEE_VERSION#lychee-v}"; then
-  echo "==> lychee ${LYCHEE_VERSION} already installed"
-  exit 0
-fi
-
-archive="lychee-${target}.${archive_ext}"
-base="https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_VERSION}"
+URL="https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz"
 
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
-echo "==> downloading lychee ${LYCHEE_VERSION} for ${target}"
-curl -fsSL -o "${workdir}/${archive}" "${base}/${archive}"
+echo "==> downloading lychee ${LYCHEE_VERSION}"
+curl -fsSL -o "${workdir}/lychee.tar.gz" "$URL"
 
-tools_extract "${workdir}/${archive}" "$workdir"
-tools_install "$(tools_locate "$workdir" "$binary")" "$binary"
+# The archive holds the binary inside a directory named after the target
+# triple. --strip-components=1 flattens that so the binary lands in workdir.
+tar -xzf "${workdir}/lychee.tar.gz" -C "$workdir" --strip-components=1
 
-"${tools_bin_dir}/${binary}" --version
+if [ ! -f "${workdir}/lychee" ]; then
+  echo "FAIL: no lychee binary in the archive. Layout may have changed:" >&2
+  tar -tzf "${workdir}/lychee.tar.gz" | head -20 >&2
+  exit 1
+fi
+
+sudo install -m 0755 "${workdir}/lychee" /usr/local/bin/lychee
+lychee --version

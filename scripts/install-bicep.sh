@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Install the Bicep CLI.
+# Install the Bicep CLI on a Linux CI runner.
 #
-# Shared by both CI definitions and by the Bicep checks, which call it when the
-# binary is missing.
+# Shared by both CI definitions. To run the checks locally, install Bicep once
+# with a package manager instead; see "Running the checks locally" in README.md.
 #
 # The standalone binary rather than "az bicep install". The Azure CLI carries
 # its own copy of Bicep and upgrades it on its own schedule, so pinning through
@@ -12,34 +12,21 @@
 #
 # The version is pinned for the reason spelled out in install-lychee.sh. Bicep's
 # linter in particular gains rules between releases, and a new rule arriving
-# unannounced fails the build on files that have not changed.
+# unannounced fails the build on files that have not changed. The pin also
+# matters for type data: hosted runner images ship an older Bicep that has no
+# types for some of the API versions used here.
 set -euo pipefail
 
-. "$(dirname "$0")/tools.sh"
-
 BICEP_VERSION="${BICEP_VERSION:-v0.47.16}"
-
-tools_platform
-
-# A bare executable rather than an archive, named by platform and architecture.
-case "$tools_os" in
-  linux)   asset="bicep-linux-${tools_arch/amd64/x64}";   binary="bicep" ;;
-  darwin)  asset="bicep-osx-${tools_arch/amd64/x64}";     binary="bicep" ;;
-  windows) asset="bicep-win-${tools_arch/amd64/x64}.exe"; binary="bicep.exe" ;;
-esac
-
-if tools_installed "$binary" "${BICEP_VERSION#v}"; then
-  echo "==> bicep ${BICEP_VERSION} already installed"
-  exit 0
-fi
+URL="https://github.com/Azure/bicep/releases/download/${BICEP_VERSION}/bicep-linux-x64"
 
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
-echo "==> downloading bicep ${BICEP_VERSION} (${asset})"
-curl -fsSL -o "${workdir}/${binary}" \
-  "https://github.com/Azure/bicep/releases/download/${BICEP_VERSION}/${asset}"
+echo "==> downloading bicep ${BICEP_VERSION}"
+curl -fsSL -o "${workdir}/bicep" "$URL"
 
-tools_install "${workdir}/${binary}" "$binary"
-
-"${tools_bin_dir}/${binary}" --version
+# The runner image installs its own Bicep at this same path, so this replaces
+# it and the pinned version is the one the checks run.
+sudo install -m 0755 "${workdir}/bicep" /usr/local/bin/bicep
+bicep --version

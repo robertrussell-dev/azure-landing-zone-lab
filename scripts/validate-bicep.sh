@@ -10,9 +10,11 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
-. ./scripts/tools.sh
 
-ensure_tool bicep install-bicep.sh || exit 1
+if ! command -v bicep > /dev/null 2>&1; then
+  echo "FAIL: bicep not found. See \"Running the checks locally\" in README.md." >&2
+  exit 1
+fi
 
 # Format check runs over git tracked files only, for the same reason
 # validate-terraform.sh does. main.bicepparam is gitignored and holds one

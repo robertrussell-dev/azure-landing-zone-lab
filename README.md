@@ -325,3 +325,29 @@ approach: [bicep/README.md](bicep/README.md#validation).
 [docs/ci-security.md](docs/ci-security.md) has the threat model, the forked
 pull request settings, and the workload identity federation design I'd use if
 CI ever needed Azure access.
+
+### Running the checks locally
+
+The scripts CI runs work locally too. They're bash, so on Windows run them from
+Git Bash, and they expect the tools to already be on PATH. One-time install:
+
+```
+winget install --exact Hashicorp.Terraform TerraformLinters.tflint Microsoft.Bicep lycheeverse.lychee
+pip install checkov
+```
+
+Then run whichever check you want, for example:
+
+```
+./scripts/validate-terraform.sh
+./scripts/lint-terraform.sh
+./scripts/validate-bicep.sh
+./scripts/lint-bicep.sh
+./scripts/check-links.sh
+./scripts/scan-security.sh
+```
+
+CI pins its tool versions in `scripts/install-*.sh`, and winget installs
+whatever's current. They match right now, but if a check ever passes locally
+and fails in CI, or the other way round, a version difference is the first
+thing I'd look at.

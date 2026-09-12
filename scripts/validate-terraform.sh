@@ -7,6 +7,11 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
+if ! command -v terraform > /dev/null 2>&1; then
+  echo "FAIL: terraform not found. See \"Running the checks locally\" in README.md." >&2
+  exit 1
+fi
+
 # Format check runs over git tracked files only, not over the working tree.
 #
 # "terraform fmt -recursive" walks everything on disk, which includes

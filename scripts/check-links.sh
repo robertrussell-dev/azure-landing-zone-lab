@@ -8,9 +8,11 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
-. ./scripts/tools.sh
 
-ensure_tool lychee install-lychee.sh || exit 1
+if ! command -v lychee > /dev/null 2>&1; then
+  echo "FAIL: lychee not found. See \"Running the checks locally\" in README.md." >&2
+  exit 1
+fi
 
 lychee \
   --no-progress \
