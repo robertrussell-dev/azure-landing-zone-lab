@@ -13,9 +13,11 @@
 tools_repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tools_bin_dir="${TOOLS_BIN_DIR:-${tools_repo_root}/.tools}"
 
-# Appended rather than prepended, so a system wide install keeps precedence.
-# Someone who has deliberately installed their own tflint gets theirs.
-export PATH="${PATH}:${tools_bin_dir}"
+# Prepended, so the pinned version is the one that runs even on a machine that
+# has its own copy. Hosted runner images ship Bicep, for one, at whatever
+# version the image was built with. Pinning only means something if the pinned
+# binary is the one that wins.
+export PATH="${tools_bin_dir}:${PATH}"
 
 # Sets tools_os to linux, darwin or windows and tools_arch to amd64 or arm64.
 #
@@ -112,14 +114,13 @@ tools_installed() {
 # Used by the check scripts. A check that cannot run without a separate install
 # step is a check that only runs in CI, which is the last place worth finding a
 # problem.
+#
+# It runs the installer rather than looking for the binary on PATH, because any
+# copy on PATH could be any version. The installer returns straight away when
+# the pinned version is already in place.
 ensure_tool() {
   local binary="$1" installer="$2"
 
-  if command -v "$binary" > /dev/null 2>&1; then
-    return 0
-  fi
-
-  echo "==> ${binary} not found, installing the pinned version"
   if ! "${tools_repo_root}/scripts/${installer}"; then
     echo "FAIL: could not install ${binary}. Install it manually and re-run." >&2
     return 1
