@@ -88,9 +88,7 @@ jobs:
           terraform_wrapper: false
 
       - name: Install tflint
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-          tflint --version
+        run: ./scripts/install-tflint.sh
 
       - name: tflint
         run: ./scripts/lint-terraform.sh

@@ -14,7 +14,30 @@
     .conn  { stroke: #d0d7de; stroke-width: 1; fill: none; }
     .title { fill: #1b1f23; font-size: 15px; font-weight: 700; }
     .cap   { fill: #57606a; font-size: 11px; }
+    .bg     { fill: #ffffff; }
+
+    /* Readable on a dark page. GitHub renders this from the reader's
+       browser setting, so the diagram follows the surrounding theme. */
+    @media (prefers-color-scheme: dark) {
+      .card   { fill: #262e3a; stroke: #3d4653; stroke-width: 1; rx: 5; }
+      .root   { fill: #232a35; stroke: #808b98; stroke-width: 1; stroke-dasharray: 4 3; rx: 5; }
+      .tier1  { fill: #1a2b3d; stroke: #5288bd; stroke-width: 1; rx: 5; }
+      .audit  { fill: #2f2917; stroke: #907a33; stroke-width: 1; rx: 5; }
+      .name   { fill: #e8eef4; font-size: 13px; font-weight: 600; }
+      .id     { fill: #a7b1bd; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .sub    { fill: #46c464; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .plan   { fill: #808b98; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .tagd   { fill: #46c464; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+      .tagp   { fill: #808b98; font-size: 10px; font-style: italic; }
+      .empty  { fill: #808b98; font-size: 11px; font-style: italic; }
+      .conn   { stroke: #3d4653; stroke-width: 1; fill: none; }
+      .title  { fill: #e8eef4; font-size: 15px; font-weight: 700; }
+      .cap    { fill: #a7b1bd; font-size: 11px; }
+      .bg     { fill: #1b212b; }
+    }
   </style>
+
+  <rect class="bg" x="0" y="0" width="960" height="600"/>
 
   <text class="title" x="20" y="26">Contoso landing zone, management group hierarchy</text>
   <text class="cap" x="20" y="44">Thirteen groups. DEPLOYED subscriptions exist in the tenant today; planned ones do not. Groups with no subscription are in the tree deliberately, see README.</text>

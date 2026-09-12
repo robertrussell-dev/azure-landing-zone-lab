@@ -10,6 +10,9 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
+. ./scripts/tools.sh
+
+ensure_tool bicep install-bicep.sh || exit 1
 
 # Format check runs over git tracked files only, for the same reason
 # validate-terraform.sh does. main.bicepparam is gitignored and holds one

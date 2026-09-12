@@ -13,12 +13,39 @@
     .mg     { fill: #1b1f23; font-size: 12px; font-weight: 600; }
     .mgid   { fill: #8c959f; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .atxt   { fill: #1a7f37; font-size: 9.5px; font-weight: 700; }
-    .autxt  { fill: #8a6d1f; font-size: 9.5px; font-weight: 700; }
+    .autxt  { fill: #8a6d1f; font-size: 8px; font-weight: 700; }
     .inh    { fill: #8c959f; font-size: 9.5px; font-style: italic; }
     .none   { fill: #cfd6dd; font-size: 11px; }
     .note   { fill: #57606a; font-size: 10.5px; }
     .flag   { fill: #953800; font-size: 10.5px; font-weight: 600; }
+    .bg     { fill: #ffffff; }
+
+    /* Readable on a dark page. GitHub renders this from the reader's
+       browser setting, so the diagram follows the surrounding theme. */
+    @media (prefers-color-scheme: dark) {
+      .hdr    { fill: #1a2b3d; stroke: #5288bd; stroke-width: 1; rx: 4; }
+      .rowa   { fill: #232a35; }
+      .rowb   { fill: #262e3a; }
+      .rowl   { stroke: #2e3743; stroke-width: 1; }
+      .assign { fill: #14321f; stroke: #46c464; stroke-width: 1.2; rx: 3; }
+      .audit  { fill: #2f2917; stroke: #907a33; stroke-width: 1.2; rx: 3; }
+      .title  { fill: #e8eef4; font-size: 15px; font-weight: 700; }
+      .cap    { fill: #a7b1bd; font-size: 11px; }
+      .colh   { fill: #e8eef4; font-size: 10.5px; font-weight: 700; }
+      .colhs  { fill: #a7b1bd; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .mg     { fill: #e8eef4; font-size: 12px; font-weight: 600; }
+      .mgid   { fill: #808b98; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .atxt   { fill: #46c464; font-size: 9.5px; font-weight: 700; }
+      .autxt  { fill: #dcb95a; font-size: 8px; font-weight: 700; }
+      .inh    { fill: #808b98; font-size: 9.5px; font-style: italic; }
+      .none   { fill: #414b59; font-size: 11px; }
+      .note   { fill: #a7b1bd; font-size: 10.5px; }
+      .flag   { fill: #e8944e; font-size: 10.5px; font-weight: 600; }
+      .bg     { fill: #1b212b; }
+    }
   </style>
+
+  <rect class="bg" x="0" y="0" width="1000" height="520"/>
 
   <text class="title" x="20" y="26">Where the five policy assignments apply, and what inherits</text>
   <text class="cap" x="20" y="44">Assigned at a scope, evaluated at every scope beneath it. Two assignments cover the whole tree; three are placed deliberately and do not.</text>
@@ -54,9 +81,9 @@
   <text class="mg" x="30" y="131">Contoso</text>
   <text class="mgid" x="96" y="131">contoso</text>
   <rect class="assign" x="286" y="117" width="136" height="20"/>
-  <text class="atxt" x="316" y="131">ASSIGNED HERE</text>
+  <text class="atxt" x="354" y="131" text-anchor="middle">ASSIGNED HERE</text>
   <rect class="assign" x="428" y="117" width="136" height="20"/>
-  <text class="atxt" x="458" y="131">ASSIGNED HERE</text>
+  <text class="atxt" x="496" y="131" text-anchor="middle">ASSIGNED HERE</text>
   <text class="none" x="634" y="132">-</text>
   <text class="none" x="776" y="132">-</text>
   <text class="none" x="915" y="132">-</text>
@@ -80,7 +107,7 @@
   <text class="none" x="634" y="192">-</text>
   <text class="none" x="776" y="192">-</text>
   <rect class="assign" x="854" y="177" width="126" height="20"/>
-  <text class="atxt" x="879" y="191">ASSIGNED HERE</text>
+  <text class="atxt" x="917" y="191" text-anchor="middle">ASSIGNED HERE</text>
 
   <!-- row 4: Landing zones -->
   <rect class="rowa" x="20" y="202" width="960" height="30"/>
@@ -99,7 +126,7 @@
   <text class="inh" x="330" y="251">inherited</text>
   <text class="inh" x="472" y="251">inherited</text>
   <rect class="assign" x="570" y="237" width="136" height="20"/>
-  <text class="atxt" x="600" y="251">ASSIGNED HERE</text>
+  <text class="atxt" x="638" y="251" text-anchor="middle">ASSIGNED HERE</text>
   <text class="none" x="776" y="252">-</text>
   <text class="none" x="915" y="252">-</text>
 
@@ -111,7 +138,7 @@
   <text class="inh" x="472" y="281">inherited</text>
   <text class="none" x="634" y="282">-</text>
   <rect class="audit" x="712" y="267" width="136" height="20"/>
-  <text class="autxt" x="736" y="281">ASSIGNED, NOT ENFORCED</text>
+  <text class="autxt" x="780" y="281" text-anchor="middle">ASSIGNED, NOT ENFORCED</text>
   <text class="none" x="915" y="282">-</text>
 
   <!-- row 7: Online -->

@@ -12,6 +12,9 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
+. ./scripts/tools.sh
+
+ensure_tool bicep install-bicep.sh || exit 1
 
 failed=0
 found=0

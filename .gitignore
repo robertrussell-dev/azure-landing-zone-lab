@@ -41,3 +41,6 @@ tfplan.*
 # Local working notes, not part of the published repo.
 landing-zone-lab-brief.md
 decisions.md
+
+# Pinned tooling installed by scripts/install-*.sh
+.tools/

@@ -95,10 +95,7 @@ stages:
               sudo mv terraform /usr/local/bin/
             displayName: 'Install Terraform $(TERRAFORM_VERSION)'
 
-          - script: |
-              set -euo pipefail
-              curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-              tflint --version
+          - script: ./scripts/install-tflint.sh
             displayName: 'Install tflint'
 
           - script: ./scripts/lint-terraform.sh

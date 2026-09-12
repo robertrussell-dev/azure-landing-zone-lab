@@ -1,14 +1,14 @@
 # Modules
 
-The Bicep side of [`modules/`](../../terraform/modules/). Same three, same rule: two
-callers before I pull anything out, and `subscription-vending` still doesn't
-meet it.
+The Bicep side of [`modules/`](../../terraform/modules/). Same four, same rule:
+two callers before I pull anything out, and two of these still don't meet it.
 
 | Module | Callers | What it does |
 |---|---|---|
 | [`policy-assignment`](policy-assignment/) | 5 | Policy assignment at management group scope, and the role assignments its identity needs. |
 | [`subscription-budget`](subscription-budget/) | 2 | Subscription budget, actual and forecast thresholds. |
 | [`subscription-vending`](subscription-vending/) | 1 | Creates a subscription against a billing scope, places it, budgets it. Calls `subscription-budget`. |
+| [`spoke-network`](spoke-network/) | 1 | One spoke virtual network, its subnets, route table and both halves of the hub peering. |
 
 The reasoning behind the rule is in [modules/README.md](../../terraform/modules/README.md)
 and I'm not going to repeat it. What's below is the part that's different

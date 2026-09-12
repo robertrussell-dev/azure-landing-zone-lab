@@ -23,6 +23,20 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
+. ./scripts/tools.sh
+
+# The Bicep tree is scanned as compiled ARM JSON, so this needs a Bicep CLI.
+ensure_tool bicep install-bicep.sh || exit 1
+
+# checkov is a Python package rather than a release binary, so it is not
+# installed on demand the way the others are. Dropping a pinned executable into
+# a gitignored directory is reversible and affects nothing else; installing into
+# whichever Python happens to be on PATH is neither, so it stays an explicit
+# choice the operator makes.
+if ! command -v checkov > /dev/null 2>&1; then
+  echo "FAIL: checkov not found. Install it with 'pip install checkov' and re-run." >&2
+  exit 1
+fi
 
 OUT_DIR="${1:-checkov-results}"
 

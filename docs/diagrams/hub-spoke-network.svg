@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 812" width="1000" height="812" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .card   { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1; rx: 6; }
+    .hubc   { fill: #eef4fb; stroke: #a8c7ea; stroke-width: 1.3; rx: 6; }
+    .band   { fill: #fff8e6; stroke: #e0c05c; stroke-width: 1; rx: 6; }
+    .pill   { fill: #ffffff; stroke: #a8c7ea; stroke-width: 1; rx: 3; }
+    .gpill  { fill: #ddf4e4; stroke: #1a7f37; stroke-width: 1; rx: 3; }
+    .rpill  { fill: #ffebe9; stroke: #cf222e; stroke-width: 1; rx: 3; }
+    .title  { fill: #1b1f23; font-size: 15px; font-weight: 700; }
+    .cap    { fill: #57606a; font-size: 11px; }
+    .dir    { fill: #1b1f23; font-size: 11.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .hd     { fill: #57606a; font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px; }
+    .mn     { fill: #1b1f23; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .pfx    { fill: #0a3069; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .n      { fill: #57606a; font-size: 9px; }
+    .grn    { fill: #1a7f37; font-size: 9.5px; font-weight: 700; }
+    .red    { fill: #cf222e; font-size: 9.5px; font-weight: 700; }
+    .grnn   { fill: #1a7f37; font-size: 9.5px; }
+    .redn   { fill: #cf222e; font-size: 9.5px; }
+    .note   { fill: #57606a; font-size: 10.5px; }
+    .flow   { stroke: #8c959f; stroke-width: 1.6; fill: none; }
+    .bg     { fill: #ffffff; }
+    .mkf    { fill: #8c959f; }
+
+    /* Readable on a dark page. GitHub renders this from the reader's
+       browser setting, so the diagram follows the surrounding theme. */
+    @media (prefers-color-scheme: dark) {
+      .card   { fill: #262e3a; stroke: #3d4653; stroke-width: 1; rx: 6; }
+      .hubc   { fill: #1a2b3d; stroke: #5288bd; stroke-width: 1.3; rx: 6; }
+      .band   { fill: #2f2917; stroke: #907a33; stroke-width: 1; rx: 6; }
+      .pill   { fill: #232a35; stroke: #5288bd; stroke-width: 1; rx: 3; }
+      .gpill  { fill: #14321f; stroke: #46c464; stroke-width: 1; rx: 3; }
+      .rpill  { fill: #3d2226; stroke: #ff8a80; stroke-width: 1; rx: 3; }
+      .title  { fill: #e8eef4; font-size: 15px; font-weight: 700; }
+      .cap    { fill: #a7b1bd; font-size: 11px; }
+      .dir    { fill: #e8eef4; font-size: 11.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .hd     { fill: #a7b1bd; font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px; }
+      .mn     { fill: #e8eef4; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .pfx    { fill: #7cc0ff; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .n      { fill: #a7b1bd; font-size: 9px; }
+      .grn    { fill: #46c464; font-size: 9.5px; font-weight: 700; }
+      .red    { fill: #ff8a80; font-size: 9.5px; font-weight: 700; }
+      .grnn   { fill: #46c464; font-size: 9.5px; }
+      .redn   { fill: #ff8a80; font-size: 9.5px; }
+      .note   { fill: #a7b1bd; font-size: 10.5px; }
+      .flow   { stroke: #808b98; stroke-width: 1.6; fill: none; }
+      .bg     { fill: #1b212b; }
+      .mkf    { fill: #808b98; }
+    }
+  </style>
+
+  <defs>
+    <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 z" class="mkf"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1000" height="812"/>
+
+  <text class="title" x="20" y="26">Hub and spoke, as 90-optional-network actually builds it</text>
+  <text class="cap" x="20" y="44">Every prefix below is derived from its parent with cidrsubnet in Terraform and cidrSubnet in Bicep, not typed in. The two agree, and both reproduce docs/ip-plan.md.</text>
+
+  <!-- ===================== HUB ===================== -->
+  <rect class="hubc" x="20" y="62" width="960" height="182"/>
+  <text class="dir" x="34" y="85">vnet-hub</text>
+  <rect class="pill" x="112" y="73" width="80" height="16"/>
+  <text class="pfx" x="120" y="85">10.0.0.0/20</text>
+  <rect class="gpill" x="856" y="73" width="110" height="16"/>
+  <text class="grn" x="866" y="85">FREE AT REST</text>
+  <text class="n" x="34" y="101">rg-hub-network in the connectivity subscription. 4096 addresses, nine subnets, and not one hourly charge until a flag in the band below is switched on.</text>
+
+  <text class="hd" x="34" y="123">MANDATORY NAMES, CASE SENSITIVE</text>
+  <text class="hd" x="510" y="123">NAMED BY THIS REPO</text>
+
+  <text class="mn"  x="34"  y="141">GatewaySubnet</text>
+  <text class="pfx" x="215" y="141">10.0.0.0/26</text>
+  <text class="n"   x="305" y="141">VPN and ExpressRoute gateways share it</text>
+  <text class="mn"  x="34"  y="159">AzureFirewallSubnet</text>
+  <text class="pfx" x="215" y="159">10.0.0.64/26</text>
+  <text class="n"   x="305" y="159">Azure Firewall, /26 required</text>
+  <text class="mn"  x="34"  y="177">AzureFirewallManagementSubnet</text>
+  <text class="pfx" x="215" y="177">10.0.0.128/26</text>
+  <text class="n"   x="305" y="177">forced tunnelling only, empty here</text>
+  <text class="mn"  x="34"  y="195">AzureBastionSubnet</text>
+  <text class="pfx" x="215" y="195">10.0.0.192/26</text>
+  <text class="n"   x="305" y="195">Azure Bastion</text>
+  <text class="mn"  x="34"  y="213">RouteServerSubnet</text>
+  <text class="pfx" x="215" y="213">10.0.1.0/26</text>
+  <text class="redn" x="305" y="213">/26 minimum. A /27 fails at create time.</text>
+
+  <text class="mn"  x="510" y="141">snet-dns-inbound</text>
+  <text class="pfx" x="700" y="141">10.0.1.64/28</text>
+  <text class="n"   x="790" y="141">delegated, plus an NSG</text>
+  <text class="mn"  x="510" y="159">snet-dns-outbound</text>
+  <text class="pfx" x="700" y="159">10.0.1.80/28</text>
+  <text class="n"   x="790" y="159">delegated, plus an NSG</text>
+  <text class="mn"  x="510" y="177">snet-shared-privateendpoints</text>
+  <text class="pfx" x="700" y="177">10.0.2.0/24</text>
+  <text class="n"   x="790" y="177">NSG</text>
+  <text class="mn"  x="510" y="195">snet-shared-services</text>
+  <text class="pfx" x="700" y="195">10.0.3.0/24</text>
+  <text class="n"   x="790" y="195">NSG, jumpboxes and tooling</text>
+  <text class="mn"  x="510" y="213">reserved</text>
+  <text class="pfx" x="700" y="213">10.0.4.0/22 +</text>
+  <text class="n"   x="790" y="213">hub growth, not deployed</text>
+
+  <text class="n" x="34" y="233">The four /26s from 10.0.0.0 tile the first /24 exactly, which is what lets all nine be derived from one parent prefix instead of listed.</text>
+
+  <!-- ===================== PEERINGS ===================== -->
+  <path class="flow" d="M 200 244 L 200 306" marker-end="url(#ar)"/>
+  <path class="flow" d="M 690 244 L 690 306" marker-end="url(#ar)"/>
+
+  <text class="hd"  x="212" y="262">PEERING, BOTH HALVES</text>
+  <text class="mn"  x="212" y="278">allowForwardedTraffic</text>
+  <text class="grnn" x="360" y="278">true</text>
+  <text class="mn"  x="212" y="292">useRemoteGateways</text>
+  <text class="grnn" x="360" y="292">true, when a gateway exists</text>
+
+  <text class="hd"  x="702" y="262">PEERING, BOTH HALVES</text>
+  <text class="mn"  x="702" y="278">allowForwardedTraffic</text>
+  <text class="grnn" x="850" y="278">true</text>
+  <text class="mn"  x="702" y="292">useRemoteGateways</text>
+  <text class="redn" x="850" y="292">false, always</text>
+
+  <!-- ===================== SPOKES ===================== -->
+  <rect class="card" x="20" y="306" width="470" height="196"/>
+  <text class="dir" x="34" y="328">vnet-corp-payments-prod</text>
+  <rect class="gpill" x="238" y="316" width="42" height="16"/>
+  <text class="grn" x="246" y="328">corp</text>
+  <rect class="pill" x="288" y="316" width="80" height="16"/>
+  <text class="pfx" x="296" y="328">10.1.0.0/22</text>
+
+  <text class="hd" x="34" y="350">SUBNETS, DERIVED FROM THE /22</text>
+  <text class="mn"  x="34"  y="366">snet-app</text>
+  <text class="pfx" x="200" y="366">10.1.0.0/24</text>
+  <text class="n"   x="300" y="366">NSG + route table</text>
+  <text class="mn"  x="34"  y="382">snet-data</text>
+  <text class="pfx" x="200" y="382">10.1.1.0/24</text>
+  <text class="n"   x="300" y="382">NSG + route table</text>
+  <text class="mn"  x="34"  y="398">snet-privateendpoints</text>
+  <text class="pfx" x="200" y="398">10.1.2.0/24</text>
+  <text class="n"   x="300" y="398">NSG + route table</text>
+  <text class="mn"  x="34"  y="414">snet-appgw</text>
+  <text class="pfx" x="200" y="414">10.1.3.0/26</text>
+  <text class="n"   x="300" y="414">neither, on purpose</text>
+
+  <text class="hd" x="34" y="438">ROUTE TABLE rt-corp-payments-prod</text>
+  <text class="mn"  x="34"  y="454">0.0.0.0/0</text>
+  <text class="mn"  x="200" y="454">to Azure Firewall</text>
+  <text class="n"   x="330" y="454">forced tunnelling</text>
+  <text class="mn"  x="34"  y="470">10.2.0.0/16</text>
+  <text class="mn"  x="200" y="470">to Azure Firewall</text>
+  <text class="n"   x="330" y="470">the whole other archetype</text>
+  <text class="grnn" x="34" y="492">Reaches on premises through the hub gateway.</text>
+
+  <rect class="card" x="510" y="306" width="470" height="196"/>
+  <text class="dir" x="524" y="328">vnet-online-portal-prod</text>
+  <rect class="rpill" x="722" y="316" width="52" height="16"/>
+  <text class="red" x="730" y="328">online</text>
+  <rect class="pill" x="782" y="316" width="80" height="16"/>
+  <text class="pfx" x="790" y="328">10.2.0.0/22</text>
+
+  <text class="hd" x="524" y="350">SUBNETS, DERIVED FROM THE /22</text>
+  <text class="mn"  x="524" y="366">snet-app</text>
+  <text class="pfx" x="690" y="366">10.2.0.0/24</text>
+  <text class="n"   x="790" y="366">NSG + route table</text>
+  <text class="mn"  x="524" y="382">snet-data</text>
+  <text class="pfx" x="690" y="382">10.2.1.0/24</text>
+  <text class="n"   x="790" y="382">NSG + route table</text>
+  <text class="mn"  x="524" y="398">snet-privateendpoints</text>
+  <text class="pfx" x="690" y="398">10.2.2.0/24</text>
+  <text class="n"   x="790" y="398">NSG + route table</text>
+  <text class="mn"  x="524" y="414">snet-appgw</text>
+  <text class="pfx" x="690" y="414">10.2.3.0/26</text>
+  <text class="n"   x="790" y="414">neither, on purpose</text>
+
+  <text class="hd" x="524" y="438">ROUTE TABLE rt-online-portal-prod</text>
+  <text class="mn"  x="524" y="454">10.1.0.0/16</text>
+  <text class="mn"  x="690" y="454">to Azure Firewall</text>
+  <text class="n"   x="820" y="454">the other archetype</text>
+  <text class="redn" x="524" y="470">no default route</text>
+  <text class="n"   x="690" y="470">direct egress is the point of it</text>
+  <text class="redn" x="524" y="492">Cannot reach on premises. Never given the transit.</text>
+
+  <!-- ===================== BILLABLE ===================== -->
+  <rect class="band" x="20" y="522" width="960" height="176"/>
+  <text class="title" x="34" y="546">The billable layer. Every flag defaults to false.</text>
+  <text class="n" x="34" y="562">Flag names are the Terraform ones; Bicep uses the camelCase equivalent. Retail West US 2 in USD per month, checked against the Azure retail prices API on 2026-09-12.</text>
+
+  <text class="hd" x="34"  y="584">FLAG</text>
+  <text class="hd" x="270" y="584">LANDS IN</text>
+  <text class="hd" x="520" y="584">USD/MO</text>
+  <text class="hd" x="600" y="584">NOTE</text>
+
+  <text class="mn"  x="34"  y="602">deploy_firewall</text>
+  <text class="mn"  x="270" y="602">AzureFirewallSubnet</text>
+  <text class="mn"  x="520" y="602">912</text>
+  <text class="n"   x="600" y="602">Standard. 288 on Basic, 1278 on Premium.</text>
+  <text class="mn"  x="34"  y="620">deploy_bastion</text>
+  <text class="mn"  x="270" y="620">AzureBastionSubnet</text>
+  <text class="mn"  x="520" y="620">212</text>
+  <text class="n"   x="600" y="620">Standard.</text>
+  <text class="mn"  x="34"  y="638">deploy_vpn_gateway</text>
+  <text class="mn"  x="270" y="638">GatewaySubnet</text>
+  <text class="mn"  x="520" y="638">139</text>
+  <text class="n"   x="600" y="638">VpnGw1. 30 to 45 minutes each way, so plan the teardown.</text>
+  <text class="mn"  x="34"  y="656">deploy_expressroute_gateway</text>
+  <text class="mn"  x="270" y="656">GatewaySubnet</text>
+  <text class="mn"  x="520" y="656">139</text>
+  <text class="n"   x="600" y="656">The gateway only. The circuit is a carrier contract.</text>
+  <text class="mn"  x="34"  y="674">deploy_route_server</text>
+  <text class="mn"  x="270" y="674">RouteServerSubnet</text>
+  <text class="mn"  x="520" y="674">73</text>
+  <text class="n"   x="600" y="674">Only earns its place with a BGP speaking NVA peering into it.</text>
+
+  <text class="n" x="34" y="692">Plus 4 per Standard static public IP, one per appliance. All five on is 1,495 a month, which is the entire reason they are flags and not defaults.</text>
+
+  <!-- ===================== NOTES ===================== -->
+  <text class="note" x="20" y="722">The archetype is enforced by the peering and the route table, not by the name. Corp gets useRemoteGateways and a default route to the firewall; Online gets neither, so it</text>
+  <text class="note" x="20" y="738">cannot reach on premises whatever it is called. That is ADR 0003 as a deployment rather than a convention, and it is visible in the archetype_enforcement output.</text>
+  <text class="note" x="20" y="762">Both spokes carry a route to the other archetype's whole /16, because peering is not transitive and the firewall is the only path between them. One route covers all 64</text>
+  <text class="note" x="20" y="778">spokes that fit in that supernet, which is why the address plan split Corp from Online by block. Routes are only written when a firewall exists, so the table is never a black hole.</text>
+  <text class="cap" x="20" y="796">snet-appgw is deliberately bare: Application Gateway v2 needs inbound 65200-65535 from GatewayManager, and a default route to a firewall breaks its control plane.</text>
+</svg>

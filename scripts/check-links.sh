@@ -8,6 +8,9 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
+. ./scripts/tools.sh
+
+ensure_tool lychee install-lychee.sh || exit 1
 
 lychee \
   --no-progress \

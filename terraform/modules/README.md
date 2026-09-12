@@ -1,13 +1,14 @@
 # Modules
 
-Three of them. My rule is two callers before I pull anything out, and
-`subscription-vending` doesn't meet it.
+Four of them. My rule is two callers before I pull anything out, and two of
+these don't meet it.
 
 | Module | Callers | What it does |
 |---|---|---|
 | [`policy-assignment`](policy-assignment/) | 5 | Policy assignment at management group scope, and the role assignments its identity needs. |
 | [`subscription-budget`](subscription-budget/) | 2 | Subscription budget, actual and forecast thresholds. |
 | [`subscription-vending`](subscription-vending/) | 1 | Creates a subscription against a billing scope, places it, budgets it. Calls `subscription-budget`. |
+| [`spoke-network`](spoke-network/) | 1 | One spoke virtual network, its subnets, route table and both halves of the hub peering. |
 
 ![Module call graph](../../docs/diagrams/module-call-graph.svg)
 
@@ -24,6 +25,12 @@ that the repo looks more serious with a modules folder in it.
 caller, still a flat file. That directory is laid out the way it is so you can
 read the whole tree without jumping around, and making it a module would undo
 the only thing it has going for it.
+
+`spoke-network` is the other one that breaks the rule, and it breaks it for a
+reason I'd defend: a spoke is four subnets, a network security group, a route
+table, a variable number of routes and two peerings, and nesting that inside a
+`for_each` in a root module produces something nobody can read. One call site,
+but every landing zone the platform vends adds a spoke.
 
 Then there's `subscription-vending`, which has one caller and is a module
 anyway. It's what an app team actually consumes, and every landing zone the

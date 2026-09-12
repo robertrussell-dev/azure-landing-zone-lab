@@ -176,6 +176,41 @@ terraform init && terraform plan -out=tfplan && terraform apply tfplan
 Everything it creates is free. Read the header of `main.tf` before assuming the
 non-compliance is a bug.
 
+### 2.6 Hub and spoke network, optional and the only thing here that costs real money
+
+Free by default. The hub and spoke virtual networks, every subnet in
+[docs/ip-plan.md](../docs/ip-plan.md), the peerings, network security groups and
+route tables bill nothing at rest, so this can be applied and left.
+
+```bash
+cd ../90-optional-network
+cp terraform.tfvars.example terraform.tfvars   # connectivity subscription GUID
+terraform init && terraform plan -out=tfplan && terraform apply tfplan
+```
+
+Check the plan's `standing_monthly_cost_usd` output before applying. With every
+flag false it reads 0 and the note says so.
+
+**Turning anything on.** Each device has its own flag and each flag names its
+price. Roughly, per month: firewall 912 on Standard or 288 on Basic, Bastion
+212, VPN gateway 139, ExpressRoute gateway 139, Route Server 73. All five plus
+their public IPs is 1,495.
+
+```bash
+terraform apply -var deploy_firewall=true -auto-approve=false
+# ... do the thing you needed the firewall for, capture it ...
+terraform apply -var deploy_firewall=false
+```
+
+Turning a flag back off destroys that device and leaves the free layer intact.
+That is the intended cycle, and it is why the route tables are created empty
+rather than conditionally: switching the firewall on adds routes, switching it
+off removes them, and nothing restructures.
+
+**The gateways are slow.** A VPN or ExpressRoute gateway takes 30 to 45 minutes
+to create and about as long to destroy. Budget for that before planning a same
+day teardown around one.
+
 ## 3. Deploy with Bicep
 
 Same five stages. Different commands, and a different scope for each one, which
@@ -213,6 +248,11 @@ az deployment mg create --management-group-id contoso --location westus2 \
 az deployment sub create --subscription <brownfield GUID> --location westus2 \
   --template-file bicep/25-brownfield-seed/main.bicep \
   --parameters bicep/25-brownfield-seed/main.bicepparam
+
+# 3.6 hub and spoke, at the connectivity subscription. Free unless a flag is on.
+az deployment sub create --subscription <connectivity GUID> --location westus2 \
+  --template-file bicep/90-optional-network/main.bicep \
+  --parameters bicep/90-optional-network/main.bicepparam
 ```
 
 **Always what-if before create.** It's the nearest thing to `terraform plan`
@@ -231,10 +271,21 @@ Reverse order. Nothing in the deployed set bills more than trivial amounts, so
 this is hygiene rather than cost.
 
 ```bash
-cd terraform/25-brownfield-seed      && terraform destroy
+cd terraform/90-optional-network     && terraform destroy
+cd ../25-brownfield-seed             && terraform destroy
 cd ../20-subscription-placement      && terraform destroy
 cd ../10-policy                      && terraform destroy
 cd ../00-management-groups           && terraform destroy
+```
+
+Take the network down first, and if anything billable is switched on, take that
+down before you do anything else at all. Flipping a flag back to false is
+cheaper and faster than a full destroy, and it is the thing to reach for if you
+just want the meter to stop:
+
+```bash
+cd terraform/90-optional-network
+terraform apply -var deploy_firewall=false -var deploy_bastion=false   -var deploy_vpn_gateway=false -var deploy_expressroute_gateway=false   -var deploy_route_server=false
 ```
 
 ### `terraform destroy` on 20 will fail, by design
@@ -294,6 +345,9 @@ making a `denySettings` decision deliberately rather than picking one up.
 So it's manual, in the same reverse order:
 
 ```bash
+# 5.0 the hub and spoke, including anything billable inside it
+az group delete --name rg-hub-network --subscription <connectivity GUID> --yes
+
 # 5.1 the seeded network
 az group delete --name rg-legacy-app --subscription <brownfield GUID> --yes
 

@@ -23,7 +23,8 @@ Directories are numbered in deployment order and match `terraform/` one for one.
 | [`10-policy`](10-policy/) | management group | The five policy assignments. |
 | [`20-subscription-placement`](20-subscription-placement/) | tenant | Brownfield placement, budgets, vending, the central workspace. |
 | [`25-brownfield-seed`](25-brownfield-seed/) | subscription | The deliberately non compliant resources. Read its header before assuming it's a mistake. |
-| [`modules`](modules/) | n/a | The three reusable child modules. |
+| [`90-optional-network`](90-optional-network/) | subscription | Hub and spoke, from docs/ip-plan.md. Free layer by default, billable devices behind flags. |
+| [`modules`](modules/) | n/a | The four reusable child modules. |
 
 Every root is independent and resolves management group scopes by name, so
 there's no state to share and no ordering hidden anywhere but the directory

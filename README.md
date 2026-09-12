@@ -75,7 +75,7 @@ for a single subscription exception (0002).
 | Log Analytics | One workspace in the management subscription, 30 day retention, 0.1 GB daily cap |
 | Budgets | On every subscription, actual and forecast thresholds |
 | Compliance | Evaluated. 4 compliant, 2 non compliant, both on purpose |
-| Hub and spoke network | Not deployed, see below |
+| Hub and spoke network | Written, not deployed. The free layer costs nothing at rest, see below |
 
 ### Policy, and why there are only five
 
@@ -177,10 +177,24 @@ figure that gets repeated everywhere is Microsoft Online Services Program
 behaviour and doesn't apply to this account. The real limit is that each
 subscription is another thing to pay for and clean up.
 
-**Hub and spoke network.** Not deployed. Peerings, a hub and private DNS zones
-are meant to go up on demand and come down the same day, because a gateway or a
-firewall left running is the most expensive mistake available on a personal
-card. ADR 0004 carries the prices.
+**Hub and spoke network.** Written in both trees now, in
+`terraform/90-optional-network` and `bicep/90-optional-network`, from the worked
+address plan in [docs/ip-plan.md](docs/ip-plan.md). It splits in two:
+
+- The **free layer** is the hub and spoke virtual networks, every subnet the
+  plan calls for, the peerings, network security groups and route tables. None
+  of that carries an hourly charge, so it can be left deployed. A plan of it
+  reports 0 dollars a month.
+- The **billable layer** is the firewall, the gateways, Bastion and Route
+  Server. Every one is behind its own flag, all default to false, and each flag
+  names its own price. All five plus their public IPs is 1,495 a month,
+  which is why they go up on demand and come down the same day. ADR 0004
+  carries the reasoning.
+
+![Hub and spoke network](docs/diagrams/hub-spoke-network.svg)
+
+Neither layer is deployed right now. Both plan and what-if clean against the
+tenant.
 
 The only virtual network up right now is the deliberately non compliant one
 described above.
