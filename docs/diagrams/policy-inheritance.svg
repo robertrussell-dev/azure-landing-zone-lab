@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .hdr    { fill: #eef4fb; stroke: #a8c7ea; stroke-width: 1; rx: 4; }
+    .rowa   { fill: #ffffff; }
+    .rowb   { fill: #f6f8fa; }
+    .rowl   { stroke: #e6eaef; stroke-width: 1; }
+    .assign { fill: #ddf4e4; stroke: #1a7f37; stroke-width: 1.2; rx: 3; }
+    .audit  { fill: #fff8e6; stroke: #e0c05c; stroke-width: 1.2; rx: 3; }
+    .title  { fill: #1b1f23; font-size: 15px; font-weight: 700; }
+    .cap    { fill: #57606a; font-size: 11px; }
+    .colh   { fill: #1b1f23; font-size: 10.5px; font-weight: 700; }
+    .colhs  { fill: #57606a; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mg     { fill: #1b1f23; font-size: 12px; font-weight: 600; }
+    .mgid   { fill: #8c959f; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .atxt   { fill: #1a7f37; font-size: 9.5px; font-weight: 700; }
+    .autxt  { fill: #8a6d1f; font-size: 9.5px; font-weight: 700; }
+    .inh    { fill: #8c959f; font-size: 9.5px; font-style: italic; }
+    .none   { fill: #cfd6dd; font-size: 11px; }
+    .note   { fill: #57606a; font-size: 10.5px; }
+    .flag   { fill: #953800; font-size: 10.5px; font-weight: 600; }
+  </style>
+
+  <text class="title" x="20" y="26">Where the five policy assignments apply, and what inherits</text>
+  <text class="cap" x="20" y="44">Assigned at a scope, evaluated at every scope beneath it. Two assignments cover the whole tree; three are placed deliberately and do not.</text>
+
+  <!-- column headers -->
+  <rect class="hdr" x="286" y="58" width="136" height="46"/>
+  <text class="colh" x="294" y="74">Append costCenter</text>
+  <text class="colhs" x="294" y="88">Modify</text>
+  <text class="colhs" x="294" y="99">at intermediate root</text>
+
+  <rect class="hdr" x="428" y="58" width="136" height="46"/>
+  <text class="colh" x="436" y="74">Subnet needs NSG</text>
+  <text class="colhs" x="436" y="88">AuditIfNotExists</text>
+  <text class="colhs" x="436" y="99">at intermediate root</text>
+
+  <rect class="hdr" x="570" y="58" width="136" height="46"/>
+  <text class="colh" x="578" y="74">No public IP on NIC</text>
+  <text class="colhs" x="578" y="88">Deny</text>
+  <text class="colhs" x="578" y="99">at Corp</text>
+
+  <rect class="hdr" x="712" y="58" width="136" height="46"/>
+  <text class="colh" x="720" y="74">No public IP on NIC</text>
+  <text class="colhs" x="720" y="88">Deny, DoNotEnforce</text>
+  <text class="colhs" x="720" y="99">at Corp (audit only)</text>
+
+  <rect class="hdr" x="854" y="58" width="126" height="46"/>
+  <text class="colh" x="862" y="74">NSG diagnostics</text>
+  <text class="colhs" x="862" y="88">DeployIfNotExists</text>
+  <text class="colhs" x="862" y="99">at Pf Management</text>
+
+  <!-- row 1: Contoso -->
+  <rect class="rowb" x="20" y="112" width="960" height="30"/>
+  <text class="mg" x="30" y="131">Contoso</text>
+  <text class="mgid" x="96" y="131">contoso</text>
+  <rect class="assign" x="286" y="117" width="136" height="20"/>
+  <text class="atxt" x="316" y="131">ASSIGNED HERE</text>
+  <rect class="assign" x="428" y="117" width="136" height="20"/>
+  <text class="atxt" x="458" y="131">ASSIGNED HERE</text>
+  <text class="none" x="634" y="132">-</text>
+  <text class="none" x="776" y="132">-</text>
+  <text class="none" x="915" y="132">-</text>
+
+  <!-- row 2: Platform -->
+  <rect class="rowa" x="20" y="142" width="960" height="30"/>
+  <text class="mg" x="46" y="161">Platform</text>
+  <text class="mgid" x="112" y="161">contoso-platform</text>
+  <text class="inh" x="330" y="161">inherited</text>
+  <text class="inh" x="472" y="161">inherited</text>
+  <text class="none" x="634" y="162">-</text>
+  <text class="none" x="776" y="162">-</text>
+  <text class="none" x="915" y="162">-</text>
+
+  <!-- row 3: Management -->
+  <rect class="rowb" x="20" y="172" width="960" height="30"/>
+  <text class="mg" x="62" y="191">Management</text>
+  <text class="mgid" x="150" y="191">contoso-platform-management</text>
+  <text class="inh" x="330" y="191">inherited</text>
+  <text class="inh" x="472" y="191">inherited</text>
+  <text class="none" x="634" y="192">-</text>
+  <text class="none" x="776" y="192">-</text>
+  <rect class="assign" x="854" y="177" width="126" height="20"/>
+  <text class="atxt" x="879" y="191">ASSIGNED HERE</text>
+
+  <!-- row 4: Landing zones -->
+  <rect class="rowa" x="20" y="202" width="960" height="30"/>
+  <text class="mg" x="46" y="221">Landing zones</text>
+  <text class="mgid" x="146" y="221">contoso-landingzones</text>
+  <text class="inh" x="330" y="221">inherited</text>
+  <text class="inh" x="472" y="221">inherited</text>
+  <text class="none" x="634" y="222">-</text>
+  <text class="none" x="776" y="222">-</text>
+  <text class="none" x="915" y="222">-</text>
+
+  <!-- row 5: Corp -->
+  <rect class="rowb" x="20" y="232" width="960" height="30"/>
+  <text class="mg" x="62" y="251">Corp</text>
+  <text class="mgid" x="110" y="251">contoso-lz-corp</text>
+  <text class="inh" x="330" y="251">inherited</text>
+  <text class="inh" x="472" y="251">inherited</text>
+  <rect class="assign" x="570" y="237" width="136" height="20"/>
+  <text class="atxt" x="600" y="251">ASSIGNED HERE</text>
+  <text class="none" x="776" y="252">-</text>
+  <text class="none" x="915" y="252">-</text>
+
+  <!-- row 6: Corp (audit only) -->
+  <rect class="rowa" x="20" y="262" width="960" height="30"/>
+  <text class="mg" x="62" y="281">Corp (audit only)</text>
+  <text class="mgid" x="172" y="281">contoso-lz-corp-audit</text>
+  <text class="inh" x="330" y="281">inherited</text>
+  <text class="inh" x="472" y="281">inherited</text>
+  <text class="none" x="634" y="282">-</text>
+  <rect class="audit" x="712" y="267" width="136" height="20"/>
+  <text class="autxt" x="736" y="281">ASSIGNED, NOT ENFORCED</text>
+  <text class="none" x="915" y="282">-</text>
+
+  <!-- row 7: Online -->
+  <rect class="rowb" x="20" y="292" width="960" height="30"/>
+  <text class="mg" x="62" y="311">Online</text>
+  <text class="mgid" x="118" y="311">contoso-lz-online</text>
+  <text class="inh" x="330" y="311">inherited</text>
+  <text class="inh" x="472" y="311">inherited</text>
+  <text class="none" x="634" y="312">-</text>
+  <text class="none" x="776" y="312">-</text>
+  <text class="none" x="915" y="312">-</text>
+
+  <!-- row 8: Local -->
+  <rect class="rowa" x="20" y="322" width="960" height="30"/>
+  <text class="mg" x="62" y="341">Local</text>
+  <text class="mgid" x="112" y="341">contoso-lz-local</text>
+  <text class="inh" x="330" y="341">inherited</text>
+  <text class="inh" x="472" y="341">inherited</text>
+  <text class="none" x="634" y="342">-</text>
+  <text class="none" x="776" y="342">-</text>
+  <text class="none" x="915" y="342">-</text>
+
+  <!-- row 9: Sandboxes -->
+  <rect class="rowb" x="20" y="352" width="960" height="30"/>
+  <text class="mg" x="46" y="371">Sandboxes</text>
+  <text class="mgid" x="124" y="371">contoso-sandboxes</text>
+  <text class="inh" x="330" y="371">inherited</text>
+  <text class="inh" x="472" y="371">inherited</text>
+  <text class="none" x="634" y="372">-</text>
+  <text class="none" x="776" y="372">-</text>
+  <text class="none" x="915" y="372">-</text>
+
+  <!-- row 10: Decommissioned -->
+  <rect class="rowa" x="20" y="382" width="960" height="30"/>
+  <text class="mg" x="46" y="401">Decommissioned</text>
+  <text class="mgid" x="156" y="401">contoso-decommissioned</text>
+  <text class="inh" x="330" y="401">inherited</text>
+  <text class="inh" x="472" y="401">inherited</text>
+  <text class="none" x="634" y="402">-</text>
+  <text class="none" x="776" y="402">-</text>
+  <text class="none" x="915" y="402">-</text>
+
+  <line class="rowl" x1="20" y1="412" x2="980" y2="412"/>
+
+  <text class="flag" x="20" y="438">Read the Corp, Corp (audit only) and Online rows together. That is the whole design.</text>
+  <text class="note" x="20" y="456">Corp carries the Deny because Corp egress routes through the hub and a public IP on a NIC goes around it. Online does not carry it, because direct internet</text>
+  <text class="note" x="20" y="472">connectivity is what defines that archetype (ADR 0003). Corp (audit only) carries the identical assignment with enforcement off, so an adopted subscription is</text>
+  <text class="note" x="20" y="488">measured against the Corp policy set without anything being blocked. Moving the subscription to Corp is the entire change that turns enforcement on (ADR 0005).</text>
+  <text class="cap" x="20" y="508">A dash means the assignment does not reach that scope at all, so nothing is evaluated there. Nothing in this repository is deployed by Azure Policy.</text>
+</svg>

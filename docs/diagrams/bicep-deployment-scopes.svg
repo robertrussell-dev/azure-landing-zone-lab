@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="1000" height="600" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .band   { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1; rx: 5; }
+    .bandhi { fill: #fff8e6; stroke: #e0c05c; stroke-width: 1; rx: 5; }
+    .dep    { fill: #ddf4e4; stroke: #1a7f37; stroke-width: 1.5; rx: 4; }
+    .res    { fill: #ffffff; stroke: #a8c7ea; stroke-width: 1; rx: 4; }
+    .col    { fill: #eef4fb; stroke: #a8c7ea; stroke-width: 1; rx: 5; }
+    .title  { fill: #1b1f23; font-size: 15px; font-weight: 700; }
+    .cap    { fill: #57606a; font-size: 11px; }
+    .colh   { fill: #1b1f23; font-size: 12px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .bandn  { fill: #1b1f23; font-size: 13px; font-weight: 600; }
+    .bands  { fill: #57606a; font-size: 10px; }
+    .depl   { fill: #1a7f37; font-size: 10px; font-weight: 700; }
+    .cmd    { fill: #1a7f37; font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .resl   { fill: #1b1f23; font-size: 10.5px; }
+    .resd   { fill: #57606a; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .flow   { stroke: #8c959f; stroke-width: 1.4; fill: none; }
+    .note   { fill: #57606a; font-size: 10.5px; }
+  </style>
+
+  <defs>
+    <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 z" fill="#8c959f"/>
+    </marker>
+  </defs>
+
+  <text class="title" x="20" y="26">Bicep deployment scopes: where each root runs, and where its resources land</text>
+  <text class="cap" x="20" y="44">A deployment runs at one scope. Its resources can be created at another, by a module or by scope: tenant(). The difference is what sets the access needed.</text>
+
+  <!-- column headers -->
+  <rect class="col" x="212" y="58" width="180" height="26"/>
+  <text class="colh" x="222" y="76">00-management-groups</text>
+  <rect class="col" x="404" y="58" width="180" height="26"/>
+  <text class="colh" x="414" y="76">10-policy</text>
+  <rect class="col" x="596" y="58" width="180" height="26"/>
+  <text class="colh" x="606" y="76" font-size="10.5px">20-subscription-placement</text>
+  <rect class="col" x="788" y="58" width="180" height="26"/>
+  <text class="colh" x="798" y="76">25-brownfield-seed</text>
+
+  <!-- ================= Tenant band ================= -->
+  <rect class="bandhi" x="20" y="96" width="948" height="104"/>
+  <text class="bandn" x="34" y="120">Tenant</text>
+  <text class="bands" x="34" y="136">scope /</text>
+  <text class="bands" x="34" y="156">Built-in roles only, so</text>
+  <text class="bands" x="34" y="170">the narrowest grant is</text>
+  <text class="bands" x="34" y="184">Contributor over the</text>
+  <text class="bands" x="34" y="198">entire tenant.</text>
+
+  <!-- 00: resources land here -->
+  <rect class="res" x="212" y="108" width="180" height="52"/>
+  <text class="resl" x="222" y="126">13 management groups</text>
+  <text class="resd" x="222" y="142">scope: tenant()</text>
+  <text class="resd" x="222" y="155">Microsoft.Management/...</text>
+
+  <!-- 20: deployment runs here -->
+  <rect class="dep" x="596" y="104" width="180" height="44"/>
+  <text class="depl" x="606" y="120">DEPLOYMENT RUNS HERE</text>
+  <text class="cmd" x="606" y="136">az deployment tenant</text>
+  <rect class="res" x="596" y="152" width="180" height="40"/>
+  <text class="resl" x="606" y="168">subscription aliases,</text>
+  <text class="resl" x="606" y="182">MG-to-sub placement</text>
+
+  <!-- ================= Management group band ================= -->
+  <rect class="band" x="20" y="212" width="948" height="104"/>
+  <text class="bandn" x="34" y="236">Management group</text>
+  <text class="bands" x="34" y="252">/providers/.../contoso</text>
+  <text class="bands" x="34" y="272">An ordinary RBAC scope.</text>
+  <text class="bands" x="34" y="286">Custom roles ARE allowed,</text>
+  <text class="bands" x="34" y="300">so a grant here can be</text>
+  <text class="bands" x="34" y="314">narrowed to deployments.</text>
+
+  <!-- 00: deployment runs here -->
+  <rect class="dep" x="212" y="220" width="180" height="44"/>
+  <text class="depl" x="222" y="236">DEPLOYMENT RUNS HERE</text>
+  <text class="cmd" x="222" y="252">az deployment mg</text>
+  <text class="resd" x="222" y="280">tenant root MG, or any</text>
+  <text class="resd" x="222" y="293">MG you have rights on</text>
+
+  <!-- 10: deployment runs here, resources here too -->
+  <rect class="dep" x="404" y="220" width="180" height="44"/>
+  <text class="depl" x="414" y="236">DEPLOYMENT RUNS HERE</text>
+  <text class="cmd" x="414" y="252">az deployment mg</text>
+  <rect class="res" x="404" y="268" width="180" height="40"/>
+  <text class="resl" x="414" y="284">5 policy assignments</text>
+  <text class="resl" x="414" y="298">+ identity role grants</text>
+
+  <!-- ================= Subscription band ================= -->
+  <rect class="band" x="20" y="328" width="948" height="94"/>
+  <text class="bandn" x="34" y="352">Subscription</text>
+  <text class="bands" x="34" y="368">/subscriptions/...</text>
+
+  <!-- 20: budgets -->
+  <rect class="res" x="596" y="338" width="180" height="40"/>
+  <text class="resl" x="606" y="354">budgets</text>
+  <text class="resd" x="606" y="369">module, scope: subscription()</text>
+  <rect class="res" x="596" y="382" width="180" height="32"/>
+  <text class="resl" x="606" y="402">resource group</text>
+
+  <!-- 25: deployment runs here -->
+  <rect class="dep" x="788" y="336" width="180" height="44"/>
+  <text class="depl" x="798" y="352">DEPLOYMENT RUNS HERE</text>
+  <text class="cmd" x="798" y="368">az deployment sub</text>
+  <rect class="res" x="788" y="384" width="180" height="30"/>
+  <text class="resl" x="798" y="403">resource group</text>
+
+  <!-- ================= Resource group band ================= -->
+  <rect class="band" x="20" y="434" width="948" height="78"/>
+  <text class="bandn" x="34" y="458">Resource group</text>
+  <text class="bands" x="34" y="474">.../resourceGroups/...</text>
+
+  <rect class="res" x="596" y="444" width="180" height="40"/>
+  <text class="resl" x="606" y="460">Log Analytics workspace</text>
+  <text class="resd" x="606" y="475">module, scope: rg symbol</text>
+
+  <rect class="res" x="788" y="444" width="180" height="40"/>
+  <text class="resl" x="798" y="460">vnet + subnet</text>
+  <text class="resd" x="798" y="475">module, scope: rg symbol</text>
+
+  <!-- ================= flows ================= -->
+  <!-- 00: deployment at MG creates resources at tenant (upward) -->
+  <path class="flow" d="M 302 220 L 302 166" marker-end="url(#ah)"/>
+  <text class="note" x="310" y="196">scope: tenant()</text>
+
+  <!-- 20: tenant deployment nests down into subscription, then into rg -->
+  <path class="flow" d="M 686 192 L 686 334" marker-end="url(#ah)"/>
+  <path class="flow" d="M 686 414 L 686 440" marker-end="url(#ah)"/>
+
+  <!-- 25: subscription deployment nests into rg -->
+  <path class="flow" d="M 878 414 L 878 440" marker-end="url(#ah)"/>
+
+  <text class="cap" x="20" y="536">Only 20-subscription-placement has to run at the tenant, because Microsoft.Subscription/aliases is a tenant-only resource type. 00-management-groups creates tenant-level</text>
+  <text class="cap" x="20" y="552">groups from a management group deployment instead, putting its access requirement on a scope that accepts custom roles. That is the arrow pointing up.</text>
+  <text class="cap" x="20" y="574">Green = where the deployment record is written and therefore what the operator needs deployment rights on. White = resources the deployment creates.</text>
+</svg>

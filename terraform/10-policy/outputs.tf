@@ -20,6 +20,6 @@ output "effects_demonstrated" {
     AuditIfNotExists  = "audit-subnet-nsg, at the intermediate root"
     Deny              = "deny-nic-public-ip, at Corp"
     DoNotEnforce      = "deny-nic-public-ip, at Corp (audit only), same definition, enforcement off"
-    DeployIfNotExists = var.log_analytics_workspace_id == null ? "not yet assigned, awaiting the workspace in infra/20" : "dine-nsg-diagnostics, at Platform Management"
+    DeployIfNotExists = var.log_analytics_workspace_id == null ? "not yet assigned, awaiting the workspace in terraform/20" : "dine-nsg-diagnostics, at Platform Management"
   }
 }

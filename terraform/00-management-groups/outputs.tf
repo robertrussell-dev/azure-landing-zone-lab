@@ -1,4 +1,4 @@
-# Consumed by infra/10-policy and infra/20-subscription-placement so that
+# Consumed by terraform/10-policy and terraform/20-subscription-placement so that
 # scope IDs are never hardcoded as strings in more than one place.
 
 output "intermediate_root_id" {

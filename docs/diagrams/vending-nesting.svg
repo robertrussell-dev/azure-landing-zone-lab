@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" width="1000" height="580" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .panel  { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1; rx: 6; }
+    .ok     { fill: #ddf4e4; stroke: #1a7f37; stroke-width: 1.3; rx: 4; }
+    .bad    { fill: #ffebe9; stroke: #cf222e; stroke-width: 1.3; rx: 4; }
+    .neutral{ fill: #ffffff; stroke: #a8c7ea; stroke-width: 1; rx: 4; }
+    .runtime{ fill: #fff8e6; stroke: #e0c05c; stroke-width: 1.3; rx: 4; }
+    .title  { fill: #1b1f23; font-size: 15px; font-weight: 700; }
+    .cap    { fill: #57606a; font-size: 11px; }
+    .fname  { fill: #1b1f23; font-size: 12px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .fscope { fill: #57606a; font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .code   { fill: #1b1f23; font-size: 10.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .lbl    { fill: #1b1f23; font-size: 11px; font-weight: 600; }
+    .okl    { fill: #1a7f37; font-size: 10px; font-weight: 700; }
+    .badl   { fill: #cf222e; font-size: 10px; font-weight: 700; }
+    .warnl  { fill: #8a6d1f; font-size: 10px; font-weight: 700; }
+    .note   { fill: #57606a; font-size: 10.5px; }
+    .bnd    { stroke: #8c959f; stroke-width: 1.6; stroke-dasharray: 6 4; fill: none; }
+    .flow   { stroke: #8c959f; stroke-width: 1.4; fill: none; }
+  </style>
+
+  <defs>
+    <marker id="ah2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 z" fill="#8c959f"/>
+    </marker>
+  </defs>
+
+  <text class="title" x="20" y="26">Why subscription vending needs two files</text>
+  <text class="cap" x="20" y="44">A module scope and a resource name must be resolvable before the deployment starts. The ID of a subscription you are creating is not. A parameter is.</text>
+
+  <!-- ================= left panel ================= -->
+  <rect class="panel" x="20" y="62" width="430" height="440"/>
+  <text class="fname" x="34" y="84">modules/subscription-vending/main.bicep</text>
+  <text class="fscope" x="34" y="99">targetScope = 'tenant'</text>
+
+  <rect class="neutral" x="34" y="112" width="402" height="46"/>
+  <text class="code" x="46" y="130">resource subscriptionAlias</text>
+  <text class="code" x="46" y="146">  'Microsoft.Subscription/aliases@2021-10-01'</text>
+
+  <rect class="runtime" x="34" y="168" width="402" height="38"/>
+  <text class="warnl" x="46" y="185">RUNTIME VALUE</text>
+  <text class="code" x="46" y="199">subscriptionAlias.properties.subscriptionId</text>
+
+  <text class="lbl" x="34" y="230">Neither of these compiles:</text>
+
+  <rect class="bad" x="34" y="240" width="402" height="60"/>
+  <text class="badl" x="46" y="257">BCP120</text>
+  <text class="code" x="46" y="273">resource placement '...managementGroups/subscriptions' = {</text>
+  <text class="code" x="46" y="288">  name: subscriptionAlias.properties.subscriptionId</text>
+
+  <rect class="bad" x="34" y="310" width="402" height="60"/>
+  <text class="badl" x="46" y="327">BCP120</text>
+  <text class="code" x="46" y="343">module budget '../subscription-budget/main.bicep' = {</text>
+  <text class="code" x="46" y="358">  scope: subscription(...properties.subscriptionId)</text>
+
+  <rect class="ok" x="34" y="382" width="402" height="56"/>
+  <text class="okl" x="46" y="399">THIS DOES</text>
+  <text class="code" x="46" y="415">module vended 'vended-subscription.bicep' = {</text>
+  <text class="code" x="46" y="430">  params: { subscriptionId: ...subscriptionId }</text>
+
+  <text class="note" x="34" y="460">A parameter takes a runtime value happily. It is</text>
+  <text class="note" x="34" y="476">only names and scopes that have to be known up</text>
+  <text class="note" x="34" y="492">front, and only within a single deployment.</text>
+
+  <!-- ================= boundary ================= -->
+  <path class="bnd" d="M 480 70 L 480 494"/>
+  <text class="lbl" x="470" y="524" text-anchor="middle">nested deployment boundary</text>
+  <path class="flow" d="M 440 410 L 520 410" marker-end="url(#ah2)"/>
+  <text class="okl" x="452" y="402">param</text>
+
+  <!-- ================= right panel ================= -->
+  <rect class="panel" x="530" y="62" width="450" height="440"/>
+  <text class="fname" x="544" y="84">modules/subscription-vending/vended-subscription.bicep</text>
+  <text class="fscope" x="544" y="99">targetScope = 'tenant'</text>
+
+  <rect class="ok" x="544" y="112" width="422" height="46"/>
+  <text class="okl" x="556" y="129">RESOLVABLE WHEN THIS DEPLOYMENT BEGINS</text>
+  <text class="code" x="556" y="147">param subscriptionId string</text>
+
+  <text class="lbl" x="544" y="182">So both of the blocked things now work:</text>
+
+  <rect class="ok" x="544" y="192" width="422" height="60"/>
+  <text class="okl" x="556" y="209">RESOURCE NAME</text>
+  <text class="code" x="556" y="225">resource placement '...' = {</text>
+  <text class="code" x="556" y="240">  parent: managementGroup   name: subscriptionId</text>
+
+  <rect class="ok" x="544" y="262" width="422" height="74"/>
+  <text class="okl" x="556" y="279">MODULE SCOPE</text>
+  <text class="code" x="556" y="295">module budget '../subscription-budget/main.bicep' = {</text>
+  <text class="code" x="556" y="310">  scope: subscription(subscriptionId)</text>
+  <text class="code" x="556" y="325">  dependsOn: [ placement ]</text>
+
+  <path class="flow" d="M 755 336 L 755 360" marker-end="url(#ah2)"/>
+
+  <rect class="neutral" x="544" y="364" width="422" height="42"/>
+  <text class="lbl" x="556" y="382">budget, created inside the new subscription</text>
+  <text class="note" x="556" y="398">in the same deployment that created it</text>
+
+  <text class="note" x="544" y="430">This is the one place the Bicep implementation does</text>
+  <text class="note" x="544" y="446">something the Terraform module documents that it cannot:</text>
+  <text class="note" x="544" y="462">vending is a single deployment rather than two applies,</text>
+  <text class="note" x="544" y="478">because a provider cannot be configured for a subscription</text>
+  <text class="note" x="544" y="494">that does not exist at plan time.</text>
+
+  <text class="cap" x="20" y="540">Placement lives on the right for the same reason the budget does: it needs the subscription ID as a resource name. The alias API could place the</text>
+  <text class="cap" x="20" y="556">subscription itself and is not used for it, so that an adopted subscription and a new one are moved by the same resource.</text>
+</svg>

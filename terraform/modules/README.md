@@ -9,6 +9,8 @@ Three of them. My rule is two callers before I pull anything out, and
 | [`subscription-budget`](subscription-budget/) | 2 | Subscription budget, actual and forecast thresholds. |
 | [`subscription-vending`](subscription-vending/) | 1 | Creates a subscription against a billing scope, places it, budgets it. Calls `subscription-budget`. |
 
+![Module call graph](../../docs/diagrams/module-call-graph.svg)
+
 ## The two caller rule
 
 One call site and I leave it inline.
@@ -18,7 +20,7 @@ still have to open it to see what it makes, so all you've added is a hop and a
 list of variables to thread through. Usually the real reason for doing it is
 that the repo looks more serious with a modules folder in it.
 
-`infra/00-management-groups` is the one I'd point at. Thirteen resources, one
+`terraform/00-management-groups` is the one I'd point at. Thirteen resources, one
 caller, still a flat file. That directory is laid out the way it is so you can
 read the whole tree without jumping around, and making it a module would undo
 the only thing it has going for it.

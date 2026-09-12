@@ -15,6 +15,18 @@ crash.*.log
 # reproducible for anyone who clones this repo.
 !.terraform.lock.hcl
 
+# Bicep parameter files, for the same reason as tfvars: they carry one
+# operator's tenant, subscription and billing IDs. The committed examples end
+# in .example.bicepparam, which also makes them real parameter files that CI
+# compiles against their templates rather than untested sample text.
+*.bicepparam
+!*.example.bicepparam
+
+# Compiled ARM JSON. Bicep is the source; a committed build output is one more
+# thing to keep in step and the first thing to go stale.
+bicep/**/*.json
+!bicep/bicepconfig.json
+
 # Local editor and OS noise
 .vscode/
 .DS_Store

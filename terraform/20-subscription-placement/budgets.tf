@@ -13,7 +13,7 @@
 # right tool rather than terraform state mv run by hand and undocumented.
 
 module "budget_brownfield" {
-  source = "../../modules/subscription-budget"
+  source = "../modules/subscription-budget"
 
   name            = "budget-${var.brownfield_subscription_name}"
   subscription_id = var.brownfield_subscription_id

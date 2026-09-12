@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Format check and schema validation for every Terraform directory under infra/.
+# Format check and schema validation for every Terraform root under terraform/.
 #
 # Shared by both CI definitions. The pipelines install Terraform and call this;
 # they do not reimplement it. See docs/ci-security.md for why there are two.
@@ -31,7 +31,10 @@ else
 fi
 
 failed=0
-for dir in infra/*/; do
+# The glob matches the numbered roots only. terraform/modules/ has no .tf at
+# its top level and is validated through the roots that call it, so including it
+# would print a SKIP line claiming it is a placeholder for a later phase.
+for dir in terraform/[0-9]*/; do
   # A directory with no .tf files yet is a placeholder for a later phase, not a
   # failure. Without this, scaffolding a phase breaks the build.
   if ! compgen -G "${dir}*.tf" > /dev/null; then

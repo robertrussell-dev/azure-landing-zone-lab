@@ -71,6 +71,19 @@ stages:
             displayName: 'terraform fmt and validate'
 
       # -------------------------------------------------------------------
+      - job: bicep
+        displayName: Bicep format and build
+        steps:
+          - script: ./scripts/install-bicep.sh
+            displayName: 'Install Bicep'
+
+          - script: ./scripts/validate-bicep.sh
+            displayName: 'bicep format and build'
+
+          - script: ./scripts/lint-bicep.sh
+            displayName: 'bicep lint'
+
+      # -------------------------------------------------------------------
       - job: security
         displayName: Lint and security scan
         steps:
@@ -91,6 +104,12 @@ stages:
           - script: ./scripts/lint-terraform.sh
             displayName: 'tflint'
 
+          # checkov scans the Bicep tree as compiled ARM JSON, so the security
+          # job needs a Bicep CLI to do the compiling. See
+          # scripts/scan-security.sh.
+          - script: ./scripts/install-bicep.sh
+            displayName: 'Install Bicep'
+
           - script: |
               set -euo pipefail
               pip install --quiet checkov
@@ -107,6 +126,7 @@ stages:
             condition: succeededOrFailed()
             inputs:
               testResultsFormat: JUnit
-              testResultsFiles: 'checkov-results/*.xml'
+              # One subdirectory per framework: terraform/ and bicep/.
+              testResultsFiles: 'checkov-results/**/*.xml'
               testRunTitle: 'checkov'
               failTaskOnFailedTests: false

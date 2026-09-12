@@ -1,0 +1,64 @@
+{
+  // Bicep linter configuration.
+  //
+  // Same policy as .checkov.yml: a rule that is turned off carries a written
+  // justification here, so a reviewer can judge the tradeoff. "It was noisy"
+  // is not a justification.
+  //
+  // scripts/validate-bicep.sh fails on any diagnostic output at all, warnings
+  // included, so there is no separate severity to configure for the rules that
+  // are on by default. The entries below are rules that ship disabled and are
+  // worth having, plus the two worth explaining.
+  "analyzers": {
+    "core": {
+      "enabled": true,
+      "verbose": false,
+      "rules": {
+        // A location baked into a resource cannot be overridden by a caller,
+        // and every resource in this tree is meant to be redeployable to
+        // another region.
+        "no-hardcoded-location": {
+          "level": "error"
+        },
+
+        // resourceGroup().location and deployment().location outside a
+        // parameter default make the region depend on where the deployment
+        // happened to be run from.
+        "no-loc-expr-outside-params": {
+          "level": "error"
+        },
+
+        // Quoted property names are legal and occasionally required, for
+        // example 'lz-corp-audit'. This flags the ones that are not.
+        "prefer-unquoted-property-names": {
+          "level": "error"
+        },
+
+        // Catches a value that reaches a @secure() parameter without being
+        // secure itself. Nothing here handles secrets yet, and the rule costs
+        // nothing until something does.
+        "use-secure-value-for-secure-inputs": {
+          "level": "error"
+        }
+
+        // Left off deliberately:
+        //
+        // explicit-values-for-loc-params. It fires on every call to
+        // modules/policy-assignment that does not pass a location, which is
+        // every Audit and Deny assignment. That module only creates a managed
+        // identity when roleDefinitionIds is non empty, and location is
+        // ignored otherwise, so passing a region there would be stating
+        // something untrue to satisfy a linter.
+        //
+        // use-recent-api-versions. Every API version in this tree passes it
+        // today, checked with the rule temporarily enabled. It stays off
+        // because it fails on the calendar rather than on a change: a version
+        // pinned here becomes an error 730 days later with nobody having
+        // touched the repository, which is the same failure mode
+        // scripts/install-lychee.sh pins a version to avoid. Run
+        // "bicep lint" with it enabled when reviewing this tree, not on
+        // every pull request.
+      }
+    }
+  }
+}

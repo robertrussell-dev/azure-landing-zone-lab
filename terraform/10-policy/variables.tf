@@ -9,7 +9,7 @@ variable "subscription_id" {
 }
 
 variable "prefix" {
-  description = "Same prefix used by infra/00-management-groups. Management groups are looked up by the names it derives."
+  description = "Same prefix used by terraform/00-management-groups. Management groups are looked up by the names it derives."
   type        = string
 }
 
@@ -26,7 +26,7 @@ variable "cost_center_tag_value" {
 }
 
 variable "log_analytics_workspace_id" {
-  description = "Full resource ID of the workspace the DeployIfNotExists assignment targets. Null until infra/20 creates it, which leaves the DeployIfNotExists assignment out of the plan. See README for why this is sequenced that way."
+  description = "Full resource ID of the workspace the DeployIfNotExists assignment targets. Null until terraform/20 creates it, which leaves the DeployIfNotExists assignment out of the plan. See README for why this is sequenced that way."
   type        = string
   default     = null
 }

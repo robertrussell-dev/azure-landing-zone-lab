@@ -6,7 +6,7 @@
 # separately matches what actually happens rather than hiding it.
 #
 # Management group scopes are looked up by name for the same reason as
-# infra/10-policy: the names are derived from the prefix, so nothing needs to
+# terraform/10-policy: the names are derived from the prefix, so nothing needs to
 # be passed between root modules and each directory applies independently.
 
 data "azurerm_management_group" "corp_audit" {

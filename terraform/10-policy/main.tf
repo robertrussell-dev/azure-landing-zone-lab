@@ -5,7 +5,7 @@
 # in this repo could defend individually.
 #
 # Scopes are resolved by data source lookup rather than by reading the state of
-# infra/00-management-groups. The management group names are deterministic,
+# terraform/00-management-groups. The management group names are deterministic,
 # derived from the same prefix, so there is nothing to pass between root
 # modules. That keeps each directory independently appliable and avoids needing
 # a shared remote backend for a lab. The cost is that a wrong prefix fails at
@@ -70,7 +70,7 @@ locals {
 # something the assignment can narrow. A custom definition asking only for Tag
 # Contributor is the tighter option.
 module "append_cost_center_tag" {
-  source = "../../modules/policy-assignment"
+  source = "../modules/policy-assignment"
 
   name                 = "append-costcenter"
   display_name         = "Append costCenter tag to resources"
@@ -88,7 +88,7 @@ module "append_cost_center_tag" {
 
 # AuditIfNotExists at the top of the tree. Reports, never blocks.
 module "audit_subnets_without_nsg" {
-  source = "../../modules/policy-assignment"
+  source = "../modules/policy-assignment"
 
   name                 = "audit-subnet-nsg"
   display_name         = "Subnets should be associated with a network security group"
@@ -112,7 +112,7 @@ module "audit_subnets_without_nsg" {
 # network interface bypasses that path, which is why this is enforced here and
 # absent from Online, where direct internet connectivity is the point.
 module "deny_public_ip_on_nic_corp" {
-  source = "../../modules/policy-assignment"
+  source = "../modules/policy-assignment"
 
   name                 = "deny-nic-public-ip"
   display_name         = "Network interfaces must not have public IPs"
@@ -137,7 +137,7 @@ module "deny_public_ip_on_nic_corp" {
 # There is no additional cost. The hierarchy and the assignments are
 # duplicated, the workloads are not. See ADR 0005.
 module "deny_public_ip_on_nic_corp_audit" {
-  source = "../../modules/policy-assignment"
+  source = "../modules/policy-assignment"
 
   name                 = "deny-nic-public-ip"
   display_name         = "Network interfaces must not have public IPs (audit only)"
@@ -154,12 +154,12 @@ module "deny_public_ip_on_nic_corp_audit" {
 # DeployIfNotExists: only once there is a workspace to point at
 # ---------------------------------------------------------------------------
 
-# Left out of the plan until infra/20 creates the workspace in the management
+# Left out of the plan until terraform/20 creates the workspace in the management
 # subscription. A DeployIfNotExists assignment with no target is not a partial
 # configuration, it is a broken one: it would create an identity, grant it two
 # roles across the hierarchy, and remediate nothing.
 module "deploy_nsg_diagnostics" {
-  source = "../../modules/policy-assignment"
+  source = "../modules/policy-assignment"
   count  = var.log_analytics_workspace_id == null ? 0 : 1
 
   name                 = "dine-nsg-diagnostics"

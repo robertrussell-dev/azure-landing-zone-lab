@@ -35,7 +35,7 @@ locals {
 }
 
 module "subscription" {
-  source   = "../../modules/subscription-vending"
+  source   = "../modules/subscription-vending"
   for_each = var.create_subscriptions ? local.subscriptions : {}
 
   display_name        = each.value.display_name

@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 836" width="1000" height="836" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .panel { fill: #ffffff; stroke: #d0d7de; stroke-width: 1; rx: 6; }
+    .root  { fill: #f6f8fa; stroke: #8c959f; stroke-width: 1.2; rx: 4; }
+    .mod   { fill: #eef4fb; stroke: #a8c7ea; stroke-width: 1.4; rx: 4; }
+    .shim  { fill: #fff8e6; stroke: #e0c05c; stroke-width: 1.2; stroke-dasharray: 5 3; rx: 4; }
+    .title { fill: #1b1f23; font-size: 15px; font-weight: 700; }
+    .cap   { fill: #57606a; font-size: 11px; }
+    .ph    { fill: #1b1f23; font-size: 12.5px; font-weight: 700; }
+    .phs   { fill: #57606a; font-size: 10px; }
+    .nm    { fill: #1b1f23; font-size: 10px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .ns    { fill: #57606a; font-size: 9px; }
+    .edge  { stroke: #8c959f; stroke-width: 1.4; fill: none; }
+    .el    { fill: #1a7f37; font-size: 9px; font-weight: 700; }
+    .note  { fill: #57606a; font-size: 10.5px; }
+    .key   { fill: #1b1f23; font-size: 10px; font-weight: 600; }
+  </style>
+  <defs>
+    <marker id="a4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 z" fill="#8c959f"/>
+    </marker>
+  </defs>
+
+  <text class="title" x="20" y="26">Module call graph, both implementations</text>
+  <text class="cap" x="20" y="44">Roots on the left, what they call to the right. Counted from the source, not from memory: five call sites into policy-assignment, two callers of subscription-budget.</text>
+
+  <!-- ================= TERRAFORM ================= -->
+  <rect class="panel" x="20" y="60" width="960" height="292"/>
+  <text class="ph" x="34" y="82">Terraform</text>
+  <text class="phs" x="110" y="82">three modules, and every edge is reuse</text>
+
+  <rect class="root" x="30" y="92" width="195" height="38"/>
+  <text class="nm" x="40" y="109">00-management-groups</text>
+  <text class="ns" x="40" y="123">no modules, 13 resources inline</text>
+
+  <rect class="root" x="30" y="142" width="195" height="38"/>
+  <text class="nm" x="40" y="159">10-policy</text>
+  <text class="ns" x="40" y="173">5 module blocks</text>
+
+  <rect class="root" x="30" y="196" width="195" height="38"/>
+  <text class="nm" x="40" y="213">20-subscription-placement</text>
+  <text class="ns" x="40" y="227">2 module blocks, 3 instances</text>
+
+  <rect class="root" x="30" y="300" width="195" height="38"/>
+  <text class="nm" x="40" y="317">25-brownfield-seed</text>
+  <text class="ns" x="40" y="331">no modules</text>
+
+  <rect class="mod" x="265" y="142" width="195" height="38"/>
+  <text class="nm" x="275" y="159">policy-assignment</text>
+  <text class="ns" x="275" y="173">5 callers</text>
+
+  <rect class="mod" x="265" y="250" width="195" height="38"/>
+  <text class="nm" x="275" y="267">subscription-vending</text>
+  <text class="ns" x="275" y="281">1 caller, the exception</text>
+
+  <rect class="mod" x="735" y="196" width="195" height="38"/>
+  <text class="nm" x="745" y="213">subscription-budget</text>
+  <text class="ns" x="745" y="227">2 callers</text>
+
+  <path class="edge" d="M 225 161 L 261 161" marker-end="url(#a4)"/>
+  <text class="el" x="228" y="155">x5 call sites</text>
+
+  <path class="edge" d="M 225 205 L 731 205" marker-end="url(#a4)"/>
+  <text class="el" x="470" y="200">x1, the brownfield budget</text>
+
+  <path class="edge" d="M 225 225 L 245 225 L 245 269 L 261 269" marker-end="url(#a4)"/>
+  <text class="el" x="252" y="245">for_each, 4 keys, 2 created</text>
+
+  <path class="edge" d="M 460 269 L 690 269 L 690 222 L 731 222" marker-end="url(#a4)"/>
+  <text class="el" x="500" y="264">x1, a module calling a module</text>
+
+  <!-- ================= BICEP ================= -->
+  <rect class="panel" x="20" y="364" width="960" height="356"/>
+  <text class="ph" x="34" y="386">Bicep</text>
+  <text class="phs" x="86" y="386">the same three modules, plus four files that are modules only because a module is how you change scope</text>
+
+  <rect class="root" x="30" y="396" width="195" height="38"/>
+  <text class="nm" x="40" y="413">00-management-groups</text>
+  <text class="ns" x="40" y="427">no modules, 13 resources inline</text>
+
+  <rect class="root" x="30" y="446" width="195" height="38"/>
+  <text class="nm" x="40" y="463">10-policy</text>
+  <text class="ns" x="40" y="477">5 declarations</text>
+
+  <rect class="root" x="30" y="500" width="195" height="38"/>
+  <text class="nm" x="40" y="517">20-subscription-placement</text>
+  <text class="ns" x="40" y="531">3 declarations, 4 instances</text>
+
+  <rect class="root" x="30" y="662" width="195" height="38"/>
+  <text class="nm" x="40" y="679">25-brownfield-seed</text>
+  <text class="ns" x="40" y="693">1 declaration</text>
+
+  <rect class="mod" x="265" y="446" width="195" height="38"/>
+  <text class="nm" x="275" y="463">policy-assignment</text>
+  <text class="ns" x="275" y="477">5 callers</text>
+
+  <rect class="mod" x="265" y="554" width="195" height="38"/>
+  <text class="nm" x="275" y="571">subscription-vending</text>
+  <text class="ns" x="275" y="585">1 caller, the exception</text>
+
+  <rect class="shim" x="500" y="554" width="195" height="38"/>
+  <text class="nm" x="510" y="571">vended-subscription</text>
+  <text class="ns" x="510" y="585">scope shim, BCP120</text>
+
+  <rect class="shim" x="265" y="608" width="195" height="38"/>
+  <text class="nm" x="275" y="625">management-logs</text>
+  <text class="ns" x="275" y="639">scope shim, to subscription</text>
+
+  <rect class="shim" x="500" y="608" width="195" height="38"/>
+  <text class="nm" x="510" y="625">log-analytics-workspace</text>
+  <text class="ns" x="510" y="639">scope shim, to resource group</text>
+
+  <rect class="shim" x="265" y="662" width="195" height="38"/>
+  <text class="nm" x="275" y="679">seed-network</text>
+  <text class="ns" x="275" y="693">scope shim, to resource group</text>
+
+  <rect class="mod" x="735" y="500" width="195" height="38"/>
+  <text class="nm" x="745" y="517">subscription-budget</text>
+  <text class="ns" x="745" y="531">2 callers</text>
+
+  <path class="edge" d="M 225 465 L 261 465" marker-end="url(#a4)"/>
+  <text class="el" x="228" y="459">x5</text>
+
+  <path class="edge" d="M 225 509 L 731 509" marker-end="url(#a4)"/>
+  <text class="el" x="470" y="504">x1, the brownfield budget</text>
+
+  <path class="edge" d="M 225 525 L 245 525 L 245 573 L 261 573" marker-end="url(#a4)"/>
+  <text class="el" x="252" y="549">loop, 4 items, conditional</text>
+
+  <path class="edge" d="M 225 533 L 252 533 L 252 627 L 261 627" marker-end="url(#a4)"/>
+
+  <path class="edge" d="M 460 573 L 496 573" marker-end="url(#a4)"/>
+  <path class="edge" d="M 695 573 L 715 573 L 715 528 L 731 528" marker-end="url(#a4)"/>
+  <text class="el" x="600" y="549">the extra hop</text>
+
+  <path class="edge" d="M 460 627 L 496 627" marker-end="url(#a4)"/>
+  <path class="edge" d="M 225 681 L 261 681" marker-end="url(#a4)"/>
+
+  <!-- ================= key ================= -->
+  <rect class="root" x="20" y="734" width="26" height="14"/>
+  <text class="key" x="54" y="745">root directory</text>
+  <rect class="mod" x="150" y="734" width="26" height="14"/>
+  <text class="key" x="184" y="745">reusable module, lives in modules/</text>
+  <rect class="shim" x="390" y="734" width="26" height="14"/>
+  <text class="key" x="424" y="745">scope shim, lives beside its caller</text>
+
+  <text class="note" x="20" y="772">Read the two panels against each other. The blue nodes and the edges between them are identical, which is the point: composition is the same idea in both. Everything</text>
+  <text class="note" x="20" y="788">amber is Bicep needing a nested deployment to cross a scope boundary, so it has one caller by construction and the two caller rule never applies to it. The extra hop</text>
+  <text class="note" x="20" y="804">between vending and budget is the BCP120 workaround, not reuse, and it is the only place the two graphs differ in shape rather than in node count.</text>
+  <text class="note" x="20" y="820">Counts are of declarations, not instances: one block under for_each or a loop is one edge on this diagram and several resources at apply time.</text>
+</svg>

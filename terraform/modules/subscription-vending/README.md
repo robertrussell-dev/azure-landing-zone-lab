@@ -110,5 +110,5 @@ subscription means cancellation. `prevent_destroy` blocks that. The recovery is
 **Tags and Modify policies fight.** If a Modify assignment appends tags, this
 module's `tags` value will disagree with reality and Terraform will plan to
 remove what the policy added. Decide who owns each key and have the caller
-ignore the policy-owned ones. See `infra/25-brownfield-seed` for a worked
+ignore the policy-owned ones. See `terraform/25-brownfield-seed` for a worked
 example.

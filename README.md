@@ -5,6 +5,34 @@ explaining why it's shaped the way it is. It runs in my personal tenant. It's a
 reference and a learning artifact rather than a production deployment, and I've
 tried to be specific below about what's in it and what isn't.
 
+The same landing zone is also written in Bicep, in [`bicep/`](bicep/). Same
+hierarchy, same five assignments, same ADRs. It's there because writing the
+decisions twice is the cheapest way to find out which parts of the Terraform
+were architecture and which parts were Terraform, and
+[bicep/README.md](bicep/README.md) is a list of everything that turned out to
+be the second kind. The Terraform is the copy that's deployed; the Bicep
+compiles, lints and scans in CI and has never been applied to the tenant. All
+four of its roots have been run through `what-if` against the live estate: the
+management group hierarchy comes back identical and all five policy assignments
+match, which is the real evidence that the two trees describe the same thing.
+The four defects that found, and every remaining difference, are in
+[bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate).
+
+## Layout
+
+```
+terraform/     the deployed copy. Numbered roots, plus modules/
+bicep/         the same landing zone again. Same numbering, same modules/
+docs/adr/      the seven decisions, which describe both
+docs/evidence/ portal screenshots, all from the Terraform copy
+runbooks/      operational procedures, tool independent
+scripts/       the CI checks, shared by both pipelines
+```
+
+Both trees are named after their language rather than one of them being the
+default. That's the whole reason `terraform/` isn't called `infra/`: with two
+implementations in the repo, an unlabelled directory is a guess.
+
 ## Hierarchy
 
 ![Management group hierarchy](docs/diagrams/hierarchy.svg)
@@ -43,7 +71,7 @@ for a single subscription exception (0002).
 |---|---|
 | Management groups | 13, counting the intermediate root and the audit only Corp duplicate |
 | Policy assignments | 5 live, covering all five effects |
-| Subscriptions | 2. One adopted brownfield, one platform management subscription, both vended or placed through Terraform |
+| Subscriptions | 3. One adopted brownfield, plus `sub-management` and `sub-online-portal-prod` vended through Terraform. `connectivity` and `corp-payments-prod` are in the vending map but not created |
 | Log Analytics | One workspace in the management subscription, 30 day retention, 0.1 GB daily cap |
 | Budgets | On every subscription, actual and forecast thresholds |
 | Compliance | Evaluated. 4 compliant, 2 non compliant, both on purpose |
@@ -61,6 +89,8 @@ hundred that I couldn't defend one at a time.
 | Deny | Network interfaces must not have public IPs | Corp only |
 | DoNotEnforce | The same Deny, enforcement off | Corp (audit only) |
 | DeployIfNotExists | Network security group diagnostics to the central workspace | Platform Management |
+
+![Policy assignment inheritance](docs/diagrams/policy-inheritance.svg)
 
 Inheritance shows up through the scopes. Modify and Audit apply everywhere. The
 Deny only applies to Corp, because Corp workloads route egress through the hub
@@ -86,7 +116,7 @@ not the workloads.
 
 ### The non compliant resources are on purpose
 
-`infra/25-brownfield-seed` creates resources that break the policy set
+`terraform/25-brownfield-seed` creates resources that break the policy set
 deliberately. Without them the audit only assignment reports nothing at all,
 since an empty subscription has nothing to evaluate, and the whole pattern
 looks broken when it's really just inapplicable.
@@ -125,6 +155,11 @@ The third row is the Modify effect. Five resources are compliant with the
 The hierarchy screenshot is at
 [docs/evidence/hierarchy-portal.png](docs/evidence/hierarchy-portal.png).
 
+Both screenshots were captured on 6 and 7 September 2026. The hierarchy has not
+changed since, which the Bicep what-if in
+[bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate)
+independently confirms: 13 groups, no differences.
+
 ## Constraints
 
 **Empty management groups.** `Identity`, `Security`, `Local` and
@@ -161,19 +196,25 @@ to be specific:
 
 **Hand written:**
 
-- The management group hierarchy (`infra/00-management-groups`). Every group
+- The management group hierarchy (`terraform/00-management-groups`). Every group
   and parent relationship sits in one file. The Azure Verified Modules ALZ
   pattern module would generate this and a good deal more, and for a real
   tenant that's the right choice. For this I wanted the tree readable.
-- The policy assignments and where they're scoped (`infra/10-policy`).
-- Subscription vending and placement (`infra/20-subscription-placement`).
-- Three local modules in [`modules/`](modules/): `policy-assignment`,
+- The policy assignments and where they're scoped (`terraform/10-policy`).
+- Subscription vending and placement (`terraform/20-subscription-placement`).
+- Three local modules in [`terraform/modules/`](terraform/modules/): `policy-assignment`,
   `subscription-budget` and `subscription-vending`. The rule I used for pulling
   them out, and the one place I broke it, are in
-  [modules/README.md](modules/README.md).
+  [terraform/modules/README.md](terraform/modules/README.md).
+- All of the above again in [`bicep/`](bicep/), including the same three
+  modules in [`bicep/modules/`](bicep/modules/). Where a Bicep file exists that
+  has no Terraform counterpart it's because a Bicep module is the only way to
+  change deployment scope, and [bicep/modules/README.md](bicep/modules/README.md)
+  says which files those are.
 
-**Not used:** `Azure/avm-ptn-alz/azurerm`, or the landing zone accelerator.
-That's a decision rather than an oversight and ADR 0007 records it.
+**Not used:** `Azure/avm-ptn-alz/azurerm`, `Azure/ALZ-Bicep`, or the landing
+zone accelerator. That's a decision rather than an oversight and ADR 0007
+records it.
 
 Short version: five policy assignments here against the accelerator's several
 hundred, so what this shows is the mechanics, not a governance baseline. I hand
@@ -196,15 +237,21 @@ module with its own state, and resolves management group scopes by name instead
 of reading another directory's state, so there's no shared backend and no
 ordering hidden away in state files.
 
+![Terraform state and provider boundaries](docs/diagrams/terraform-state-boundaries.svg)
+
+The arrows that aren't there are the ones that matter. Nothing reads another
+root's state, and the aliased providers exist so that a resource which forgot
+its `provider` argument can't quietly land in the wrong subscription.
+
 ```bash
-cd infra/00-management-groups
+cd terraform/00-management-groups
 cp terraform.tfvars.example terraform.tfvars   # fill in tenant, subscription, prefix
 terraform init
 terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-Then `infra/10-policy`, then `infra/20-subscription-placement`, the same way.
+Then `terraform/10-policy`, then `terraform/20-subscription-placement`, the same way.
 
 Always `plan -out` and apply the saved plan. Mostly that guards against a `.tf`
 file changing between when you read the plan and when you type yes.
@@ -212,10 +259,16 @@ file changing between when you read the plan and when you type yes.
 Subscription creation sits behind `create_subscriptions` rather than just
 happening on an apply, because it's a billing account operation.
 
+The Bicep equivalents are `az deployment mg|tenant|sub create`, one scope per
+directory, which is the thing that doesn't carry across at all. Two of the four
+run at management group scope, one at tenant, one at subscription, and which is
+which is a permissions decision as much as a technical one.
+[bicep/README.md](bicep/README.md) has the commands and the reasoning.
+
 ## Destroying
 
 ```bash
-cd infra/20-subscription-placement && terraform destroy
+cd terraform/20-subscription-placement && terraform destroy
 cd ../10-policy                    && terraform destroy
 cd ../00-management-groups         && terraform destroy
 ```
@@ -240,6 +293,12 @@ pipeline is only verifiable to someone with access to the project.
 Two CI definitions run the same checks, `azure-pipelines.yml` and
 `.github/workflows/validate.yml`. The checks themselves live in `scripts/`, so
 the two can't drift in what they verify. Neither holds an Azure credential.
+
+Both trees are checked. Terraform gets `fmt`, `validate` and tflint; Bicep gets
+a format check, `build`, `build-params` on the committed example parameter
+files, and `bicep lint`. checkov scans both, and scans the Bicep as compiled
+ARM JSON rather than as Bicep, for a reason worth reading before copying the
+approach: [bicep/README.md](bicep/README.md#validation).
 [docs/ci-security.md](docs/ci-security.md) has the threat model, the forked
 pull request settings, and the workload identity federation design I'd use if
 CI ever needed Azure access.

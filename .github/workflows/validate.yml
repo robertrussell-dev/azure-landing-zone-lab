@@ -58,6 +58,22 @@ jobs:
       - name: Validate
         run: ./scripts/validate-terraform.sh
 
+  bicep:
+    name: Bicep format and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Bicep
+        run: ./scripts/install-bicep.sh
+
+      - name: Validate
+        run: ./scripts/validate-bicep.sh
+
+      - name: Lint
+        run: ./scripts/lint-bicep.sh
+
   security:
     name: Lint and security scan
     runs-on: ubuntu-latest
@@ -78,6 +94,11 @@ jobs:
 
       - name: tflint
         run: ./scripts/lint-terraform.sh
+
+      # checkov scans the Bicep tree as compiled ARM JSON, so the security job
+      # needs a Bicep CLI to do the compiling. See scripts/scan-security.sh.
+      - name: Install Bicep
+        run: ./scripts/install-bicep.sh
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

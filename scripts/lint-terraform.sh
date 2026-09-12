@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# tflint across every Terraform directory under infra/.
+# tflint across every Terraform root under terraform/.
+#
+# The glob matches the numbered roots and not terraform/modules/, which has no
+# .tf files at its top level and is validated through the roots that call it.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
 failed=0
-for dir in infra/*/; do
+for dir in terraform/[0-9]*/; do
   if ! compgen -G "${dir}*.tf" > /dev/null; then continue; fi
   echo "==> ${dir}"
   tflint --chdir="${dir}" --no-color || failed=1

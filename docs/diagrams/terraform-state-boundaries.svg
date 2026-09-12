@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="1000" height="600" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .card   { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1; rx: 6; }
+    .state  { fill: #ffffff; stroke: #8c959f; stroke-width: 1.3; rx: 4; }
+    .prov   { fill: #eef4fb; stroke: #a8c7ea; stroke-width: 1; rx: 3; }
+    .alias  { fill: #ddf4e4; stroke: #1a7f37; stroke-width: 1.2; rx: 3; }
+    .estate { fill: #fff8e6; stroke: #e0c05c; stroke-width: 1; rx: 6; }
+    .sub    { fill: #ffffff; stroke: #d0d7de; stroke-width: 1; rx: 4; }
+    .title  { fill: #1b1f23; font-size: 15px; font-weight: 700; }
+    .cap    { fill: #57606a; font-size: 11px; }
+    .dir    { fill: #1b1f23; font-size: 11.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .sthead { fill: #1b1f23; font-size: 10px; font-weight: 700; }
+    .stf    { fill: #57606a; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .hd     { fill: #57606a; font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px; }
+    .pv     { fill: #1b1f23; font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .pvn    { fill: #57606a; font-size: 9px; }
+    .mk     { fill: #1b1f23; font-size: 9.5px; }
+    .estl   { fill: #1b1f23; font-size: 12px; font-weight: 600; }
+    .estn   { fill: #57606a; font-size: 10px; }
+    .nox    { fill: #cf222e; font-size: 15px; font-weight: 700; }
+    .noxl   { fill: #cf222e; font-size: 9.5px; font-weight: 700; }
+    .flow   { stroke: #8c959f; stroke-width: 1.4; fill: none; }
+    .look   { stroke: #8c959f; stroke-width: 1.3; fill: none; stroke-dasharray: 5 3; }
+    .note   { fill: #57606a; font-size: 10.5px; }
+  </style>
+
+  <defs>
+    <marker id="a3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 z" fill="#8c959f"/>
+    </marker>
+  </defs>
+
+  <text class="title" x="20" y="26">Terraform state and provider boundaries</text>
+  <text class="cap" x="20" y="44">Four roots, four state files, nothing shared between them. What is missing from this picture is the point of it.</text>
+
+  <!-- ===== root 1 ===== -->
+  <rect class="card" x="20" y="62" width="225" height="196"/>
+  <text class="dir" x="32" y="82">00-management-groups</text>
+  <rect class="state" x="32" y="92" width="201" height="34"/>
+  <text class="sthead" x="42" y="107">STATE</text>
+  <text class="stf" x="42" y="120">terraform.tfstate, local</text>
+  <text class="hd" x="32" y="146">PROVIDERS</text>
+  <rect class="prov" x="32" y="152" width="201" height="30"/>
+  <text class="pv" x="42" y="166">azurerm (default)</text>
+  <text class="pvn" x="42" y="177">pinned, creates nothing in it</text>
+  <text class="hd" x="32" y="204">CREATES</text>
+  <text class="mk" x="32" y="220">13 management groups</text>
+  <text class="pvn" x="32" y="234">at tenant scope</text>
+
+  <!-- ===== root 2 ===== -->
+  <rect class="card" x="265" y="62" width="225" height="196"/>
+  <text class="dir" x="277" y="82">10-policy</text>
+  <rect class="state" x="277" y="92" width="201" height="34"/>
+  <text class="sthead" x="287" y="107">STATE</text>
+  <text class="stf" x="287" y="120">terraform.tfstate, local</text>
+  <text class="hd" x="277" y="146">PROVIDERS</text>
+  <rect class="prov" x="277" y="152" width="201" height="30"/>
+  <text class="pv" x="287" y="166">azurerm (default)</text>
+  <text class="pvn" x="287" y="177">pinned, creates nothing in it</text>
+  <text class="hd" x="277" y="204">CREATES</text>
+  <text class="mk" x="277" y="220">5 policy assignments</text>
+  <text class="pvn" x="277" y="234">+ managed identity roles</text>
+
+  <!-- ===== root 3 ===== -->
+  <rect class="card" x="510" y="62" width="225" height="196"/>
+  <text class="dir" x="522" y="82">20-subscription-placement</text>
+  <rect class="state" x="522" y="92" width="201" height="34"/>
+  <text class="sthead" x="532" y="107">STATE</text>
+  <text class="stf" x="532" y="120">terraform.tfstate, local</text>
+  <text class="hd" x="522" y="146">PROVIDERS</text>
+  <rect class="prov" x="522" y="152" width="201" height="18"/>
+  <text class="pv" x="532" y="164">azurerm (default)</text>
+  <rect class="alias" x="522" y="173" width="201" height="26"/>
+  <text class="pv" x="532" y="185">azurerm.management</text>
+  <text class="pvn" x="532" y="195">alias, the management subscription</text>
+  <text class="hd" x="522" y="218">CREATES</text>
+  <text class="mk" x="522" y="233">aliases, placement, budgets,</text>
+  <text class="mk" x="522" y="247">Log Analytics workspace</text>
+
+  <!-- ===== root 4 ===== -->
+  <rect class="card" x="755" y="62" width="225" height="196"/>
+  <text class="dir" x="767" y="82">25-brownfield-seed</text>
+  <rect class="state" x="767" y="92" width="201" height="34"/>
+  <text class="sthead" x="777" y="107">STATE</text>
+  <text class="stf" x="777" y="120">terraform.tfstate, local</text>
+  <text class="hd" x="767" y="146">PROVIDERS</text>
+  <rect class="prov" x="767" y="152" width="201" height="18"/>
+  <text class="pv" x="777" y="164">azurerm (default)</text>
+  <rect class="alias" x="767" y="173" width="201" height="26"/>
+  <text class="pv" x="777" y="185">azurerm.brownfield</text>
+  <text class="pvn" x="777" y="195">alias, the adopted subscription</text>
+  <text class="hd" x="767" y="218">CREATES</text>
+  <text class="mk" x="767" y="233">vnet + subnet, deliberately</text>
+  <text class="mk" x="767" y="247">non compliant</text>
+
+  <!-- ===== the absent coupling ===== -->
+  <text class="nox" x="248" y="118">&#215;</text>
+  <text class="nox" x="493" y="118">&#215;</text>
+  <text class="nox" x="738" y="118">&#215;</text>
+  <text class="noxl" x="500" y="280" text-anchor="middle">no remote backend, no state shared, no terraform_remote_state anywhere</text>
+
+  <!-- Arrow kind per root is exact: 00 and 25 declare no data sources at all,
+       10 declares four management group lookups and 20 declares five. -->
+  <path class="flow" d="M 132 292 L 132 322" marker-end="url(#a3)"/>
+  <path class="look" d="M 377 292 L 377 322" marker-end="url(#a3)"/>
+  <path class="look" d="M 600 292 L 600 322" marker-end="url(#a3)"/>
+  <path class="flow" d="M 645 292 L 645 322" marker-end="url(#a3)"/>
+  <path class="flow" d="M 867 292 L 867 322" marker-end="url(#a3)"/>
+
+  <!-- ===== the estate ===== -->
+  <rect class="estate" x="20" y="326" width="960" height="126"/>
+  <text class="estl" x="34" y="350">The Azure estate, addressed by name</text>
+  <text class="estn" x="34" y="368">Every root that needs a management group looks it up with a data source, deriving the name from var.prefix. None of them reads another root's state,</text>
+  <text class="estn" x="34" y="384">so the four directories can be applied independently and in any order once the hierarchy exists.</text>
+
+  <rect class="sub" x="34" y="398" width="230" height="40"/>
+  <text class="mk" x="44" y="414">management group hierarchy</text>
+  <text class="pvn" x="44" y="429">data.azurerm_management_group, by name</text>
+
+  <rect class="sub" x="280" y="398" width="215" height="40"/>
+  <text class="mk" x="290" y="414">DemoSubscription</text>
+  <text class="pvn" x="290" y="429">adopted, placed under Corp (audit only)</text>
+
+  <rect class="sub" x="511" y="398" width="215" height="40"/>
+  <text class="mk" x="521" y="414">sub-management</text>
+  <text class="pvn" x="521" y="429">vended, holds the workspace</text>
+
+  <rect class="sub" x="742" y="398" width="224" height="40"/>
+  <text class="mk" x="752" y="414">sub-online-portal-prod</text>
+  <text class="pvn" x="752" y="429">vended, placed under Online</text>
+
+  <!-- ===== notes ===== -->
+  <text class="note" x="20" y="480">The cost of this shape is the one the README owns: local state is fine for one person and not fine for a team. A second operator, or a pipeline, needs a shared</text>
+  <text class="note" x="20" y="496">backend with locking before anything here is safe to run twice at once. Nothing in the design would have to change, only where the four state files live.</text>
+  <text class="note" x="20" y="520">The aliased providers are a safety measure rather than a convenience. The default provider is pinned to the operator's own subscription and deliberately</text>
+  <text class="note" x="20" y="536">creates nothing, so a resource that forgot its provider argument fails or lands somewhere obvious instead of quietly appearing in the wrong subscription.</text>
+  <text class="cap" x="20" y="562">Solid arrow: creates the resource. Dashed arrow: resolves it by name at plan time, reading nothing but Azure.</text>
+</svg>

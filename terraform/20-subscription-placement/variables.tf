@@ -9,7 +9,7 @@ variable "subscription_id" {
 }
 
 variable "prefix" {
-  description = "Same prefix used by infra/00-management-groups."
+  description = "Same prefix used by terraform/00-management-groups."
   type        = string
 }
 

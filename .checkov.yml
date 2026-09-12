@@ -7,9 +7,17 @@
 #
 # This file starts empty on purpose. Skips are added only after a finding has
 # been read and understood, not pre-emptively to make the first run green.
+#
+# Two frameworks, because the repository holds the same landing zone twice.
+# Terraform is scanned as written. Bicep is compiled to ARM JSON first and
+# scanned as arm, because checkov's Bicep parser cannot read the lambda
+# expressions in bicep/modules/policy-assignment and reports those files as
+# parsing errors while still exiting 0. scripts/scan-security.sh does the
+# compiling and fails the build on a parsing error for that reason.
 
 framework:
   - terraform
+  - arm
 
 # Directories that hold no deployable infrastructure.
 skip-path:

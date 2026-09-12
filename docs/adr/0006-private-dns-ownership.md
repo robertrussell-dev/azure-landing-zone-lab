@@ -109,7 +109,7 @@ This platform already hit the same class of problem with a Modify policy
 appending `costCenter`, where Terraform then planned to remove the tag and the
 policy re-added it. The resolution there was to name an owner for the field and
 have Terraform ignore it. The DNS case is the same shape at larger scale, and
-it is why `infra/25-brownfield-seed` carries an explicit note about who owns
+it is why `terraform/25-brownfield-seed` carries an explicit note about who owns
 which field.
 
 **A slow platform team becomes a workload team's outage.** Centralised

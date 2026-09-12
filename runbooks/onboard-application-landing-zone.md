@@ -45,7 +45,7 @@ Subscriptions are not regional, and sizing is the workload team's business.
    provisioning. The allocation is the platform's record, not the workload
    team's.
 
-3. **Create the subscription.** In `infra/20-subscription-placement`, add the
+3. **Create the subscription.** In `terraform/20-subscription-placement`, add the
    subscription with its billing scope, then plan and apply. Subscriptions
    created through the alias API land in the tenant root management group.
 

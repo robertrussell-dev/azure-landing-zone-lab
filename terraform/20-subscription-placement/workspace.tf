@@ -1,8 +1,8 @@
 # Central Log Analytics workspace, in the management subscription.
 #
-# This exists so the DeployIfNotExists assignment in infra/10-policy has
+# This exists so the DeployIfNotExists assignment in terraform/10-policy has
 # somewhere to route diagnostics. Until it exists, that assignment is skipped
-# rather than assigned against nothing. See infra/10-policy/main.tf.
+# rather than assigned against nothing. See terraform/10-policy/main.tf.
 #
 # Cost, verified against the Azure retail prices API on 2026-09-06 for West
 # US 2 in USD. Verify before reusing, these move.

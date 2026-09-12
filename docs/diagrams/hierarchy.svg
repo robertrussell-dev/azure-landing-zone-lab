@@ -1,11 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
   <style>
     .card  { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1; rx: 5; }
     .root  { fill: #ffffff; stroke: #8c959f; stroke-width: 1; stroke-dasharray: 4 3; rx: 5; }
     .tier1 { fill: #eef4fb; stroke: #a8c7ea; stroke-width: 1; rx: 5; }
+    .audit { fill: #fff8e6; stroke: #e0c05c; stroke-width: 1; rx: 5; }
     .name  { fill: #1b1f23; font-size: 13px; font-weight: 600; }
     .id    { fill: #57606a; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .sub   { fill: #1a7f37; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .plan  { fill: #8c959f; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .tagd  { fill: #1a7f37; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+    .tagp  { fill: #8c959f; font-size: 10px; font-style: italic; }
     .empty { fill: #8c959f; font-size: 11px; font-style: italic; }
     .conn  { stroke: #d0d7de; stroke-width: 1; fill: none; }
     .title { fill: #1b1f23; font-size: 15px; font-weight: 700; }
@@ -13,19 +17,19 @@
   </style>
 
   <text class="title" x="20" y="26">Contoso landing zone, management group hierarchy</text>
-  <text class="cap" x="20" y="44">Subscription column shows planned placement. Groups marked "no subscription" exist in the tree deliberately, see README.</text>
+  <text class="cap" x="20" y="44">Thirteen groups. DEPLOYED subscriptions exist in the tenant today; planned ones do not. Groups with no subscription are in the tree deliberately, see README.</text>
 
   <!-- Tenant Root Group -->
   <rect class="root" x="20" y="60" width="300" height="30"/>
   <text class="name" x="34" y="79">Tenant Root Group</text>
-  <text class="empty" x="700" y="79">not managed by this repo</text>
+  <text class="empty" x="560" y="79">not managed by this repo</text>
 
   <!-- Contoso intermediate root -->
   <path class="conn" d="M 40 90 L 40 112 L 54 112"/>
   <rect class="tier1" x="54" y="97" width="300" height="30"/>
   <text class="name" x="68" y="116">Contoso</text>
   <text class="id" x="150" y="116">contoso</text>
-  <text class="empty" x="700" y="116">intermediate root</text>
+  <text class="empty" x="560" y="116">intermediate root</text>
 
   <!-- Platform -->
   <path class="conn" d="M 74 127 L 74 149 L 88 149"/>
@@ -37,25 +41,27 @@
   <rect class="card" x="122" y="171" width="300" height="30"/>
   <text class="name" x="136" y="190">Identity</text>
   <text class="id" x="206" y="190">contoso-platform-identity</text>
-  <text class="empty" x="700" y="190">no subscription</text>
+  <text class="empty" x="560" y="190">no subscription</text>
 
   <path class="conn" d="M 108 186 L 108 223 L 122 223"/>
   <rect class="card" x="122" y="208" width="300" height="30"/>
   <text class="name" x="136" y="227">Management</text>
   <text class="id" x="222" y="227">contoso-platform-management</text>
-  <text class="sub" x="700" y="227">sub-management</text>
+  <text class="tagd" x="560" y="227">DEPLOYED</text>
+  <text class="sub" x="640" y="227">sub-management</text>
 
   <path class="conn" d="M 108 223 L 108 260 L 122 260"/>
   <rect class="card" x="122" y="245" width="300" height="30"/>
   <text class="name" x="136" y="264">Connectivity</text>
   <text class="id" x="222" y="264">contoso-platform-connectivity</text>
-  <text class="sub" x="700" y="264">sub-connectivity</text>
+  <text class="tagp" x="560" y="264">planned</text>
+  <text class="plan" x="640" y="264">sub-connectivity</text>
 
   <path class="conn" d="M 108 260 L 108 297 L 122 297"/>
   <rect class="card" x="122" y="282" width="300" height="30"/>
   <text class="name" x="136" y="301">Security</text>
   <text class="id" x="206" y="301">contoso-platform-security</text>
-  <text class="empty" x="700" y="301">no subscription</text>
+  <text class="empty" x="560" y="301">no subscription</text>
 
   <!-- Landing zones -->
   <path class="conn" d="M 74 127 L 74 334 L 88 334"/>
@@ -67,31 +73,43 @@
   <rect class="card" x="122" y="356" width="300" height="30"/>
   <text class="name" x="136" y="375">Corp</text>
   <text class="id" x="186" y="375">contoso-lz-corp</text>
-  <text class="sub" x="700" y="375">sub-corp-payments-prod</text>
+  <text class="tagp" x="560" y="375">planned</text>
+  <text class="plan" x="640" y="375">sub-corp-payments-prod</text>
 
   <path class="conn" d="M 108 371 L 108 408 L 122 408"/>
   <rect class="card" x="122" y="393" width="300" height="30"/>
   <text class="name" x="136" y="412">Online</text>
   <text class="id" x="192" y="412">contoso-lz-online</text>
-  <text class="sub" x="700" y="412">sub-online-portal-prod</text>
+  <text class="tagd" x="560" y="412">DEPLOYED</text>
+  <text class="sub" x="640" y="412">sub-online-portal-prod</text>
 
   <path class="conn" d="M 108 408 L 108 445 L 122 445"/>
   <rect class="card" x="122" y="430" width="300" height="30"/>
   <text class="name" x="136" y="449">Local</text>
   <text class="id" x="186" y="449">contoso-lz-local</text>
-  <text class="empty" x="700" y="449">no subscription</text>
+  <text class="empty" x="560" y="449">no subscription</text>
+
+  <!-- Corp (audit only), the brownfield adoption target. See ADR 0005. -->
+  <path class="conn" d="M 108 445 L 108 482 L 122 482"/>
+  <rect class="audit" x="122" y="467" width="300" height="30"/>
+  <text class="name" x="136" y="486">Corp (audit only)</text>
+  <text class="id" x="240" y="486">contoso-lz-corp-audit</text>
+  <text class="tagd" x="560" y="486">DEPLOYED</text>
+  <text class="sub" x="640" y="486">DemoSubscription</text>
+  <text class="empty" x="760" y="486">adopted, enforcement off</text>
 
   <!-- Sandboxes -->
-  <path class="conn" d="M 74 127 L 74 482 L 88 482"/>
-  <rect class="tier1" x="88" y="467" width="300" height="30"/>
-  <text class="name" x="102" y="486">Sandboxes</text>
-  <text class="id" x="180" y="486">contoso-sandboxes</text>
-  <text class="sub" x="700" y="486">sub-sandbox</text>
-
-  <!-- Decommissioned -->
   <path class="conn" d="M 74 127 L 74 519 L 88 519"/>
   <rect class="tier1" x="88" y="504" width="300" height="30"/>
-  <text class="name" x="102" y="523">Decommissioned</text>
-  <text class="id" x="212" y="523">contoso-decommissioned</text>
-  <text class="empty" x="700" y="523">no subscription</text>
+  <text class="name" x="102" y="523">Sandboxes</text>
+  <text class="id" x="180" y="523">contoso-sandboxes</text>
+  <text class="tagp" x="560" y="523">planned</text>
+  <text class="plan" x="640" y="523">sub-sandbox</text>
+
+  <!-- Decommissioned -->
+  <path class="conn" d="M 74 127 L 74 556 L 88 556"/>
+  <rect class="tier1" x="88" y="541" width="300" height="30"/>
+  <text class="name" x="102" y="560">Decommissioned</text>
+  <text class="id" x="212" y="560">contoso-decommissioned</text>
+  <text class="empty" x="560" y="560">no subscription</text>
 </svg>
