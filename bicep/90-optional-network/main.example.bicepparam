@@ -18,8 +18,8 @@ param hubAddressSpace = '10.0.0.0/20'
 //   deployExpressRouteGateway  Standard  about 139 per month
 //   deployRouteServer                    about  73 per month
 //
-// All five plus their public IPs is roughly 1,490 per month. Turn one on, get
-// what you needed, turn it off the same day.
+// All five plus their public IPs is 1,495 per month. Turn one on, get what you
+// needed, turn it off the same day.
 
 param deployFirewall = false
 param firewallSkuTier = 'Standard'
@@ -27,3 +27,9 @@ param deployBastion = false
 param deployVpnGateway = false
 param deployExpressRouteGateway = false
 param deployRouteServer = false
+
+// A budget on the connectivity subscription. Leave the list empty to skip it.
+param budgetAlertEmails = [
+  'you@example.com'
+]
+param monthlyBudgetAmount = 50

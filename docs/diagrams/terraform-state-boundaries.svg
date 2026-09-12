@@ -6,7 +6,6 @@
     .alias  { fill: #ddf4e4; stroke: #1a7f37; stroke-width: 1.2; rx: 3; }
     .estate { fill: #fff8e6; stroke: #e0c05c; stroke-width: 1; rx: 6; }
     .sub    { fill: #ffffff; stroke: #d0d7de; stroke-width: 1; rx: 4; }
-    .subp   { fill: #ffffff; stroke: #cf222e; stroke-width: 1; rx: 4; stroke-dasharray: 4 3; }
     .title  { fill: #1b1f23; font-size: 15px; font-weight: 700; }
     .cap    { fill: #57606a; font-size: 11px; }
     .dir    { fill: #1b1f23; font-size: 9.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
@@ -20,7 +19,6 @@
     .estn   { fill: #57606a; font-size: 10px; }
     .nox    { fill: #cf222e; font-size: 15px; font-weight: 700; }
     .noxl   { fill: #cf222e; font-size: 9.5px; font-weight: 700; }
-    .plan   { fill: #cf222e; font-size: 9px; }
     .flow   { stroke: #8c959f; stroke-width: 1.4; fill: none; }
     .look   { stroke: #8c959f; stroke-width: 1.3; fill: none; stroke-dasharray: 5 3; }
     .note   { fill: #57606a; font-size: 10.5px; }
@@ -36,7 +34,6 @@
       .alias  { fill: #14321f; stroke: #46c464; stroke-width: 1.2; rx: 3; }
       .estate { fill: #2f2917; stroke: #907a33; stroke-width: 1; rx: 6; }
       .sub    { fill: #232a35; stroke: #3d4653; stroke-width: 1; rx: 4; }
-      .subp   { fill: #232a35; stroke: #ff8a80; stroke-width: 1; rx: 4; stroke-dasharray: 4 3; }
       .title  { fill: #e8eef4; font-size: 15px; font-weight: 700; }
       .cap    { fill: #a7b1bd; font-size: 11px; }
       .dir    { fill: #e8eef4; font-size: 9.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
@@ -50,7 +47,6 @@
       .estn   { fill: #a7b1bd; font-size: 10px; }
       .nox    { fill: #ff8a80; font-size: 15px; font-weight: 700; }
       .noxl   { fill: #ff8a80; font-size: 9.5px; font-weight: 700; }
-      .plan   { fill: #ff8a80; font-size: 9px; }
       .flow   { stroke: #808b98; stroke-width: 1.4; fill: none; }
       .look   { stroke: #808b98; stroke-width: 1.3; fill: none; stroke-dasharray: 5 3; }
       .note   { fill: #a7b1bd; font-size: 10.5px; }
@@ -184,14 +180,14 @@
   <text class="mk" x="608" y="414">sub-online-portal-prod</text>
   <text class="pvn" x="608" y="429">vended, placed under Online</text>
 
-  <rect class="subp" x="786" y="398" width="178" height="40"/>
+  <rect class="sub" x="786" y="398" width="178" height="40"/>
   <text class="mk" x="796" y="414">sub-connectivity</text>
-  <text class="plan" x="796" y="429">planned, not vended yet</text>
+  <text class="pvn" x="796" y="429">vended, will hold the hub</text>
 
   <!-- ===== notes ===== -->
   <text class="note" x="20" y="480">The cost of this shape is the one the README owns: local state is fine for one person and not fine for a team. A second operator, or a pipeline, needs a shared</text>
   <text class="note" x="20" y="496">backend with locking before anything here is safe to run twice at once. Nothing in the design would have to change, only where the five state files live.</text>
   <text class="note" x="20" y="520">The aliased providers are a safety measure rather than a convenience. The default provider is pinned to the operator's own subscription and deliberately</text>
   <text class="note" x="20" y="536">creates nothing, so a resource that forgot its provider argument fails or lands somewhere obvious instead of quietly appearing in the wrong subscription.</text>
-  <text class="cap" x="20" y="562">Solid arrow: creates the resource. Dashed arrow: resolves it by name at plan time, reading nothing but Azure. Dashed red box: in the plan, not in the tenant.</text>
+  <text class="cap" x="20" y="562">Solid arrow: creates the resource. Dashed arrow: resolves it by name at plan time, reading nothing but Azure.</text>
 </svg>

@@ -24,8 +24,8 @@ hub_address_space = "10.0.0.0/20"
 #   deploy_expressroute_gateway Standard  about 139 per month
 #   deploy_route_server                   about  73 per month
 #
-# All five plus their public IPs is roughly 1,490 per month. Turn one on, get
-# what you needed, turn it off the same day.
+# All five plus their public IPs is 1,495 per month. Turn one on, get what you
+# needed, turn it off the same day.
 
 deploy_firewall             = false
 firewall_sku_tier           = "Standard"

@@ -47,7 +47,7 @@
   <rect class="bg" x="0" y="0" width="1000" height="996"/>
 
   <text class="title" x="20" y="26">Module call graph, both implementations</text>
-  <text class="cap" x="20" y="44">Roots on the left, what they call to the right. Counted from source, not memory: five call sites into policy-assignment, three budget callers in Terraform, two in Bicep.</text>
+  <text class="cap" x="20" y="44">Roots on the left, what they call to the right. Counted from source, not memory: five call sites into policy-assignment, three budget callers in each.</text>
 
   <!-- ================= TERRAFORM ================= -->
   <rect class="panel" x="20" y="60" width="960" height="372"/>
@@ -64,7 +64,7 @@
 
   <rect class="root" x="30" y="196" width="195" height="38"/>
   <text class="nm" x="40" y="213">20-subscription-placement</text>
-  <text class="ns" x="40" y="227">2 module blocks, 3 instances</text>
+  <text class="ns" x="40" y="227">2 module blocks, 4 instances</text>
 
   <rect class="root" x="30" y="300" width="195" height="38"/>
   <text class="nm" x="40" y="317">25-brownfield-seed</text>
@@ -82,7 +82,7 @@
   <text class="el" x="228" y="369">x1</text>
 
   <path class="edge" d="M 225 361 L 245 361 L 245 212 L 731 212" marker-end="url(#a4)"/>
-  <text class="el" x="560" y="208">x1, the connectivity budget</text>
+  <text class="el" x="520" y="225">x1, the connectivity budget</text>
 
   <rect class="mod" x="265" y="142" width="195" height="38"/>
   <text class="nm" x="275" y="159">policy-assignment</text>
@@ -103,7 +103,7 @@
   <text class="el" x="300" y="200">x1, the brownfield budget</text>
 
   <path class="edge" d="M 225 225 L 245 225 L 245 269 L 261 269" marker-end="url(#a4)"/>
-  <text class="el" x="252" y="245">for_each, 4 keys, 2 created</text>
+  <text class="el" x="252" y="245">for_each, 4 keys, 3 created</text>
 
   <path class="edge" d="M 460 269 L 690 269 L 690 222 L 731 222" marker-end="url(#a4)"/>
   <text class="el" x="500" y="264">x1, a module calling a module</text>
@@ -155,7 +155,7 @@
 
   <rect class="mod" x="735" y="580" width="195" height="38"/>
   <text class="nm" x="745" y="597">subscription-budget</text>
-  <text class="ns" x="745" y="611">2 callers</text>
+  <text class="ns" x="745" y="611">3 callers</text>
 
   <path class="edge" d="M 225 545 L 261 545" marker-end=""/>
   <text class="el" x="228" y="539">x5</text>
@@ -178,7 +178,7 @@
   <!-- ===== 90-optional-network ===== -->
   <rect class="root" x="30" y="796" width="195" height="38"/>
   <text class="nm" x="40" y="813">90-optional-network</text>
-  <text class="ns" x="40" y="827">3 declarations</text>
+  <text class="ns" x="40" y="827">4 declarations</text>
 
   <rect class="shim" x="265" y="796" width="195" height="38"/>
   <text class="nm" x="275" y="813">hub-network</text>
@@ -198,6 +198,9 @@
   <path class="edge" d="M 225 800 L 243 800 L 243 786 L 715 786 L 715 796" marker-end=""/>
   <text class="el" x="500" y="782">loop, 2 spokes</text>
 
+  <path class="edge" d="M 715 786 L 950 786 L 950 599 L 930 599" marker-end=""/>
+  <text class="el" x="740" y="782">x1, the connectivity budget</text>
+
   <path class="edge" d="M 225 830 L 243 830 L 243 848 L 480 848 L 480 834" marker-end=""/>
   <text class="el" x="280" y="844">x1, the billable devices</text>
 
@@ -211,7 +214,7 @@
 
   <text class="note" x="20" y="910">Read the two panels against each other. The blue nodes are the same four in both, which is the point: composition is the same idea in either language. Everything amber is</text>
   <text class="note" x="20" y="926">Bicep needing a nested deployment to cross a scope boundary, so it has one caller by construction and the two caller rule never applies to it.</text>
-  <text class="note" x="20" y="946">The graphs differ in two places. The extra hop between vending and budget is the BCP120 workaround rather than reuse. And subscription-budget has three callers in</text>
-  <text class="note" x="20" y="962">Terraform against two in Bicep, because terraform/90-optional-network creates a connectivity budget and bicep/90-optional-network does not. That gap is real, not a drawing error.</text>
+  <text class="note" x="20" y="946">The graphs differ in exactly one place: the extra hop between vending and budget, which is the BCP120 workaround rather than reuse. Everything</text>
+  <text class="note" x="20" y="962">else, including all three callers of subscription-budget, is the same shape in both languages.</text>
   <text class="cap" x="20" y="982">Counts are of declarations, not instances: one block under for_each or a loop is one edge on this diagram and several resources at apply time.</text>
 </svg>

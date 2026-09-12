@@ -71,7 +71,7 @@ for a single subscription exception (0002).
 |---|---|
 | Management groups | 13, counting the intermediate root and the audit only Corp duplicate |
 | Policy assignments | 5 live, covering all five effects |
-| Subscriptions | 3. One adopted brownfield, plus `sub-management` and `sub-online-portal-prod` vended through Terraform. `connectivity` and `corp-payments-prod` are in the vending map but not created |
+| Subscriptions | 4. One adopted brownfield, plus `sub-management`, `sub-connectivity` and `sub-online-portal-prod` vended through Terraform. `corp-payments-prod` is in the vending map but not created |
 | Log Analytics | One workspace in the management subscription, 30 day retention, 0.1 GB daily cap |
 | Budgets | On every subscription, actual and forecast thresholds |
 | Compliance | Evaluated. 4 compliant, 2 non compliant, both on purpose |
@@ -193,8 +193,8 @@ address plan in [docs/ip-plan.md](docs/ip-plan.md). It splits in two:
 
 ![Hub and spoke network](docs/diagrams/hub-spoke-network.svg)
 
-Neither layer is deployed right now. Both plan and what-if clean against the
-tenant.
+Neither layer is deployed right now, but `sub-connectivity` exists, so it has
+somewhere to go. Both plan and what-if clean against the tenant.
 
 The only virtual network up right now is the deliberately non compliant one
 described above.

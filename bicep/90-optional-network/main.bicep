@@ -80,6 +80,13 @@ param deployBastion bool = false
 @description('Azure Route Server in the hub. About 0.10 per hour per routing unit, roughly 73 per month at minimum capacity. Only useful with a BGP speaking network virtual appliance, and there is not one here.')
 param deployRouteServer bool = false
 
+@description('Who gets told if this subscription\'s spend crosses a threshold. A budget does not cap anything, but leaving a gateway running is exactly the mistake it exists to catch. Empty skips the budget.')
+param budgetAlertEmails array = []
+
+@description('Monthly budget for the connectivity subscription, in the billing account currency.')
+@minValue(1)
+param monthlyBudgetAmount int = 50
+
 var tags = {
   autoDelete: 'false'
 }
@@ -146,6 +153,22 @@ module spoke '../modules/spoke-network/main.bicep' = [
     }
   }
 ]
+
+// A budget on the subscription that holds all of this. Created whether or not
+// anything billable is switched on, because the point of it is to catch the
+// case where something was switched on and forgotten. The forecast alert fires
+// before the money is gone, which for a gateway left running is the only alert
+// that helps.
+module budget '../modules/subscription-budget/main.bicep' = if (!empty(budgetAlertEmails)) {
+  name: 'budget-connectivity'
+  params: {
+    name: 'budget-connectivity'
+    amount: monthlyBudgetAmount
+    contactEmails: budgetAlertEmails
+    actualThresholdPercent: 50
+    forecastThresholdPercent: 80
+  }
+}
 
 @description('The hub subnet layout as actually derived, so it can be diffed against docs/ip-plan.md.')
 output hubSubnetPrefixes object = hubNetwork.outputs.subnetPrefixes

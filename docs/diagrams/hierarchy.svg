@@ -77,8 +77,8 @@
   <rect class="card" x="122" y="245" width="300" height="30"/>
   <text class="name" x="136" y="264">Connectivity</text>
   <text class="id" x="222" y="264">contoso-platform-connectivity</text>
-  <text class="tagp" x="560" y="264">planned</text>
-  <text class="plan" x="640" y="264">sub-connectivity</text>
+  <text class="tagd" x="560" y="264">DEPLOYED</text>
+  <text class="sub" x="640" y="264">sub-connectivity</text>
 
   <path class="conn" d="M 108 260 L 108 297 L 122 297"/>
   <rect class="card" x="122" y="282" width="300" height="30"/>
