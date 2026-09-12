@@ -154,12 +154,12 @@ The third row is the Modify effect. Five resources are compliant with the
 The hierarchy screenshot is at
 [docs/evidence/hierarchy-portal.png](docs/evidence/hierarchy-portal.png).
 
-Both screenshots were captured on 6 and 7 September 2026. The hierarchy one is
-older than the tree: it predates the `Corp (audit only)` group and the
-subscription placements, so it shows 12 groups and DemoSubscription still under
-the tenant root. The [diagram above](#hierarchy) is current, and the Bicep
-what-if in [bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate)
-confirms the live tree matches it: 13 groups, no differences.
+The policy screenshot is from 7 September 2026. The hierarchy one is from 12
+September and matches the [diagram above](#hierarchy): 13 groups under the
+tenant root and all four subscriptions placed, with the IDs blacked out. The
+Bicep what-if in
+[bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate)
+confirms the same tree independently.
 
 ## Constraints
 
