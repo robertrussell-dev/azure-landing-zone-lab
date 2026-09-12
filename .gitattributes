@@ -1,0 +1,12 @@
+# Every text file is stored with LF line endings, whatever the editor or tool on
+# the working machine writes. The scripts run on Linux CI runners, where a CRLF
+# shebang line leaves the interpreter unfindable.
+* text=auto eol=lf
+
+# Binary files are stored byte for byte.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

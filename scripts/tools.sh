@@ -48,11 +48,17 @@ tools_extract() {
 
   case "$archive" in
     *.zip)
-      # unzip is not guaranteed on every runner image, and Python is.
+      # unzip is not on every image, and Python usually is. Ubuntu ships only
+      # python3 and Git for Windows usually only python, so both are tried.
       if command -v unzip > /dev/null 2>&1; then
         unzip -q -o "$archive" -d "$dest"
       else
-        python -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" \
+        local py
+        py="$(command -v python3 || command -v python)" || {
+          echo "FAIL: extracting ${archive} needs unzip or Python, and neither is installed" >&2
+          return 1
+        }
+        "$py" -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" \
           "$archive" "$dest"
       fi
       ;;
