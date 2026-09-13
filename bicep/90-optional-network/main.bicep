@@ -1,22 +1,10 @@
 // Hub and spoke network, from the worked address plan in docs/ip-plan.md.
 //
-// The Bicep counterpart of terraform/90-optional-network. Same address plan,
-// same archetype enforcement, same split between what is free and what bills.
+// The virtual networks, subnets, peerings, network security groups and route
+// tables are free and stay deployed. The firewall, gateways, Bastion and Route
+// Server bill hourly and are off by default, each behind a flag below.
 //
-// Two layers:
-//
-//   Free      hub and spoke virtual networks, every subnet the plan calls for,
-//             peerings, network security groups, route tables. None of this
-//             carries an hourly charge, so it can stay deployed.
-//   Billable  firewall, gateways, Bastion, Route Server. All off by default.
-//             Each flag names its own monthly cost below.
-//
-// ADR 0004 chose hub and spoke over Virtual WAN precisely because the free
-// layer really is free. A Virtual WAN hub bills for existing; a virtual network
-// and a peering do not.
-//
-// Scope. The connectivity subscription, which is where the platform owns the
-// hub and the private DNS zones (ADR 0006):
+// Deployed to the connectivity subscription:
 //
 //   az deployment sub create --subscription <connectivity GUID> \
 //     --location westus2 --template-file main.bicep \
@@ -33,7 +21,7 @@ param prefix string
 @description('The hub prefix. A /20 out of the platform /16, per docs/ip-plan.md. The subnet layout is derived from it.')
 param hubAddressSpace string = '10.0.0.0/20'
 
-@description('The spokes to build. One /22 per workload per environment, allocated sequentially. archetype decides routing and gateway transit, which is the real enforcement rather than the name.')
+@description('The spokes to build. One /22 per workload per environment, allocated sequentially. archetype decides routing and gateway transit.')
 param spokes array = [
   {
     name: 'corp-payments-prod'
@@ -47,7 +35,7 @@ param spokes array = [
   }
 ]
 
-@description('The whole prefix belonging to each archetype. Routes are written against these rather than against individual spokes, which is why Corp and Online were split by address block instead of by naming convention. One route covers 64 spokes.')
+@description('The whole prefix belonging to each archetype. Routes target these blocks instead of individual spokes, which is why Corp and Online have separate address blocks. One route covers 64 spokes.')
 param archetypeSupernets object = {
   corp: '10.1.0.0/16'
   online: '10.2.0.0/16'
@@ -56,9 +44,7 @@ param archetypeSupernets object = {
 // ---------------------------------------------------------------------------
 // The flags. Everything above this line is free to leave running.
 // ---------------------------------------------------------------------------
-// Retail prices, West US 2, USD, checked against the Azure retail prices API on
-// 2026-09-12. They matched ADR 0004's figures from 2026-09-06 exactly, so they
-// are not moving quickly, but verify before trusting them.
+// Retail prices, West US 2, USD, from the retail prices API on 2026-09-12.
 
 @description('Azure Firewall in the hub. Standard: 1.25 per hour, about 912 per month, plus 0.016 per GB processed. The single most expensive thing in this repository. Nothing routes through the hub without it, so the spoke route tables stay empty while this is false.')
 param deployFirewall bool = false
@@ -82,6 +68,17 @@ param deployBastion bool = false
 
 @description('Azure Route Server in the hub. About 0.10 per hour per routing unit, roughly 73 per month at minimum capacity. Only useful with a BGP speaking network virtual appliance, and there is not one here.')
 param deployRouteServer bool = false
+
+@description('How long a billable device may exist before the janitor in bicep/30-auto-delete deletes it. Stamped on each device as its deleteAfter tag.')
+@minValue(1)
+@maxValue(72)
+param billableTtlHours int = 8
+
+// Start of the deleteAfter window. A parameter because utcNow only works as a
+// default. Unlike Terraform, every deployment restamps the tag; see
+// bicep/README.md.
+@description('Deployment time. Leave unset.')
+param deployedAt string = utcNow('u')
 
 @description('Who gets told if this subscription\'s spend crosses a threshold. A budget does not cap anything, but leaving a gateway running is exactly the mistake it exists to catch. Empty skips the budget.')
 param budgetAlertEmails array = []
@@ -134,8 +131,11 @@ module billable 'billable.bicep' = {
     deployExpressRouteGateway: deployExpressRouteGateway
     deployBastion: deployBastion
     deployRouteServer: deployRouteServer
+    // Both tags are what the janitor in bicep/30-auto-delete looks for.
+    // Formatted to match the RFC 3339 value Terraform's timeadd produces.
     tags: {
       autoDelete: 'true'
+      deleteAfter: dateTimeAdd(deployedAt, 'PT${billableTtlHours}H', 'yyyy-MM-dd\'T\'HH:mm:ss\'Z\'')
     }
   }
 }
@@ -151,10 +151,8 @@ module spoke '../modules/spoke-network/main.bicep' = [
       archetype: s.archetype
       hubVirtualNetworkName: hubNetwork.outputs.virtualNetworkName
       firewallPrivateIp: billable.outputs.firewallPrivateIp
-      // Gateway transit is the archetype. Corp reaches on premises through the
-      // hub gateway, Online was never given the transit and so cannot. Azure
-      // rejects the peering outright if this is true and no gateway exists, so
-      // it is gated on the flags too.
+      // Corp reaches on premises through the hub gateway; Online can't. Azure
+      // rejects the peering if there's no gateway, so it's gated on the flags.
       useRemoteGateways: s.archetype == 'corp' && (deployVpnGateway || deployExpressRouteGateway)
       // Every archetype supernet except this spoke's own. One route per
       // archetype covers all 64 spokes that fit in it.
@@ -167,11 +165,8 @@ module spoke '../modules/spoke-network/main.bicep' = [
   }
 ]
 
-// A budget on the subscription that holds all of this. Created whether or not
-// anything billable is switched on, because the point of it is to catch the
-// case where something was switched on and forgotten. The forecast alert fires
-// before the money is gone, which for a gateway left running is the only alert
-// that helps.
+// A budget on this subscription. Always created, since its job is catching a
+// device someone forgot.
 module budget '../modules/subscription-budget/main.bicep' = if (!empty(budgetAlertEmails)) {
   name: 'budget-connectivity'
   params: {
@@ -189,7 +184,7 @@ output hubSubnetPrefixes object = hubNetwork.outputs.subnetPrefixes
 @description('Every spoke\'s derived subnets, same purpose.')
 output spokeSubnetPrefixes array = [for (s, i) in spokes: spoke[i].outputs.subnetPrefixes]
 
-@description('Which spokes can reach on premises through the hub gateway and which cannot. ADR 0003 as the deployment implements it, rather than as the names suggest.')
+@description('Which spokes can reach on premises through the hub gateway and which cannot. ADR 0003 as deployed.')
 output archetypeEnforcement array = [
   for s in spokes: {
     spoke: s.name
@@ -199,15 +194,9 @@ output archetypeEnforcement array = [
   }
 ]
 
-// What this currently costs to leave running. Retail West US 2, USD, before any
-// data processing. Surfaced as an output so the number shows in a what-if
-// rather than on an invoice three weeks later.
-//
-// Whole dollars per month, not an hourly rate times 730. ARM's mul and div only
-// accept integers, so float arithmetic here compiles fine and then fails at
-// deployment with "expects its first parameter to be of type Integer". These
-// figures are approximations anyway, which is what makes the integers honest
-// rather than a workaround.
+// Monthly cost of what's switched on, retail West US 2, USD, before data
+// processing. Whole dollars, because ARM's mul and div only take integers:
+// floats compile, then fail at deployment.
 var firewallMonthly = deployFirewall
   ? (firewallSkuTier == 'Basic' ? 288 : (firewallSkuTier == 'Premium' ? 1278 : 912))
   : 0

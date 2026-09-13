@@ -1,27 +1,18 @@
-// Everything that has to wait until the new subscription has an ID.
+// Everything that needs the new subscription's ID.
 //
-// This file exists because of one Bicep rule: a resource name, and a module
-// scope, must be resolvable before the deployment starts. The subscription ID
-// produced by an alias is not. Writing either of these in main.bicep
+// A resource name or module scope must be known before the deployment starts,
+// and the alias's subscriptionId isn't. Using it directly in main.bicep
 //
 //   name: subscriptionAlias.properties.subscriptionId          // the placement
 //   scope: subscription(subscriptionAlias.properties.subscriptionId)  // the budget
 //
-// fails at compile time with BCP120, and the message is precise about why: it
-// lists the properties of the alias that can be calculated at the start, and
-// subscriptionId is not among them.
-//
-// A parameter of a nested deployment is resolvable by the time that nested
-// deployment begins. So the value crosses one deployment boundary as a
-// parameter and becomes usable on the other side. That is the whole trick, and
-// it is why placement and the budget live here rather than beside the alias.
-//
-// Azure Quickstart's create-subscription-resourcegroup sample uses the same
-// double nesting for the same reason.
+// fails with BCP120. A nested deployment's parameters are known when it starts,
+// so the ID is passed in here as one. Azure Quickstart's
+// create-subscription-resourcegroup sample does the same.
 
 targetScope = 'tenant'
 
-@description('GUID of the subscription. A runtime value at the caller, a parameter here, which is the entire reason this file exists.')
+@description('GUID of the subscription. A runtime value at the caller, which is why this file exists.')
 param subscriptionId string
 
 @description('Name of the management group to place the subscription under.')
@@ -46,20 +37,14 @@ resource managementGroup 'Microsoft.Management/managementGroups@2023-04-01' exis
   name: managementGroupName
 }
 
-// Placement. Subscriptions created through the alias API land in the tenant
-// root management group, and this is what moves them. It is the same resource
-// used to place a subscription that already exists, which is why the alias
-// API's own additionalProperties.managementGroupId is not used instead: one
-// code path for placement, whether the subscription is new or adopted.
+// Placement. The same resource places adopted subscriptions, so the alias's
+// own managementGroupId property isn't used.
 resource placement 'Microsoft.Management/managementGroups/subscriptions@2023-04-01' = {
   parent: managementGroup
   name: subscriptionId
 }
 
-// Place before deploying into the subscription. A subscription whose
-// authorization is inherited from a management group behaves differently from
-// one relying solely on the assignment created at vending time, so the budget
-// waits for the placement rather than racing it. See the onboarding runbook.
+// Waits for placement; the onboarding runbook says why.
 module budget '../subscription-budget/main.bicep' = {
   scope: subscription(subscriptionId)
   name: take('budget-${budgetName}', 64)
@@ -75,8 +60,7 @@ module budget '../subscription-budget/main.bicep' = {
   ]
 }
 
-// Defender's free tier and security contact. The same people who get the
-// budget alerts get the security alerts.
+// Defender's free tier. Budget contacts also get the security alerts.
 module baseline '../subscription-baseline/main.bicep' = {
   scope: subscription(subscriptionId)
   name: take('baseline-${budgetName}', 64)

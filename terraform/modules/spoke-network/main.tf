@@ -1,9 +1,6 @@
-# One spoke virtual network, its subnets, its route table and both halves of
-# the peering with the hub. Everything here is free to leave running; the
-# things that bill are in the root module, behind flags.
-#
-# Subnets are derived from the spoke's own prefix rather than listed, so a spoke
-# can never be handed a subnet outside its allocation.
+# One spoke: virtual network, subnets, route table, and both halves of the hub
+# peering. All free. Subnets are derived from the spoke's prefix, so none can
+# fall outside it.
 
 locals {
   # A /22 splits into four /24s. Three are used and the fourth is carved
@@ -21,18 +18,15 @@ locals {
       prefix = cidrsubnet(var.address_space, 2, 2)
       nsg    = true
     }
-    # Application Gateway v2 needs inbound 65200-65535 from GatewayManager or
-    # it cannot be managed, so a baseline deny-all network security group here
-    # would break the gateway rather than protect it. The subnet is reserved
-    # and empty until something is actually deployed into it, and the rules
-    # belong with that deployment.
+    # Application Gateway v2 needs inbound 65200-65535 from GatewayManager, so
+    # its rules belong with the gateway. Empty until one is deployed.
     appgw = {
       prefix = cidrsubnet(var.address_space, 4, 12)
       nsg    = false
     }
   }
 
-  # 0.0.0.0/0 to the firewall is forced tunnelling and applies to corp only.
+  # 0.0.0.0/0 to the firewall is forced tunneling and applies to corp only.
   # An online spoke reaching the internet directly is the point of the
   # archetype, not an oversight.
   default_route = var.archetype == "corp" && var.firewall_private_ip != "" ? {
@@ -64,7 +58,7 @@ resource "azurerm_subnet" "this" {
 
   # checkov:skip=CKV2_AZURE_31:Three subnets get the baseline network security
   # group through the association below, which this check cannot follow across
-  # a module boundary. The fourth, snet-appgw, has none on purpose; see locals.
+  # a module boundary. The fourth, snet-appgw, has none; see locals.
 
   name                 = "snet-${each.key}"
   resource_group_name  = var.resource_group_name
@@ -75,11 +69,8 @@ resource "azurerm_subnet" "this" {
 # ---------------------------------------------------------------------------
 # Baseline network security group
 # ---------------------------------------------------------------------------
-# Deliberately empty of custom rules. Azure's default rules already deny
-# inbound from the internet and permit traffic within the virtual network, so
-# an empty group is a working baseline rather than a placeholder. It exists
-# here mainly so that every subnet that can carry one does, which is what the
-# AuditIfNotExists assignment at the intermediate root is looking for.
+# No custom rules. Azure's defaults already deny inbound internet traffic and
+# allow traffic inside the virtual network.
 resource "azurerm_network_security_group" "this" {
   name                = "nsg-${var.name}"
   resource_group_name = var.resource_group_name
@@ -101,8 +92,7 @@ resource "azurerm_subnet_network_security_group_association" "this" {
 # ---------------------------------------------------------------------------
 # Routing
 # ---------------------------------------------------------------------------
-# The route table is created whether or not a firewall exists, so that turning
-# the firewall on later adds routes rather than restructuring anything.
+# Created even without a firewall, so enabling one only adds routes.
 resource "azurerm_route_table" "this" {
   name                = "rt-${var.name}"
   resource_group_name = var.resource_group_name
@@ -136,10 +126,8 @@ resource "azurerm_route" "peer" {
   next_hop_in_ip_address = var.firewall_private_ip
 }
 
-# The Application Gateway subnet is left off the route table on purpose. A
-# default route to a firewall breaks the gateway's control plane traffic, which
-# Microsoft documents as a supported way to make an Application Gateway
-# unmanageable.
+# Not on snet-appgw: a default route to a firewall breaks Application Gateway's
+# control plane traffic.
 resource "azurerm_subnet_route_table_association" "this" {
   for_each = { for k, v in local.subnets : k => v if k != "appgw" }
 
@@ -150,9 +138,8 @@ resource "azurerm_subnet_route_table_association" "this" {
 # ---------------------------------------------------------------------------
 # Peering, both directions
 # ---------------------------------------------------------------------------
-# Peering is not transitive and it is not symmetrical to configure. Each side
-# is its own resource and the flags mean different things depending on which
-# end you are standing at.
+# Each side of a peering is its own resource, and the flags mean different
+# things at each end.
 resource "azurerm_virtual_network_peering" "spoke_to_hub" {
   name                      = "peer-${var.name}-to-hub"
   resource_group_name       = var.resource_group_name
@@ -187,9 +174,8 @@ resource "azurerm_virtual_network_peering" "hub_to_spoke" {
 # ---------------------------------------------------------------------------
 # Policy exemption for snet-appgw
 # ---------------------------------------------------------------------------
-# Waiver rather than Mitigated: the subnet is bare because nothing is deployed
-# in it yet, and the network security group belongs with the gateway when one
-# arrives. The expiry forces that to be looked at again.
+# A Waiver with an expiry, because the network security group comes with a
+# future gateway.
 resource "azurerm_resource_policy_exemption" "appgw_no_nsg" {
   count = var.subnet_nsg_policy_assignment_id == "" ? 0 : 1
 

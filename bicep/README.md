@@ -1,17 +1,13 @@
 # The same landing zone, in Bicep
 
-Everything in [`terraform/`](../terraform/), written again in Bicep. Same hierarchy,
-same seven policy assignments, same brownfield adoption pattern, same ADRs. The
-architecture decisions in [`docs/adr`](../docs/adr/) describe this tree as
-accurately as they describe the Terraform one, because none of them turned on
-the tool.
+Everything in [`terraform/`](../terraform/), written again in Bicep: the same
+hierarchy, the same eight policy assignments, the same brownfield pattern. The
+ADRs in [`docs/adr`](../docs/adr/) describe both trees, because none of them
+turned on the tool.
 
-I wrote it for one reason. The decisions are the point of this repository, and
-writing them twice is the cheapest way I know to find out which parts of the
-Terraform version were architecture and which parts were just Terraform.
-
-Some of it turned out to be neither, which is the interesting bit. Those are
-collected in [What's actually different](#whats-actually-different).
+I wrote it to find out which parts of the Terraform were architecture and which
+were just Terraform. Some turned out to be neither, and those are under
+[What's actually different](#whats-actually-different).
 
 ## Layout
 
@@ -20,31 +16,26 @@ Directories are numbered in deployment order and match `terraform/` one for one.
 | Directory | Scope | What it does |
 |---|---|---|
 | [`00-management-groups`](00-management-groups/) | management group | The 13 group hierarchy, plus the hierarchy settings and a custom role on the tenant root group. The groups are tenant resources; only the deployment runs lower. |
-| [`10-policy`](10-policy/) | management group | The seven policy assignments, two of them the subscription baseline. |
-| [`20-subscription-placement`](20-subscription-placement/) | tenant | Brownfield placement, budgets, vending, the subscription baseline, the central workspace. |
-| [`25-brownfield-seed`](25-brownfield-seed/) | subscription | The deliberately non compliant resources. Read its header before assuming it's a mistake. |
+| [`10-policy`](10-policy/) | management group | The eight policy assignments, two of them the subscription baseline. |
+| [`20-subscription-placement`](20-subscription-placement/) | tenant | Brownfield placement, budgets, vending, the subscription baseline, the central workspace and its lock. |
+| [`25-brownfield-seed`](25-brownfield-seed/) | subscription | Resources that break the policy set on purpose, so the audit only assignment has something to report. |
+| [`30-auto-delete`](30-auto-delete/) | two stacks | The janitor that deletes billable devices past their `deleteAfter` time. The only root deployed as stacks, and the only one with a real destroy. |
 | [`90-optional-network`](90-optional-network/) | subscription | Hub and spoke, from docs/ip-plan.md. Free layer by default, billable devices behind flags. |
 | [`modules`](modules/) | n/a | The five reusable child modules. |
 
-Every root is independent and resolves management group scopes by name, so
-there's no state to share and no ordering hidden anywhere but the directory
-numbers.
-
-The scope column is the thing that has no Terraform equivalent, so it gets a
-picture:
+Every root resolves management group scopes by name, so there's no state to
+share and no ordering beyond the directory numbers.
 
 ![Bicep deployment scopes](../docs/diagrams/bicep-deployment-scopes.svg)
 
 ## Deploying
 
 [runbooks/deploy-and-destroy.md](../runbooks/deploy-and-destroy.md) walks both
-implementations end to end, including the order and the teardown. This section
-is the reference for the Bicep commands themselves.
+trees end to end. This section only covers the Bicep commands.
 
-Each root takes a `.bicepparam` file. Copy the committed example, which is a
-real parameter file rather than sample text. CI compiles the examples against
-their templates, so a renamed parameter breaks the build rather than turning up
-at deployment time.
+Each root takes a `.bicepparam` file. Copy the committed example. CI compiles
+the examples against their templates, so a renamed parameter breaks the build
+instead of the deployment.
 
 ```bash
 cd bicep/00-management-groups
@@ -66,12 +57,10 @@ az deployment mg create \
   --parameters main.bicepparam
 ```
 
-That is a management group deployment creating tenant level resources, which
-is deliberate and is explained in the file header and in
-[Scope replaces the provider](#scope-replaces-the-provider). It runs at the
-tenant root group. For the groups alone any management group would do, but the
-file also sets the hierarchy settings and defines a role, and both belong on the
-tenant root group.
+That's a management group deployment creating tenant level resources, for the
+reason in [Scope replaces the provider](#scope-replaces-the-provider). It runs
+at the tenant root group because the hierarchy settings and the custom role
+belong there.
 
 Then the rest, each at its own scope:
 
@@ -88,20 +77,17 @@ az deployment sub create --subscription <brownfield GUID> --location westus2 \
   --parameters bicep/25-brownfield-seed/main.bicepparam
 ```
 
-**Always what-if first.** It's the closest thing to `terraform plan -out` and
-it isn't the same thing: what-if predicts, it doesn't produce an artefact you
-then apply. Between the what-if and the create, the file can change and nothing
-notices. The Terraform side guards that by applying a saved plan. There's no
-equivalent here, so the gap is real and shrinking it means keeping the two
-commands adjacent.
+`30-auto-delete` is two `az stack mg create` commands, listed in its
+[`main.bicep`](30-auto-delete/main.bicep) header.
 
-`what-if` at tenant and management group scope needs the same access the
-deployment does, so it isn't a way to preview something you can't yet run.
+**Run what-if first.** It's the nearest thing to `terraform plan -out`, but it
+predicts and doesn't produce anything you then apply. The file can change
+between the what-if and the create. Keep the two commands adjacent. At tenant
+and management group scope, what-if needs the same access as the deployment.
 
-**`az deployment` compiles with the Azure CLI's own Bicep, not the pinned one.**
-That matters more than it sounds: resource type schemas ship inside the
-compiler, so an older bundled version silently stops validating newer types.
-Running the commands above against a CLI carrying Bicep 0.39.26 produces
+**`az deployment` compiles with the Azure CLI's bundled Bicep, not the pinned
+one.** Resource type schemas ship inside the compiler, so an old bundled copy
+stops validating newer types and only warns:
 
 ```
 Warning BCP081: Resource type "Microsoft.Network/virtualNetworks@2025-09-01"
@@ -109,402 +95,252 @@ does not have types available. Bicep is unable to validate resource properties
 prior to deployment, but this will not block the resource from being deployed.
 ```
 
-which is CI checking something the deployment doesn't. Either bring the CLI's
-copy up to the version in [`scripts/install-bicep.sh`](../scripts/install-bicep.sh)
+That came from Bicep 0.39.26. Either bring the CLI's copy up to the version in
+[`scripts/install-bicep.sh`](../scripts/install-bicep.sh) with
+`az bicep install --version v0.47.16`, or build with the pinned binary and
+deploy the JSON.
 
-```bash
-az bicep install --version v0.47.16
-```
-
-or build with the pinned binary and deploy the JSON. Don't ignore the warning:
-it means the properties in that resource went unchecked.
-
-**Check the tenant before the first one.** `00-management-groups` outputs
-`deployedToTenantId` for this. See
-[No tenant pin](#no-tenant-pin-in-configuration) for why that output exists at
-all.
+**Check the tenant before the first deployment.** `00-management-groups`
+outputs `deployedToTenantId` for this; see
+[No tenant pin](#no-tenant-pin-in-configuration).
 
 ## Destroying
 
-There isn't a `bicep destroy`, and I haven't tried to fake one.
+There's no `bicep destroy`.
 
-- Complete mode deletes what a template doesn't declare, but it's
+- Complete mode deletes whatever a template doesn't declare, but it's
   [resource group scoped only](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes)
-  and Microsoft is deprecating it. Nothing here is at resource group scope
-  except the seeded network and the workspace.
+  and being deprecated.
 - [Deployment stacks](https://learn.microsoft.com/azure/azure-resource-manager/bicep/deployment-stacks)
-  are the supported answer and do work at every scope. Adopting them is a real
-  decision, because `denySettings` changes who can touch a managed resource
-  from outside the stack, and I haven't made it.
-- So: `az group delete`, `az policy assignment delete`, `az account management-group delete`,
-  bottom up, same order as the Terraform destroy.
+  work at resource group, subscription and management group scope, not tenant,
+  which rules out `20`. Their `denySettings` change who can touch the managed
+  resources, so adopting them is a decision.
+  [ADR 0008](../docs/adr/0008-delete-protection.md) makes it for
+  `30-auto-delete` only.
+- Everything else comes down by hand: `az group delete`,
+  `az policy assignment delete`, `az account management-group delete`, in the
+  same order as the Terraform destroy.
 
-Nothing in the deployed set bills more than trivial amounts, so this is hygiene
-rather than cost. The one exception is the subscription alias, and cancelling a
-subscription is a deliberate act performed outside this workflow either way.
+Nothing deployed bills more than trivial amounts, so teardown is hygiene. The
+exception is a vended subscription, and canceling one happens outside this
+workflow in both trees.
 
 ## What's actually different
 
-Everything below survived the exercise. It's the part that wasn't in the ADRs,
-because none of it is an architecture decision.
+None of this is an architecture decision, which is why it isn't in the ADRs.
 
 ### Scope replaces the provider
 
-The azurerm provider is a connection: pin a subscription and a tenant to it and
-reach whatever you have rights to, management groups included. A Bicep
-deployment has a scope instead, every `resource` in a file has to belong to
-that scope, and a module is how you cross a boundary.
+An azurerm provider is a connection. Pin a tenant and subscription to it and it
+reaches anything you have rights to, management groups included. A Bicep
+deployment has a scope instead, every `resource` in a file belongs to it, and a
+module is how you cross into another.
 
-That reshapes the tree, and the reshaping isn't always forced.
+`20-subscription-placement` has to be a **tenant** deployment, because
+`Microsoft.Subscription/aliases` is a tenant only type. That needs Owner or
+Contributor at `/`.
 
-`20-subscription-placement` is a **tenant** deployment and can't be anything
-else, because `Microsoft.Subscription/aliases` is a tenant only resource type.
-It needs the deploying principal to hold Owner or Contributor at `/`.
+`00-management-groups` doesn't, even though management groups are tenant
+resources too. A resource can carry `scope: tenant()` from a deployment running
+lower down, so it's a **management group** deployment that creates tenant level
+groups. The groups end up in the same place; only the deployment record moves.
 
-`00-management-groups` looks like it should be the same, since management groups
-are tenant resources too. It isn't. A resource can carry `scope: tenant()` from
-a deployment running lower down, so that directory is a **management group**
-deployment that creates tenant level groups. The groups land in the same place
-either way; only the deployment record moves.
+That matters for permissions. Root scope `/` only accepts built in roles, so the
+narrowest grant there is Contributor over the whole tenant. A management group
+takes custom roles, so the same work can be authorized with
+`Microsoft.Resources/deployments/*` and `Microsoft.Management/managementGroups/*`
+and nothing else. [The permission wall](#the-permission-wall) is how I found
+this out.
 
-That distinction is worth more than it sounds. Root scope `/` takes built in
-roles only, so the narrowest thing grantable there is Contributor over the whole
-tenant. A management group is an ordinary RBAC scope that takes custom roles, so
-the same work can be authorised with `Microsoft.Resources/deployments/*` and
-`Microsoft.Management/managementGroups/*` and nothing else. One of those is a
-grant you can scope and the other isn't.
-
-None of this is theoretical. The account that built this hierarchy through
-Terraform couldn't run a what-if against it in Bicep until the
-[permission wall](#the-permission-wall-and-what-was-done-about-it) was dealt
-with. After the restructure, only one of the two roots still needs a grant.
-
-It also means a file can be a module for a reason that has nothing to do with
-reuse. `20-subscription-placement/management-logs.bicep` exists because a
-resource group is a subscription level resource and the workspace inside it
-isn't. One caller, never more, still a separate file. The two caller rule in
-[modules/README.md](modules/README.md) governs what lands in `modules/`, not
-what gets split.
+It also means a file can be a module for reasons unrelated to reuse.
+`20-subscription-placement/management-logs.bicep` exists because a resource
+group is a subscription level resource and the workspace inside it isn't. The
+two caller rule in [modules/README.md](modules/README.md) decides what goes in
+`modules/`, not what gets split.
 
 ### No tenant pin in configuration
 
 `terraform/00-management-groups/providers.tf` pins `tenant_id` and
-`subscription_id` deliberately, so that an operator holding credentials for
-more than one tenant can't send an apply to the wrong one with a stray
-`az account set`.
+`subscription_id`, so a stray `az account set` can't send an apply to the wrong
+tenant. A Bicep file can't do that. Scope comes from the CLI's signed in
+context. The nearest guard is the `deployedToTenantId` output, which shows up in
+what-if. You have to read it; it won't stop you. That's a plain loss.
 
-Nothing in a Bicep file can do that. The scope comes from the CLI and the
-signed in context, and the template has no say. The closest available guard is
-the `deployedToTenantId` output, which surfaces the answer in a what-if before
-the create. That's a check you have to read rather than one that stops you.
-It's a straightforward loss and I'd rather name it than not.
+### No state
 
-### There is no state, and that cuts both ways
+The Terraform README lists local state as a constraint for a team. That
+constraint doesn't exist here, and neither do these:
 
-The Terraform README lists local state as a constraint: fine for one person,
-not fine for a team, and a shared backend with locking would be needed the
-moment a second person or a pipeline touched it. That constraint doesn't exist
-here. There's nothing to store, nothing to lock, nothing to leak.
-
-What goes with it:
-
-- **No drift detection.** Terraform tells you when reality stopped matching the
-  configuration. Nothing here does. `what-if` compares the template against
-  reality at the moment you ask, which is a check you run rather than a check
-  that runs.
-- **No destroy**, per the section above.
-- **No `moved` blocks, and nothing to review.** ARM identifies a resource by
-  type, name and scope, so extracting a module doesn't change its identity. The
-  whole class of destroy-and-recreate accident that `moved` blocks exist to
-  prevent isn't reachable. The cost is that a Terraform `moved` block is a claim
-  in the config that a reviewer can check; here the refactor leaves no trace.
-- **No `ignore_changes`**, which is the one that actually bites. See below.
+- **Drift detection.** what-if compares the template with reality when you ask.
+  Nothing tells you otherwise.
+- **Destroy**, covered above.
+- **`moved` blocks.** ARM identifies a resource by type, name and scope, so
+  extracting a module can't cause a destroy and recreate. The flip side is that
+  a refactor leaves nothing in the code for a reviewer to check.
+- **`ignore_changes`**, which is the one that hurts. See the next section.
 
 ### The Modify policy fight is silent instead of loud
 
 In `terraform/25-brownfield-seed` the Modify assignment appends `costCenter`,
-Terraform reads it back, doesn't find it in the configuration, and plans to
-remove it. The plan is never clean until somebody
-decides who owns the field, and `ignore_changes` is how that decision gets
-written down.
+Terraform finds a tag it didn't declare, and plans to remove it on every run
+until `ignore_changes` settles who owns the field.
 
-The same disagreement exists here. An incremental deployment reapplies every
-property, and
-[properties not in the template are reset](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes),
-so a redeploy strips `costCenter` and the policy puts it back on the next
-evaluation. Nothing reports it. There's no plan to be dirty and no
-`ignore_changes` to settle it with.
-
-Worse, not better, and I'd say so even though it's my own tree. A visible
-argument you have to resolve beats an invisible
-loop nobody notices.
+Here an incremental deployment
+[resets properties the template doesn't declare](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes),
+so a redeploy strips `costCenter` and the policy puts it back at the next
+evaluation. what-if does show it, as `- tags.costCenter: "lab"`, but only if
+someone runs it. Terraform shows it on every plan. I'd take the visible version.
 
 ### Three things Bicep does that Terraform can't
 
-**Vending is one deployment, not two applies.** The Terraform
-`subscription-vending` module documents that azurerm can't create anything
-inside the subscription it creates, because a provider needs a
-`subscription_id` at plan time. Its baseline uses azapi to get round that. Bicep hits the same wall: a resource name and a module scope both
-have to be resolvable before the deployment starts. It can get past it, by
-passing the ID one level down as a parameter. So placement and the budget
-happen in the run that creates the subscription. The trick and the exact
-compiler error are in
+**Vending is one deployment.** azurerm can't create anything inside the
+subscription it creates, because a provider needs `subscription_id` at plan
+time, so the Terraform baseline uses azapi. Bicep hits a similar wall, since a
+module scope has to resolve before the deployment starts, but gets past it by
+passing the ID one level down as a parameter. Placement and the budget happen
+in the same run. Details and the compiler error are in
 [`modules/subscription-vending`](modules/subscription-vending/).
 
 ![Subscription vending nesting](../docs/diagrams/vending-nesting.svg)
 
-**No wait before the role assignment.** The Terraform `policy-assignment`
-module sleeps 30 seconds between creating a policy assignment's managed
-identity and granting it roles, because the identity hasn't replicated yet and
-the role assignment fails with `PrincipalNotFound`. This module doesn't. The
-detail, including why that isn't simply "Bicep is better at this", is in
+**No wait before the role assignment.** The Terraform `policy-assignment` module
+sleeps 30 seconds so the policy's managed identity can replicate before it gets
+roles. This one doesn't need to; why is in
 [`modules/policy-assignment`](modules/policy-assignment/).
 
 **Resource providers register themselves.** A Bicep deployment registers the
-provider for every resource type it declares. Terraform doesn't, and a fresh
-subscription has almost nothing registered, so the Terraform network registers
-`Microsoft.Network` on its connectivity provider and `subscription-baseline`
-registers three more. The gap on this side is a provider no template declares:
-`Microsoft.PolicyInsights`, which a subscription needs before it reports policy
-compliance, has to be registered outside this tree.
+provider for every type it declares. Terraform doesn't, so the Terraform network
+registers `Microsoft.Network` and `subscription-baseline` registers three more.
+The gap here is `Microsoft.PolicyInsights`, which no template declares and a
+subscription needs before it reports compliance. It's registered outside this
+tree.
+
+### The janitor
+
+`30-auto-delete` is the same design in both trees and comes out different in
+three ways.
+
+**The runbook is a URL.** azurerm uploads the script as content. An ARM runbook
+only has `publishContentLink`, which Automation downloads from, so the parameter
+file pins it to a commit. A branch URL would publish unreviewed changes.
+
+**The clock restarts on every deployment.** Terraform writes `deleteAfter` once,
+from `plantimestamp()`, and `ignore_changes` keeps it. Bicep has no way to
+remember the first value, so the tag comes from `utcNow()` and every deployment
+of `90` restamps every device that's on. That extends a device's life whether or
+not you meant to.
+
+**Only this side is protected from deletion.** A stack with `denyDelete` owns
+the Automation account. Terraform has no equivalent short of deploying a stack
+through azapi, which [ADR 0008](../docs/adr/0008-delete-protection.md) rejects,
+along with the two stack rules that split this root in two.
 
 ### Small things that cost time
 
-- A parameter named `description` shadows the `@description` decorator, and
-  every decorator after it fails with an error that names the decorator. It's
-  `policyDescription` here.
-- No float literals. `dailyQuotaGb: 0.1` is a parse error;
-  `json('0.1')` is the way.
-- Loops are positional, not keyed. It doesn't matter, because ARM addresses a
-  resource by name and reordering the array only reorders the deployment.
+- A parameter named `description` shadows the `@description` decorator and
+  breaks every decorator after it. It's `policyDescription` here.
+- No float literals. `dailyQuotaGb: 0.1` is a parse error; use `json('0.1')`.
+- Loops are positional, not keyed. It doesn't matter, because ARM addresses
+  resources by name.
 - Deployment names are capped at 64 characters, and the compiler warns when an
-  interpolated one *might* exceed it rather than when it does. Hence the
-  `take(...)` calls.
-- `subnets` go inline on the virtual network, not in a child resource. Mixing
-  the two makes alternating deployments overwrite each other, and Microsoft
-  [says so explicitly](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes).
-- A DNS resolver subnet delegation gains a `subnets/join/action` action once
-  it's deployed. Terraform has to declare it or plans to remove it on every run.
-  Bicep's type marks it read-only, so declaring it fails lint, and what-if
-  leaves it alone anyway.
+  interpolated name *might* exceed it. Hence the `take(...)` calls.
+- `subnets` go inline on the virtual network. Mixing inline and child subnets
+  makes alternate deployments overwrite each other.
+- A DNS resolver subnet delegation gains a `subnets/join/action` once deployed.
+  Terraform has to declare it or plans to remove it. Bicep's type marks it read
+  only, so declaring it fails lint, and what-if ignores it.
+- A lock on a resource group can't be declared from the subscription scoped file
+  that creates the group: it fails with `BCP139`. The lock lives in the
+  workspace's resource group scoped file with no `scope`.
 
 ## Validation
 
-Same arrangement as the Terraform side: the checks live in
-[`scripts/`](../scripts/) and both CI definitions call them, so the two can't
-drift apart in what they verify. No Azure credentials anywhere.
+The checks live in [`scripts/`](../scripts/) and both CI definitions call them.
+No Azure credentials anywhere.
 
 | Script | What it does |
 |---|---|
-| `install-bicep.sh` | Pinned Bicep CLI. A pinned binary rather than `az bicep`, so there's one moving part instead of two. |
-| `validate-bicep.sh` | Format check on tracked files, `bicep build` on every file, `bicep build-params` on every committed example. |
-| `lint-bicep.sh` | `bicep lint`. Fails on any output, warnings included, because `bicep lint` exits 0 on warnings. |
+| `install-bicep.sh` | Installs a pinned Bicep CLI directly, not through `az bicep`. |
+| `validate-bicep.sh` | Format check, `bicep build` on every file, `bicep build-params` on every committed example. |
+| `lint-bicep.sh` | `bicep lint`, failing on any output, because it exits 0 on warnings. |
 | `scan-security.sh` | checkov, both trees. |
 
-`bicep build` compiles offline - resource type schemas ship inside the CLI -
-which is why the pinned version in `install-bicep.sh` decides what the build
-actually checks against.
+`bicep build` works offline with the schemas bundled in the CLI, so the pinned
+version decides what the build checks against. Linter settings, with reasons for
+the two rules turned off, are in [`bicepconfig.json`](bicepconfig.json).
 
-Linter rules, and written justifications for the two that are turned off, are
-in [`bicepconfig.json`](bicepconfig.json). Same policy as `.checkov.yml`: a rule
-that's off says why.
-
-**checkov scans this tree as compiled ARM JSON, not as Bicep.** Its Bicep parser
-can't read lambda expressions, and `modules/policy-assignment` uses `toObject`
-with two of them to wrap policy parameters. Those files come back as parsing
-errors and checkov exits 0 regardless, which is a gate reporting success while
-covering nothing. Compiling first avoids the parser, scans what would actually
-be deployed rather than what was written, and reaches 46 resources against the
-Bicep parser's 24. `scan-security.sh` also fails the build on any parsing error,
-because a file the scanner couldn't read is otherwise indistinguishable from a
-clean one.
+**checkov scans this tree as compiled ARM JSON.** Its Bicep parser can't read
+lambda expressions, which `modules/policy-assignment` uses, and it exits 0 on a
+parse error. Scanning the compiled JSON avoids the parser and covers 46
+resources instead of 24. `scan-security.sh` also fails on any parse error, since
+an unreadable file otherwise looks clean.
 
 ## What-if against the deployed estate
 
-The Terraform tree is deployed in this tenant with `prefix = "contoso"`. Point
-the Bicep at the same prefix and what-if compares the two, which is the closest
-this repository gets to proving the translation is faithful without deploying
-it.
+The Terraform tree is deployed with `prefix = "contoso"`. Pointed at the same
+prefix, what-if compares the Bicep with what Terraform built. That's as close as
+this gets to proving the translation without deploying it. All six roots have
+been run: five against what Terraform deployed, and `30-auto-delete` against the
+estate it would deploy into.
 
-All five roots have now been checked against what Terraform deployed. Two of
-them needed a tenant root grant
-to get there, which is its own finding and is
-[recorded below](#the-permission-wall-and-what-was-done-about-it).
-
-Between them the runs found four things worth fixing in this tree, and every
-remaining diff is either understood or deliberate.
-
-### 10-policy: all seven assignments already exist and match
-
-```
-az deployment mg what-if --management-group-id contoso --location westus2 \
-  --template-file bicep/10-policy/main.bicep --parameters bicep/10-policy/main.bicepparam
-```
-
-Every assignment resolved to the one Terraform created - same name, scope,
-definition, parameters, enforcement mode, display name, description and
-non-compliance message. Nothing to create and nothing to correct on any of the
-seven. That's the result worth having, and it's the only real evidence in this
-directory that the two trees describe the same thing.
-
-Two categories of diff came back, neither of them a translation error.
-
-**`- properties.definitionVersion` on all seven.** Covered in
-[modules/policy-assignment](modules/policy-assignment/#notes). Short version:
-Azure set those values itself, what-if can't model server-side defaults, and
-the module now has a parameter for it that's deliberately left empty.
-
-**Six role assignments reported as creates.** These aren't new grants. The
-identities already hold those roles at those scopes; Terraform named its role
-assignments with different GUIDs than
-`guid(managementGroup().id, name, roleDefinitionId)` produces, so ARM sees a
-resource that doesn't exist and plans to create it. Azure would then reject it
-with `RoleAssignmentExists`, because a principal can't hold the same role twice
-at the same scope.
-
-Which is the concrete version of "the two trees collide": it isn't only that
-management group names clash, it's that this deployment would fail partway
-through on a role assignment. Worth knowing before anyone tries it.
-
-### 25-brownfield-seed: three diffs, all understood
-
-```
-az deployment sub what-if --subscription <brownfield GUID> --location westus2 \
-  --template-file bicep/25-brownfield-seed/main.bicep --parameters bicep/25-brownfield-seed/main.bicepparam
-```
-
-The resource group comes back `Nochange`. The virtual network reports three
-property diffs:
-
-| Diff | What it is |
+| Root | Result |
 |---|---|
-| `- tags.costCenter: "lab"` | The Modify policy argument, live. See below. |
-| `- properties.privateEndpointVNetPolicies` | Server-side default, same class as `definitionVersion`. Left alone rather than declared to silence a line. |
-| `~ properties.defaultOutboundAccess: true => false` | Deliberate, and now set explicitly. |
+| `00-management-groups` | 15 resources, all `Nochange`: every group, the hierarchy settings and the custom role. |
+| `10-policy` | The seven assignments deployed at the time matched on name, scope, definition, parameters, enforcement, display name, description and message. The eighth, from ADR 0008, was a create in both trees. |
+| `20-subscription-placement` | The Corp (audit only) group, workspace, resource group, Defender plan and security contact match. The budget doesn't. |
+| `25-brownfield-seed` | Resource group unchanged; three expected property diffs on the network. |
+| `30-auto-delete` | Seven creates, matching Terraform's eight minus its replication wait. |
+| `90-optional-network` | Resource group and all seven exemptions unchanged; every network diff explained below. |
 
-A fourth one was a real defect and is fixed: the subnet declared
-`addressPrefix` where the API returns `addressPrefixes`, so every what-if
-reported a change that wasn't one. Terraform uses the plural and now so does
-this.
+Four things were worth fixing, listed at the end of this section. The rest of
+the diffs fall into a few groups.
 
-`defaultOutboundAccess` is the interesting one. Nothing set it on either side -
-the deployed subnet has `true` because the provider's API version defaults it
-that way, and `2025-09-01` defaults it to `false`. An unrelated API version
-bump would have silently changed egress behaviour on a subnet nobody touched.
-It's declared explicitly now, with the reasoning at the call site.
+**Server-side defaults.** `definitionVersion` on policy assignments,
+`privateEndpointVNetPolicies` on virtual networks, a budget's `endDate`, and the
+state fields on peerings are values Azure fills in. what-if can't model them.
 
-**The costCenter diff is the section above, demonstrated.** what-if really does
-print `- tags.costCenter: "lab"`, which corrects something this README said in
-an earlier draft: the Modify policy argument isn't invisible in Bicep, it's
-invisible *by default*. Terraform puts it in front of you on every plan. Here
-it only appears if somebody runs what-if. That's still worse, and it's less bad
-than silent.
+**The Modify tag.** `- tags.costCenter` on every network resource, as described
+[above](#the-modify-policy-fight-is-silent-instead-of-loud).
 
-### 00-management-groups: the whole hierarchy matches
+**Role assignment names.** `10-policy` reports six role assignments as creates.
+The grants exist; Terraform named them with different GUIDs than
+`guid(managementGroup().id, name, roleDefinitionId)` produces. A deployment
+would fail with `RoleAssignmentExists`, so the two trees can't both manage this
+tenant, and not just because the group names clash.
 
-```
-az deployment mg what-if --management-group-id "$(az account show --query tenantId -o tsv)" \
-  --location westus2 \
-  --template-file bicep/00-management-groups/main.bicep --parameters bicep/00-management-groups/main.bicepparam
-```
+**Budget notification keys.** Terraform's provider generated
+`actual_GreaterThan_80.000000_Percent`, and this module uses `actual`. A
+deployment would delete one and create the other. The generated key embeds the
+threshold, so it changes whenever the threshold does. what-if also can't
+evaluate the budget's `utcNow()` start date and prints the raw expression,
+which is why [the module README](modules/subscription-budget/) says to pin
+`startDate` once a budget exists.
 
-**15 resources, 15 `Nochange`.** Every management group Terraform built comes
-back identical: the intermediate root, the four tier one groups, the four
-platform children, the three archetypes and the audit only Corp duplicate. Name,
-display name and parent all match. So do the hierarchy settings and the custom
-role on the tenant root group, which share the role's fixed ID with Terraform. That is the strongest evidence in this
-repository that the two trees describe the same hierarchy.
+The four fixes:
 
-It didn't start that way. The first run reported one modification, on the one
-group whose placement the ADRs actually argue about:
+- The intermediate root omitted `details.parent`, relying on the tenant root
+  default, as the Terraform does. Against an existing group, what-if read the
+  omission as removing the parent. It now names the tenant root explicitly.
+- The seeded subnet declared `addressPrefix` where the API returns
+  `addressPrefixes`, so every what-if showed a false change.
+- `defaultOutboundAccess` was set by neither tree. The deployed subnet has
+  `true` from the provider's API version, and `2025-09-01` defaults it to
+  `false`, so an API version bump would have changed egress on an untouched
+  subnet. It's explicit now.
+- `policy-assignment` gained a `definitionVersion` parameter, left empty, so a
+  version can be pinned when one matters. Details in
+  [its README](modules/policy-assignment/#notes).
 
-```
-~ Microsoft.Management/ManagementGroups/contoso
-  - properties.details:
-      parent.id: ".../managementGroups/5fbdc2f4-..."
-```
+`10`, `20` and `90` were run again on 12 September, after ADR 0008. Every new
+resource showed as a create and matched the Terraform plan: one assignment in
+`10`, the lock and two tag changes in `20`, nothing new in `90`. There's no
+what-if for stacks, so `30` was also put through `az stack mg validate`, which
+is where both of ADR 0008's stack rules came from.
 
-The intermediate root was declared without `details.parent`, on the correct
-theory that omitting it places a group under the tenant root. The Terraform
-version relies on the same default. But an omission isn't a statement, and
-against an existing group what-if reads it as removing the parent. Naming the
-parent explicitly - the tenant root management group's ID is the tenant ID -
-costs one line and makes the tree's most argued-over edge a declaration rather
-than a default.
+### The permission wall
 
-### 20-subscription-placement: five match, the budget disagrees
-
-```
-az deployment tenant what-if --location westus2   --template-file bicep/20-subscription-placement/main.bicep --parameters bicep/20-subscription-placement/main.bicepparam
-```
-
-The audit only Corp management group, the `rg-management-logs` resource group
-and the `law-contoso-management` workspace all come back `Nochange`, and so do
-the brownfield subscription's baseline: its Defender `CloudPosture` plan and
-its security contact. The
-brownfield placement was confirmed separately, by asking the management group
-for its descendants rather than by reading what-if: `DemoSubscription` sits
-under `contoso-lz-corp-audit`, which is what ADR 0005 describes.
-
-The budget is the one modification, and two of its three diffs are worth
-knowing.
-
-**Notification keys are named by the tool, and the names are part of the
-resource.** Terraform's provider generated
-`actual_GreaterThan_80.000000_Percent`; this module uses `actual`. Same
-threshold, same recipient, same effect, different key - so a deployment would
-delete one and create the other. This is the map-versus-repeated-blocks
-difference the [module README](modules/subscription-budget/) predicts, showing
-up in practice. The generated name embeds the threshold, so it changes whenever
-the threshold does, which is reason enough not to copy it.
-
-**what-if can't evaluate the start date at all.** It prints the unresolved
-expression:
-
-```
-~ properties.timePeriod.startDate: "2026-09-01T00:00:00Z" =>
-    "[format('{0}T00:00:00Z', utcNow('yyyy-MM-01'))]"
-```
-
-`utcNow()` is evaluated at deployment time, so a preview can't
-tell you
-whether the date is about to change. Today it resolves to the value already
-there and nothing moves. That is the concrete argument for pinning `startDate`
-in the parameter file once a budget exists, which the module README already
-recommends and this makes non-optional.
-
-The third diff, `- properties.timePeriod.endDate`, is a server-side default
-(Azure sets ten years out) in the same class as `definitionVersion` and
-`privateEndpointVNetPolicies`.
-
-### 90-optional-network: everything that matters matches
-
-```
-az deployment sub what-if --subscription <connectivity GUID> --location westus2 \
-  --template-file bicep/90-optional-network/main.bicep --parameters bicep/90-optional-network/main.bicepparam
-```
-
-The resource group and all seven policy exemptions come back `Nochange`, so
-both trees exempt the same subnets the same way. Every network resource reports
-a modification, and none of them is a translation error:
-
-- **`- tags.costCenter`** on the virtual networks, network security groups and
-  route tables. The Modify fight [above](#the-modify-policy-fight-is-silent-instead-of-loud),
-  again.
-- **`- properties.privateEndpointVNetPolicies: "Disabled"`** on each virtual
-  network, a value Azure fills in.
-- **Deletions on every peering.** `peeringSyncLevel`, `remoteAddressSpace` and
-  `remoteVirtualNetworkAddressSpace` are state Azure reports rather than
-  settings. `allowGatewayTransit`, `doNotVerifyRemoteGateways`,
-  `peerCompleteVnets` and `useRemoteGateways` are defaults the template leaves
-  unset, so a redeploy would send the same values.
-
-Apart from the tag, which a redeploy strips until the policy puts it back, none
-of these would change anything.
-
-### The permission wall, and what was done about it
-
-Both roots initially failed, because both were tenant deployments at the time:
+The first what-if on `00` and `20` failed, because both were tenant deployments
+then:
 
 ```
 (AuthorizationFailed) The client '...' does not have authorization to perform
@@ -512,77 +348,36 @@ action 'Microsoft.Resources/deployments/whatIf/action' over scope
 '/providers/Microsoft.Resources/deployments/main'
 ```
 
-That is the bar from [Scope replaces the provider](#scope-replaces-the-provider)
-arriving in practice. The account already held **User Access Administrator at
-`/`**, from the Entra elevated access toggle, plus Owner on the intermediate
-root: enough to build the entire hierarchy through Terraform, and not enough to
-run a tenant deployment against it, because `Microsoft.Authorization/*` does not
-include `Microsoft.Resources/deployments/*`.
+The account held User Access Administrator at `/`, from Entra elevated access,
+and Owner on the intermediate root. That was enough to build the hierarchy
+through Terraform and not enough for a tenant deployment, because
+`Microsoft.Authorization/*` doesn't include `Microsoft.Resources/deployments/*`.
+A narrow custom role can't fix it at `/`: custom roles
+[can't be assigned there](https://learn.microsoft.com/azure/role-based-access-control/custom-roles#custom-role-limits),
+and the narrowest built in role with that action is tenant-wide Contributor.
 
-There's no least-privilege fix at that scope. A custom role carrying only
-`Microsoft.Resources/deployments/*` can't be assigned at `/`, because Azure
-[forbids `assignableScopes` of `/` for custom roles](https://learn.microsoft.com/azure/role-based-access-control/custom-roles#custom-role-limits).
-Only built-in roles reach root scope, and the narrowest one carrying that action
-is Contributor over the entire tenant.
-
-Two different things were done about it, and they are worth separating.
-
-**`00-management-groups` stopped needing root scope at all.** It is now a
-management group deployment whose groups carry `scope: tenant()`, the shape
-Microsoft
+`00-management-groups` became a management group deployment with
+`scope: tenant()` on its groups, the pattern Microsoft
 [documents](https://learn.microsoft.com/azure/azure-resource-manager/bicep/deploy-to-management-group#management-group)
-for principals that can't deploy at the tenant. The hierarchy it produces is
-byte for byte what it produced before, verified by re-running the what-if: 13
-resources, 13 `Nochange`, and the report still lists them at scope `/` because
-that's genuinely where they live. For the groups themselves, targeting the
-tenant root management group and targeting `contoso` give the identical result.
-The file now also sets the hierarchy settings and defines a role, both of which
-belong on the tenant root group, so that's where it runs.
+for this. The what-if result didn't change. The narrow role that's illegal at
+`/` is fine at a management group, and it now exists in both trees as
+`contoso hierarchy deployer`. It's defined, not demonstrated: the account here
+holds Owner at `/`, which would hide whether the narrower role is enough.
 
-What that buys is a scope that behaves like every other RBAC scope. The
-narrow custom role that is illegal at `/` is legal at a management group, so
-the groups can be authorised with `Microsoft.Resources/deployments/*` and
-`Microsoft.Management/managementGroups/*` and nothing more. That role now
-exists, as `contoso hierarchy deployer` on the tenant root group, in both trees.
-It covers the groups, not the hierarchy settings or the role itself, which are
-one off setup. **It's defined, not demonstrated.** The account here holds Owner at `/`,
-which satisfies every scope and therefore masks whether a tighter one would
-have been sufficient. Proving it would mean giving the lab operator less access,
-which isn't a change worth making just to produce a screenshot.
+`20-subscription-placement` has no equivalent route and still needs it.
 
-**`20-subscription-placement` still needs it.** `Microsoft.Subscription/aliases`
-is tenant only and there's no equivalent escape, so this one is a tenant
-deployment or it's nothing.
-
-**Owner at `/` is assigned to the lab operator, deliberately and permanently.**
-So is the elevated access it sits alongside. Both are recorded here rather than
-left to be discovered, because a repository about governance should not have
-undocumented standing access at tenant root. In a real estate neither would be
-acceptable: Microsoft's guidance is that elevated access is temporary, and
-standing Owner at `/` is the widest grant Azure offers. This is a single user,
-two subscription personal tenant where the alternative is re-elevating for
-every preview, and I made that trade knowing what it costs.
-
-The honest summary is that the restructure halved the problem rather than
-solving it. One root now sits at a scope you can reason about; the other still
-requires the widest grant Azure has.
+**The lab operator holds Owner at `/` and elevated access, permanently.** In a
+real estate neither would be acceptable: Microsoft's guidance is that elevated
+access is temporary. This is a single user tenant where the alternative is
+re-elevating for every preview, and I'd rather it be written down than found.
+The restructure fixed one root out of two.
 
 ## What isn't here
 
-**I didn't use [ALZ-Bicep](https://github.com/Azure/ALZ-Bicep)**, for the same
-reason I didn't use `Azure/avm-ptn-alz/azurerm` on the Terraform side. ADR 0007
-records that decision and it applies unchanged. Seven policy assignments against
-the accelerator's several hundred: what this shows is the mechanics, not a
-governance baseline.
+**[ALZ-Bicep](https://github.com/Azure/ALZ-Bicep)**, for the same reason as
+`Azure/avm-ptn-alz/azurerm` on the Terraform side. ADR 0007 covers both.
 
-**This tree has never been deployed.** The Terraform in `terraform/` is what's
-running in the tenant, and the evidence in [`docs/evidence`](../docs/evidence/)
-came from it. "It builds" and "it deployed" are different claims and only one
-of them is being made.
-
-All five roots have been checked against the live estate with what-if, which is
-a weaker claim than deployment and a much stronger one than compilation. The
-hierarchy comes back identical, all seven policy assignments match, and every
-remaining difference is
-[written up above](#what-if-against-the-deployed-estate) rather than left for
-someone to rediscover.
+**A deployment.** This tree has never been applied. What's running in the tenant,
+and the evidence in [`docs/evidence`](../docs/evidence/), is the Terraform.
+what-if is a weaker claim than a deployment and a much stronger one than a
+compile.

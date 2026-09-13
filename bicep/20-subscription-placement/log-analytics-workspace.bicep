@@ -1,21 +1,9 @@
-// Central Log Analytics workspace.
+// Central Log Analytics workspace. The DeployIfNotExists assignments in
+// bicep/10-policy send diagnostics here.
 //
-// This exists so the DeployIfNotExists assignment in bicep/10-policy has
-// somewhere to route diagnostics. Until it exists, that assignment is skipped
-// rather than assigned against nothing. See bicep/10-policy/main.bicep.
-//
-// Cost, verified against the Azure retail prices API on 2026-09-06 for West
-// US 2 in USD. Verify before reusing, these move.
-//
-//   Analytics Logs Data Ingestion   2.30 per GB
-//   Analytics Logs Data Retention   0.10 per GB per month, beyond the
-//                                   31 days included at no charge
-//
-// The daily cap is the guardrail that makes this safe to leave running on a
-// personal card. At 0.1 GB per day the worst case is roughly 7 USD per month
-// even if something starts logging aggressively, and the realistic figure for a
-// lab with no traffic is close to zero. A workspace without a cap is an
-// unbounded bill, which is the one shape of mistake worth engineering against.
+// Ingestion is 2.30 USD per GB and retention past 31 days is 0.10 per GB per
+// month (retail prices API, West US 2, 2026-09-06). The 0.1 GB daily cap limits
+// the worst case to about 7 USD a month.
 
 @description('Workspace name.')
 param name string
@@ -32,25 +20,30 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
       name: 'PerGB2018'
     }
 
-    // 30 days is the minimum and is included at no additional charge. Anything
-    // longer is a per GB per month cost and should be a deliberate decision
-    // tied to a retention requirement, not a default nobody revisited.
+    // The minimum, and free. Longer retention is billed per GB.
     retentionInDays: 30
 
     workspaceCapping: {
-      // Ingestion stops for the rest of the day once this is hit. Data already
-      // ingested is queryable, and collection resumes at the next daily reset.
-      // Losing a lab's logs is preferable to an unbounded bill.
-      //
-      // json() because Bicep has no float literal. Writing 0.1 directly is a
-      // parse error, not a rounding surprise, so the failure is at least loud.
+      // Ingestion stops for the day once hit. json() because Bicep has no
+      // float literal.
       dailyQuotaGb: json('0.1')
     }
   }
 
   tags: {
     costCenter: 'lab'
-    autoDelete: 'true'
+    autoDelete: 'false'
+  }
+}
+
+// Locks the resource group, which the DenyAction policy doesn't cover. ADR 0008
+// has the details. It's here, with no scope, because declaring it from
+// management-logs.bicep fails with BCP139.
+resource groupLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: 'lock-management-logs'
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Holds the platform workspace every activity log and diagnostic setting points at. See ADR 0008.'
   }
 }
 

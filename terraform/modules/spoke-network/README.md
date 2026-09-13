@@ -6,21 +6,15 @@ with the hub.
 
 ![Hub and spoke network](../../../docs/diagrams/hub-spoke-network.svg)
 
-Everything this module creates is free to leave running. Virtual networks,
-subnets, peerings, network security groups and route tables carry no hourly
-charge, which is the whole reason ADR 0004 picked hub and spoke over Virtual
-WAN for a lab on a personal card. The things that bill are in
+Everything this module creates is free to leave running, which is why ADR 0004
+chose hub and spoke for this lab. The things that bill are in
 [`terraform/90-optional-network/billable.tf`](../../90-optional-network/billable.tf),
 behind flags.
 
 ## Why this is a module
 
-One caller, which by the rule in [modules/README.md](../README.md) is not
-enough. It got extracted anyway, for the same reason `subscription-vending`
-did: a spoke is four subnets, a network security group, a route table, a
-variable number of routes and two peerings, and nesting that inside a `for_each`
-in a root module produces something nobody can read. Every landing zone the
-platform vends adds a caller, so the number only goes up.
+One caller, which breaks the rule in [modules/README.md](../README.md); that
+README explains why.
 
 ## Usage
 
@@ -81,32 +75,24 @@ module "spoke" {
 ## Notes
 
 **Subnets are derived, not listed.** `cidrsubnet` splits the /22 into three
-/24s and a /26, which reproduces
-[docs/ip-plan.md](../../../docs/ip-plan.md) exactly. That is not cleverness for
-its own sake: it makes it impossible to hand a spoke a subnet outside its own
-allocation, which is the single mistake an address plan exists to prevent. The
-Bicep module derives the same prefixes with `cidrSubnet`, and the two agree.
+/24s and a /26, matching [docs/ip-plan.md](../../../docs/ip-plan.md), so no
+subnet can fall outside the spoke's allocation. The Bicep module's `cidrSubnet`
+gives the same prefixes.
 
-**The archetype is enforced by peering, not by the name.** `corp` gets a default
-route to the firewall and `use_remote_gateways`, so it reaches on premises
-through the hub. `online` gets neither and therefore cannot, no matter what it
-is called. That is ADR 0003 as a deployment rather than as a convention.
+**The archetype is enforced by peering.** `corp` gets a default route to the
+firewall and `use_remote_gateways`, so it reaches on premises through the hub.
+`online` gets neither, so it can't.
 
 **`use_remote_gateways` is gated on a gateway actually existing.** Azure rejects
 the peering outright if the flag is true and the hub has no gateway, so the
 caller ties it to the gateway flags rather than to the archetype alone.
 
-**Routes are only written when there is a firewall.** A route to a next hop that
-does not exist is a black hole, so `firewall_private_ip` being empty produces an
-empty route table rather than a broken one. The table itself is always created,
-so switching the firewall on later adds routes instead of restructuring
-anything.
+**Routes are only written when there's a firewall.** An empty
+`firewall_private_ip` gives an empty route table instead of routes to nowhere.
+The table always exists, so enabling the firewall only adds routes.
 
-**Two subnets are deliberately left bare.** The Application Gateway subnet gets
-no network security group and no route table. Application Gateway v2 needs
-inbound 65200-65535 from `GatewayManager` to stay manageable, and a default
-route to a firewall breaks its control plane, so both would do harm rather than
-good until an actual gateway is deployed there. When the caller passes
-`subnet_nsg_policy_assignment_id`, the subnet gets a Waiver against the audit
-assignment at the intermediate root, expiring on `appgw_waiver_expires_on`, so
-the decision is recorded and comes back up for review.
+**The Application Gateway subnet is left bare**, with no network security group
+or route table. Application Gateway v2 needs inbound 65200-65535 from
+`GatewayManager`, and a default route to a firewall breaks its control plane.
+When the caller passes `subnet_nsg_policy_assignment_id`, the subnet gets a
+Waiver against the subnet audit, expiring on `appgw_waiver_expires_on`.

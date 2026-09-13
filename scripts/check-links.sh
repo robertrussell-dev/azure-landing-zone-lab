@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # Markdown link check.
 #
-# Microsoft Learn rate limits automated clients. 429 is a throttle response, not
-# a dead link, so it is accepted rather than failing the build. Retries and a
-# concurrency cap keep the check meaningful without making it flaky, which is
-# the failure mode that causes people to start ignoring a red build.
+# Microsoft Learn rate limits automated clients, so 429 counts as a pass.
+# Retries and a concurrency cap keep the check from being flaky.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."

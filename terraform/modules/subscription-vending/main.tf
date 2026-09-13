@@ -1,22 +1,14 @@
 # Subscription vending: create a subscription, place it, budget it.
 #
-# This is the platform capability an application team consumes. Everything a
-# new landing zone needs that can be done from outside the subscription is here
-# in one call.
-#
-# What is deliberately NOT here, and why, is in the README: resources inside
-# the new subscription cannot be created in the same apply that creates it,
-# because a provider cannot be configured for a subscription ID that does not
-# exist at plan time. That is a Terraform limitation, not a design choice, and
-# pretending otherwise produces a module that works once and fails on rebuild.
+# Resources inside the new subscription can't be created in the same apply,
+# because a provider needs the subscription ID at plan time. The README covers
+# what that means and how the baseline gets around it.
 
 resource "azurerm_subscription" "this" {
   subscription_name = var.display_name
 
-  # The alias is the name of the alias object, not of the subscription, and it
-  # is immutable. Reusing an alias name that already exists adopts the existing
-  # subscription rather than creating a second one, which is occasionally what
-  # you want and more often a surprise.
+  # The alias names the alias object and is immutable. Reusing an existing one
+  # adopts that subscription instead of creating a new one.
   alias            = var.alias == null ? var.display_name : var.alias
   billing_scope_id = var.billing_scope_id
   workload         = var.workload
@@ -24,25 +16,15 @@ resource "azurerm_subscription" "this" {
   tags = var.tags
 
   lifecycle {
-    # Destroying this resource cancels the subscription. Cancellation is
-    # recoverable for a limited window, but a terraform destroy that silently
-    # cancels a live subscription is not a failure mode worth leaving open.
-    # Decommissioning is a deliberate act performed outside this workflow, and
-    # the Decommissioned management group exists for the subscriptions it
-    # produces.
+    # Destroying this cancels the subscription. That's done by hand, outside
+    # Terraform. See ADR 0008.
     prevent_destroy = true
   }
 }
 
-# Subscriptions created through the alias API land in the tenant root
-# management group. Placement is always a second operation, never part of
-# creation, and it is what determines the policy and role assignments the
-# subscription inherits.
-#
-# Place before deploying anything into the subscription. A subscription whose
-# authorization is inherited from a management group behaves differently from
-# one relying solely on the assignment created at vending time. See the
-# onboarding runbook.
+# New subscriptions land at the tenant root, so placement is a second step. It
+# has to happen before anything is deployed inside; the onboarding runbook says
+# why.
 resource "azurerm_management_group_subscription_association" "this" {
   management_group_id = var.management_group_id
   subscription_id     = "/subscriptions/${azurerm_subscription.this.subscription_id}"
@@ -70,7 +52,6 @@ module "baseline" {
   subscription_id         = azurerm_subscription.this.subscription_id
   security_contact_emails = var.budget_contact_emails
 
-  # Writes inside the new subscription, so it waits for placement for the same
-  # reason the budget does. See the README.
+  # Waits for placement, like the budget.
   depends_on = [azurerm_management_group_subscription_association.this]
 }

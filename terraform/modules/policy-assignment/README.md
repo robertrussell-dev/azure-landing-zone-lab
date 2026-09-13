@@ -5,7 +5,7 @@ managed identity needs.
 
 ## Why this is a module
 
-Five callers. The shape is constant and only the data changes: scope,
+Eight callers. The shape is constant and only the data changes: scope,
 definition, parameters, enforcement mode.
 
 ## Usage
@@ -27,8 +27,7 @@ module "deny_public_ip" {
 ```
 
 Modify or DeployIfNotExists, which need an identity. **Passing
-`role_definition_ids` is what switches identity creation on**, so an Audit
-assignment never grows an identity it has no use for:
+`role_definition_ids` switches identity creation on**:
 
 ```hcl
 module "append_cost_center" {
@@ -84,31 +83,24 @@ module "deny_public_ip_audit" {
 
 ## Notes
 
-**Read `role_definition_ids` off the definition, do not guess them.** Every
-definition declares what its identity needs:
+**Read `role_definition_ids` off the definition.** Every definition declares
+what its identity needs:
 
 ```bash
 az policy definition show --name <guid> \
   --query "policyRule.then.details.roleDefinitionIds"
 ```
 
-Two findings from doing exactly that in this repository. The built-in
-"Add a tag to resources" Modify policy requires **Contributor**, not Tag
-Contributor, so assigning it at an intermediate root grants a policy-created
-principal Contributor across the whole hierarchy. And "Subnets should be
-associated with a Network Security Group" permits only `AuditIfNotExists` or
-`Disabled`, so it cannot be the Deny example it is often presented as. Check
+The built in "Add a tag to resources" Modify policy requires **Contributor**,
+not Tag Contributor. "Subnets should be associated with a Network Security
+Group" only allows `AuditIfNotExists` or `Disabled`. Check
 `parameters.effect.allowedValues` before assuming an effect is available.
 
-**`enforce = false` is `DoNotEnforce`, which the portal labels "Disabled".**
-One mode, two names. Compliance is still evaluated and recorded; only the
-effect stops acting. Note that no Activity log entries are written in this
-mode, so an audit period cannot be measured by counting would-have-been-denied
-events.
+**`enforce = false` is `DoNotEnforce`, which the portal calls "Disabled".**
+Compliance is still evaluated; only the effect stops acting. No Activity log
+entries are written in this mode.
 
-**The `time_sleep` is not padding.** Microsoft Entra takes time to replicate a
-newly created managed identity, and creating a role assignment against a
-principal that has not replicated fails with `PrincipalNotFound`. Without the
-wait, applies fail intermittently and pass on retry, which is the most annoying
-class of Terraform bug to diagnose. Observed here: the role assignment took a
-further 32 seconds to succeed after a 30 second wait.
+**The `time_sleep` is needed.** Entra takes time to replicate a new managed
+identity, and a role assignment against it fails with `PrincipalNotFound` until
+it does. Without the wait, applies fail intermittently. Once, the role
+assignment took another 32 seconds after the 30 second wait.

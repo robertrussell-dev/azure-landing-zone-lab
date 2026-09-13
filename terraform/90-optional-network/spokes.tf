@@ -1,12 +1,5 @@
-# The spokes.
-#
-# One module call under for_each. The module could have been inlined, and the
-# rule in terraform/modules/README.md says one caller is not enough to extract
-# anything, but a spoke is four subnets, a network security group, a route
-# table, a variable number of routes and two peerings, and nesting that inside
-# a for_each in a root module produces something nobody can read. This is the
-# same exception subscription-vending is: extracted for callers that do not
-# exist yet, on a shape that will certainly gain them.
+# The spokes. A module despite having one caller, which breaks the rule in
+# terraform/modules/README.md; that README says why.
 
 module "spoke" {
   source   = "../modules/spoke-network"
@@ -30,10 +23,8 @@ module "spoke" {
   # unpopulated rather than pointing traffic at nothing.
   firewall_private_ip = var.deploy_firewall ? azurerm_firewall.hub[0].ip_configuration[0].private_ip_address : ""
 
-  # Gateway transit is the archetype. Corp reaches on premises through the
-  # hub's gateway, Online was never given the transit and so cannot, and that
-  # is enforcement rather than naming. Azure rejects the peering outright if
-  # this is true and no gateway exists, so it is also gated on the flag.
+  # Corp reaches on premises through the hub gateway; Online can't. Azure
+  # rejects the peering if there's no gateway, so it's gated on the flag too.
   use_remote_gateways = each.value.archetype == "corp" && (var.deploy_vpn_gateway || var.deploy_expressroute_gateway)
 
   # Every archetype supernet except this spoke's own. One route per archetype

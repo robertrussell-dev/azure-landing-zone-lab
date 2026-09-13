@@ -6,20 +6,12 @@
 #   terraform   terraform/, scanned directly
 #   arm         bicep/, scanned after compiling to ARM JSON
 #
-# Bicep is not scanned as Bicep. checkov's Bicep parser cannot read lambda
-# expressions, and bicep/modules/policy-assignment uses toObject with two
-# lambdas to wrap policy parameters. Those files come back as parsing errors,
-# checkov exits 0 anyway, and the result is a gate that reports success while
-# covering nothing. Compiling first avoids the parser entirely, scans what
-# would actually be deployed rather than what was written, and on this tree
-# reaches 46 resources against the Bicep parser's 24.
+# checkov's Bicep parser can't read the lambdas in
+# bicep/modules/policy-assignment, and exits 0 on parse errors. Compiling to ARM
+# first avoids that and covers 46 resources instead of 24.
 #
-# --soft-fail is deliberately not used. A finding fails the build. Anything
-# accepted is recorded in .checkov.yml with a written justification.
-#
-# A parsing error also fails the build. checkov counts them in its summary and
-# then exits 0, so a file it cannot read is otherwise indistinguishable from a
-# file with nothing wrong in it.
+# No --soft-fail: a finding fails the build, and accepted ones are justified in
+# .checkov.yml. A parse error fails it too, since checkov otherwise exits 0.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."

@@ -29,7 +29,7 @@ variable "amount" {
 }
 
 variable "contact_emails" {
-  description = "Addresses notified when a threshold is crossed. At least one, or the budget notifies nobody and is decoration."
+  description = "Addresses notified when a threshold is crossed. At least one."
   type        = list(string)
 
   validation {

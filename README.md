@@ -1,21 +1,20 @@
 # Azure landing zone reference
 
 An Azure landing zone in Terraform, plus the architecture decision records
-explaining why it's shaped the way it is. It runs in my personal tenant. It's a
-reference and a learning artifact rather than a production deployment, and I've
-tried to be specific below about what's in it and what isn't.
+explaining why it's shaped the way it is. It runs in my personal tenant, and
+it's a reference and learning project, not a production deployment.
 
 The same landing zone is also written in Bicep, in [`bicep/`](bicep/). Same
-hierarchy, same seven assignments, same ADRs. Writing it twice is the cheapest
+hierarchy, same policy assignments, same ADRs. Writing it twice is the cheapest
 way I know to find out which parts of the Terraform were architecture and which
 were just Terraform, and [bicep/README.md](bicep/README.md) lists everything
 that turned out to be the second kind.
 
 The Terraform is the copy that's deployed. The Bicep compiles, lints and scans
-in CI but has never been applied. Instead, all five of its roots have been run
+in CI but has never been applied. Instead, all six of its roots have been run
 through `what-if` against the live estate, and for the four with a deployed
-Terraform counterpart the hierarchy comes back identical and all seven policy
-assignments match. The four defects that turned up, and every remaining
+Terraform counterpart the hierarchy comes back identical and every deployed
+policy assignment matches. The four defects that turned up, and every remaining
 difference, are in [bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate).
 
 ## Layout
@@ -23,14 +22,12 @@ difference, are in [bicep/README.md](bicep/README.md#what-if-against-the-deploye
 ```
 terraform/     the deployed copy. Numbered roots, plus modules/
 bicep/         the same landing zone again. Same numbering, same modules/
-docs/adr/      the seven decisions, which describe both
+automation/    the Automation runbook both trees publish, for 30-auto-delete
+docs/adr/      the eight decisions, which describe both
 docs/evidence/ portal screenshots, all from the Terraform copy
 runbooks/      operational procedures, tool independent
 scripts/       the CI checks, shared by both pipelines
 ```
-
-Both trees are named after their language. With two implementations in the
-repo, an unlabelled `infra/` would be a guess.
 
 ## Hierarchy
 
@@ -38,7 +35,7 @@ repo, an unlabelled `infra/` would be a guess.
 
 The tree hangs off an intermediate root (`contoso`) instead of sitting directly
 under the tenant root group, so existing subscriptions can be moved in and the
-structure reorganised later without touching tenant root.
+structure reorganized later without touching tenant root.
 
 Corp, Online and Local are workload archetypes. They aren't environments and
 they aren't business units. Environments are subscriptions inside an archetype,
@@ -54,12 +51,13 @@ check I actually deployed what I described.
 | 0001 Platform subscription split | Four platform subscriptions, kept. What that costs to operate, and the trigger that would make collapsing Security into Management defensible. |
 | 0002 Environments as subscriptions | Dev, test and production are subscriptions inside one archetype management group. Per environment policy gets handled with Audit at the archetype instead of separate management groups. |
 | 0003 Archetype placement criteria | It comes down to one question: does the workload need routed connectivity to on premises through the hub. Internet exposure isn't that question. |
-| 0004 Hub and spoke versus Virtual WAN | Hub and spoke here, for a cost reason that doesn't generalise. Microsoft's selection criteria, including the 30 tunnel threshold, are recorded as what a real estate should apply instead. |
+| 0004 Hub and spoke versus Virtual WAN | Hub and spoke here, for a cost reason that doesn't generalize. Microsoft's selection criteria, including the 30 tunnel threshold, are recorded as what a real estate should apply instead. |
 | 0005 Brownfield adoption, audit only | Adopted subscriptions land in a duplicated archetype with enforcement off, and move across when compliance is good enough. Defines what "good enough" means, since Microsoft leaves that open. |
 | 0006 Private DNS ownership | Platform owned, in the Connectivity subscription. Untangles a real contradiction inside one Microsoft article, and lists the five questions that settle it for a given estate. |
 | 0007 Not using the accelerator | Why this repo hand rolls what the landing zone accelerator would generate, and what that costs. |
+| 0008 Delete protection | `prevent_destroy`, locks, `DenyAction` and deployment stacks stop different people. Which one guards the workspace, the janitor and the subscriptions, and why the hub network gets none. |
 
-All seven are marked Accepted. Two questions are left open in the text rather
+All eight are marked Accepted. Two questions are left open in the text rather
 than answered with something I made up: whether data classification deserves
 its own archetype from day one (0003), and what should qualify a subscription
 for a single subscription exception (0002).
@@ -69,7 +67,7 @@ for a single subscription exception (0002).
 | Area | State |
 |---|---|
 | Management groups | 13, counting the intermediate root and the audit only Corp duplicate |
-| Policy assignments | 7 live: five that each show one effect, and two that make up the subscription baseline |
+| Policy assignments | 8 live: six that each show one effect, and two that make up the subscription baseline |
 | Subscriptions | 4. One adopted brownfield, plus `sub-management`, `sub-connectivity` and `sub-online-portal-prod` vended through Terraform. `corp-payments-prod` is in the vending map with `vend = false` |
 | Log Analytics | One workspace in the management subscription, 30 day retention, 0.1 GB daily cap |
 | Budgets | On every subscription, actual and forecast thresholds |
@@ -77,12 +75,13 @@ for a single subscription exception (0002).
 | Tenant settings | New subscriptions land in Sandboxes by default, and creating management groups needs permission. A narrow `hierarchy deployer` role is defined but not assigned |
 | Compliance | Evaluated. The deliberate violations are non compliant, and seven platform subnets carry policy exemptions |
 | Hub and spoke network | Free layer deployed in `sub-connectivity` at 0 dollars a month. Every billable device is off, see below |
+| Delete protection | The central workspace can't be deleted: a `DenyAction` assignment at Platform stops a direct delete, and a `CanNotDelete` lock on `rg-management-logs` stops the resource group taking it. Applied 13 September. ADR 0008 |
+| Auto delete janitor | Deployed from `30-auto-delete` on 13 September, running every two hours in `sub-management`. A dry run under its own identity completed and reported nothing expired. It hasn't deleted anything yet, because nothing billable has been switched on since |
 
 ### Policy, and why there are so few
 
-Seven assignments I can each explain, rather than the accelerator's several
-hundred that I couldn't defend one at a time. Five of them each show one policy
-effect. The other two are the subscription baseline: every subscription under
+Eight assignments I can each explain, instead of the accelerator's several
+hundred. Six of them each show one policy effect. The other two are the subscription baseline: every subscription under
 the intermediate root gets them automatically, including ones vended later.
 
 | Effect | Assignment | Scope |
@@ -91,6 +90,7 @@ the intermediate root gets them automatically, including ones vended later.
 | AuditIfNotExists | Subnets should have a network security group | intermediate root |
 | Deny | Network interfaces must not have public IPs | Corp only |
 | DoNotEnforce | The same Deny, enforcement off | Corp (audit only) |
+| DenyAction | Platform Log Analytics workspaces cannot be deleted | Platform |
 | DeployIfNotExists | Network security group diagnostics to the central workspace | Platform Management |
 | DeployIfNotExists | Activity log to the central workspace | intermediate root |
 | DeployIfNotExists | Service Health alerts in every subscription | intermediate root |
@@ -137,40 +137,26 @@ change needed to start enforcing, and no policy gets rewritten. It costs
 nothing extra, because what's duplicated is the hierarchy and the assignments,
 not the workloads.
 
-### The non compliant resources are on purpose
+### Seeded violations
 
-`terraform/25-brownfield-seed` creates resources that break the policy set
-deliberately. Without them the audit only assignment reports nothing at all,
-since an empty subscription has nothing to evaluate, and the whole pattern
-looks broken when it's really just inapplicable.
+`terraform/25-brownfield-seed` creates resources that break the policy set.
+An empty subscription has nothing to evaluate, so without them the audit only
+assignment would report nothing. In a real adoption the violations already
+exist.
 
 A subnet with no network security group trips the `AuditIfNotExists` at the
-intermediate root. A network interface carrying a public IP trips the Deny
+intermediate root. A network interface with a public IP tripped the Deny
 assigned at Corp, and because the subscription sits under Corp (audit only) it
-got **created successfully and recorded as non compliant**. Under Corp the same
-call gets refused.
-
-In a real adoption these violations already exist and nobody has to create
-them.
-
-The public IP was the only billable thing in the platform, around 3.60 USD a
-month, and it was destroyed once the compliance evidence was captured. So the
-subnet without a network security group is the violation that's still live.
+was **created and recorded as non compliant** instead of refused. I destroyed
+the public IP, about 3.60 USD a month, once I had the screenshot below. The
+subnet is the violation that's still live.
 
 ### Evidence
 
 ![Policy compliance](docs/evidence/policy-portal.png)
 
-The first two rows go together. `Network interfaces must not have public IPs
-(audit only)` reports a violation at Corp (audit only): the network interface
-carrying a public IP was **created successfully and recorded as non
-compliant**. The identical assignment at Corp, with enforcement on, refuses
-that call outright.
-
-That network interface and its public IP are gone now. A Standard static public
-IP is the only resource here that bills by the hour, so it got destroyed once I
-had the screenshot. Same deploy, screenshot, destroy approach as the network
-stack.
+The first two rows go together: the audit only assignment reports the network
+interface, and the identical assignment at Corp would have refused it.
 
 The third row is the Modify effect. Five resources are compliant with the
 `costCenter` requirement and the Terraform that created them never set the tag.
@@ -190,7 +176,7 @@ confirms the same tree independently.
 **Empty management groups.** `Identity`, `Security`, `Local` and
 `Decommissioned` are in the tree with no subscriptions under them. In a real
 tenant Identity holds domain controllers, Security holds Sentinel and the SIEM
-tooling, Local holds Azure Local clusters, and Decommissioned holds cancelled
+tooling, Local holds Azure Local clusters, and Decommissioned holds canceled
 subscriptions through their retention window. They're empty here because this
 is a personal billing account and every subscription costs real money to keep
 around.
@@ -199,7 +185,7 @@ around.
 account. Microsoft doesn't publish a subscription cap or a per day creation
 limit for MCA, so I'm not claiming one. The "five subscriptions, one per day"
 figure that gets repeated everywhere is Microsoft Online Services Program
-behaviour and doesn't apply to this account. The real limit is that each
+behavior and doesn't apply to this account. The real limit is that each
 subscription is another thing to pay for and clean up.
 
 **Hub and spoke network.** Written in both trees now, in
@@ -215,14 +201,19 @@ address plan in [docs/ip-plan.md](docs/ip-plan.md). It splits in two:
   names its own price. All five plus their public IPs is 1,495 a month,
   which is why they go up on demand and come down the same day. ADR 0004
   carries the reasoning.
+- The **janitor** in `30-auto-delete` is what happens when nobody takes one
+  down. Every billable device is tagged with a `deleteAfter` time when it's
+  created, eight hours out by default, and an Automation runbook deletes it once
+  that passes. It runs every two hours inside Automation's free 500 job minutes,
+  and its role can delete the billable device types and nothing else.
 
 ![Hub and spoke network](docs/diagrams/hub-spoke-network.svg)
 
 The free layer is deployed in `sub-connectivity`, and a plan against it comes
 back clean. The billable layer isn't deployed.
 
-The only other virtual network is the deliberately non compliant one described
-above, in the brownfield subscription.
+The only other virtual network is the seeded one in the brownfield
+subscription.
 
 **Terraform state is local.** Fine for one person on a lab, not fine for a
 team. A shared backend with locking would be needed the moment a second person
@@ -243,6 +234,9 @@ to be specific:
 - Subscription vending and placement (`terraform/20-subscription-placement`).
 - The hub and spoke network (`terraform/90-optional-network`), built from the
   address plan in [docs/ip-plan.md](docs/ip-plan.md).
+- The auto delete janitor (`terraform/30-auto-delete`) and its runbook,
+  [automation/Remove-ExpiredResources.ps1](automation/Remove-ExpiredResources.ps1),
+  which calls REST endpoints directly and imports no modules.
 - Five local modules in [`terraform/modules/`](terraform/modules/): `policy-assignment`,
   `subscription-budget`, `subscription-vending`, `subscription-baseline` and
   `spoke-network`. The rule I used for pulling them out, and the two places I
@@ -254,23 +248,14 @@ to be specific:
   says which files those are.
 
 **Not used:** `Azure/avm-ptn-alz/azurerm`, `Azure/ALZ-Bicep`, or the landing
-zone accelerator. That's a decision rather than an oversight and ADR 0007
-records it.
+zone accelerator. ADR 0007 explains why. This shows the mechanics, not a
+governance baseline, and for a real tenant the accelerator is the right answer.
 
-Short version: seven policy assignments here against the accelerator's several
-hundred, so what this shows is the mechanics, not a governance baseline. I hand
-rolled it to understand how the pieces fit before deploying a prebuilt set. For
-a real tenant the accelerator is the right answer.
-
-**Built in policy definitions** wherever they exist, rather than custom ones. I
-read their IDs, allowed effects and required roles off the platform with
-`az policy definition show` rather than taking them from a blog post. Three
-things that turned up doing that are recorded in comments at the call sites.
-The subnet network security group built in only permits `AuditIfNotExists` or
-`Disabled`, so it can't be the Deny example it usually gets presented as, and it
-reads a Defender for Cloud assessment rather than the subnet itself. And the
-tagging Modify built in wants Contributor rather than Tag Contributor for its
-managed identity.
+**Built in policy definitions** wherever they exist. I read their effects and
+required roles with `az policy definition show`, which turned up two surprises:
+the subnet network security group built in only allows `AuditIfNotExists` or
+`Disabled`, so it can't be the Deny example it's often shown as, and the tagging
+Modify built in wants Contributor, not Tag Contributor.
 
 ## Deploying
 
@@ -286,9 +271,8 @@ ordering hidden away in state files.
 
 ![Terraform state and provider boundaries](docs/diagrams/terraform-state-boundaries.svg)
 
-The arrows that aren't there are the ones that matter. Nothing reads another
-root's state, and the aliased providers exist so that a resource which forgot
-its `provider` argument can't quietly land in the wrong subscription.
+Nothing reads another root's state. The aliased providers mean a resource
+that forgets its `provider` argument can't land in the wrong subscription.
 
 ```bash
 cd terraform/00-management-groups
@@ -298,7 +282,9 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-Then `terraform/10-policy`, then `terraform/20-subscription-placement`, the same way.
+Then `terraform/10-policy`, then `terraform/20-subscription-placement`, then
+`terraform/30-auto-delete` once the management subscription exists, the same
+way.
 
 Always `plan -out` and apply the saved plan. Mostly that guards against a `.tf`
 file changing between when you read the plan and when you type yes.
@@ -309,28 +295,28 @@ happening on an apply, because it's a billing account operation.
 The Bicep equivalents are `az deployment mg|tenant|sub create`, one scope per
 directory, which is the thing that doesn't carry across at all. Two of the four
 run at management group scope, one at tenant, one at subscription, and which is
-which is a permissions decision as much as a technical one.
-[bicep/README.md](bicep/README.md) has the commands and the reasoning.
+which is a permissions decision as much as a technical one. `30-auto-delete` is
+the exception: it's two deployment stacks rather than a deployment, for the
+reason in ADR 0008. [bicep/README.md](bicep/README.md) has the commands and the
+reasoning.
 
 ## Destroying
 
 ```bash
-cd terraform/20-subscription-placement && terraform destroy
+cd terraform/30-auto-delete        && terraform destroy
+cd ../10-policy                    && terraform destroy -target=module.deny_platform_workspace_delete
+cd ../20-subscription-placement    && terraform destroy
 cd ../10-policy                    && terraform destroy
 cd ../00-management-groups         && terraform destroy
 ```
 
-Reverse order. Nothing in the deployed set bills more than trivial amounts, so
-this is hygiene rather than cost.
+Reverse order, except the `DenyAction` assignment in `10-policy` comes off
+first, because it stops the workspace in `20` being deleted.
 
-That command fails on `20-subscription-placement` if you vended subscriptions,
-which is deliberate and is dealt with in
-[the runbook](runbooks/deploy-and-destroy.md#terraform-destroy-on-20-will-fail-by-design).
-
-`azurerm_subscription` has `prevent_destroy` on it. Destroying it cancels the
-subscription, and I didn't want a `terraform destroy` quietly cancelling a
-platform subscription. Removing one is a deliberate act done outside this
-workflow.
+If you vended subscriptions, the destroy of `20-subscription-placement` fails
+on purpose: `azurerm_subscription` has `prevent_destroy`, because destroying it
+cancels the subscription. [The runbook](runbooks/deploy-and-destroy.md#terraform-destroy-on-20-will-fail-by-design)
+covers what to do.
 
 ## Validation
 
@@ -338,7 +324,7 @@ workflow.
 
 That badge is GitHub Actions. The Azure Pipelines run can't show a public
 badge, because public projects in Azure DevOps are retired and the policy that
-permits them isn't available to organisations not already using it. So that
+permits them isn't available to organizations not already using it. So that
 pipeline is only verifiable to someone with access to the project.
 
 Two CI definitions run the same checks, `azure-pipelines.yml` and
@@ -347,9 +333,8 @@ the two can't drift in what they verify. Neither holds an Azure credential.
 
 Both trees are checked. Terraform gets `fmt`, `validate` and tflint; Bicep gets
 a format check, `build`, `build-params` on the committed example parameter
-files, and `bicep lint`. checkov scans both, and scans the Bicep as compiled
-ARM JSON rather than as Bicep, for a reason worth reading before copying the
-approach: [bicep/README.md](bicep/README.md#validation).
+files, and `bicep lint`. checkov scans both, the Bicep as compiled ARM JSON; see
+[bicep/README.md](bicep/README.md#validation) for why.
 [docs/ci-security.md](docs/ci-security.md) has the threat model, the forked
 pull request settings, and the workload identity federation design I'd use if
 CI ever needed Azure access.

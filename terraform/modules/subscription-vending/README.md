@@ -4,9 +4,8 @@ Creates an Azure subscription against a billing scope, places it in a
 management group, gives it a budget, and applies the platform baseline through
 [`subscription-baseline`](../subscription-baseline/).
 
-This is the platform capability an application team consumes. It exists so
-that onboarding a landing zone is one reviewed change rather than a sequence of
-portal steps somebody half remembers.
+It makes onboarding a landing zone one reviewed change instead of a series of
+portal steps.
 
 ## Usage
 
@@ -51,16 +50,13 @@ module "corp_payments_prod" {
 | `subscription_resource_id` | Full resource ID, for use as a scope. |
 | `management_group_id` | Where it was placed. |
 | `budget_id` | Resource ID of the budget. |
-| `remaining_steps` | What this module deliberately does not do. |
+| `remaining_steps` | Steps left to the caller. |
 
 ## What this module does not do, and why
 
-**It does not deploy workload resources inside the new subscription.**
-
-This is a Terraform limitation rather than a design preference. An azurerm
-provider block needs a `subscription_id` at plan time, and the subscription does
-not exist until apply. You cannot configure a provider for a subscription this
-module is about to create in the same run.
+**It doesn't deploy workload resources inside the new subscription.** An azurerm
+provider needs `subscription_id` at plan time, and the subscription doesn't
+exist until apply.
 
 The platform baseline is the exception. `subscription-baseline` uses azapi,
 which addresses a subscription by resource ID rather than through a provider
@@ -72,13 +68,11 @@ So vending a landing zone is **two applies**:
 2. A second configuration, with an `azurerm` provider aliased to the new
    subscription ID, deploys the workload into it.
 
-A module that pretended otherwise would work once, from a state file that
-already had the subscription, and fail for the next person running it from
-scratch.
+A module that tried to do both in one apply would work once, from a state file
+that already had the subscription, and fail when run from scratch.
 
 **It registers only the providers the platform uses.** A new subscription has
-almost none registered, and the failure is a 409 naming the namespace rather
-than the cause:
+almost none registered, and the failure looks like this:
 
 ```
 MissingSubscriptionRegistration: The subscription is not registered to use
@@ -86,14 +80,11 @@ namespace 'Microsoft.OperationalInsights'
 ```
 
 The baseline registers `Microsoft.Security`, `Microsoft.Insights` and
-`Microsoft.PolicyInsights`. The last is the one nothing asks for: without it the
-subscription reports **no policy compliance at all**, and the silence is
-indistinguishable from a scan that has not run yet. Anything a workload needs
-beyond those it registers itself; Microsoft advises against registering
-providers nothing uses.
+`Microsoft.PolicyInsights`. Nothing asks for the last one, but without it the
+subscription reports **no policy compliance**, which looks the same as a scan
+that hasn't run. A workload registers anything else it needs.
 
-The `remaining_steps` output lists what is left, so it is surfaced rather than
-remembered.
+The `remaining_steps` output lists what's left.
 
 ## Operational notes
 
@@ -102,21 +93,17 @@ the tenant root management group, and the creator's Owner assignment on a
 freshly created subscription has been observed not to grant effective access:
 every write returns `AuthorizationFailed` for far longer than propagation
 explains, and neither re-authenticating nor waiting helps. Placing the
-subscription under a management group where the operator holds Owner resolves
-it immediately. Since placement is required anyway, do it first.
+subscription under a management group where the operator holds Owner fixes it
+immediately, so placement comes first.
 
-**`prevent_destroy` is set on the subscription.** Destroying the resource
-cancels the subscription. Removing one is a deliberate act performed outside
-this workflow, and the Decommissioned management group exists to hold the
-result.
+**`prevent_destroy` is set on the subscription**, because destroying it cancels
+the subscription. Cancel by hand, outside Terraform.
 
 **Recovering from a partial create.** If the apply fails partway, Terraform
 marks the resource tainted and the next plan proposes replacement, which for a
 subscription means cancellation. `prevent_destroy` blocks that. The recovery is
 `terraform untaint`, not a re-run.
 
-**Tags and Modify policies fight.** If a Modify assignment appends tags, this
-module's `tags` value will disagree with reality and Terraform will plan to
-remove what the policy added. Decide who owns each key and have the caller
-ignore the policy-owned ones. See `terraform/25-brownfield-seed` for a worked
-example.
+**Tags and Modify policies fight.** Terraform plans to remove tags a Modify
+assignment added. Decide who owns each key and ignore the policy-owned ones, as
+`terraform/25-brownfield-seed` does.

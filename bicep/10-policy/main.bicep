@@ -1,25 +1,11 @@
-// Policy assignments.
+// Policy assignments. Eight, each one explainable: six show one effect each and
+// two are the subscription baseline.
 //
-// Deliberately a small set. Seven assignments that can each be explained beat
-// the full Azure landing zone default set, which is hundreds of policies nobody
-// in this repo could defend individually. Five each show one policy effect; the
-// last two are the subscription baseline.
-//
-// Scopes are resolved by name, not by reading the output of another deployment.
-// The management group names are deterministic, derived from the same prefix,
-// so nothing needs to be passed between root modules and each directory
-// deploys independently. That is the same choice the Terraform version makes,
-// and it costs the same thing: a wrong prefix fails at deployment time rather
-// than at compile time.
-//
-// Scope. This is a management group deployment, run at the intermediate root:
+// Scopes are looked up by name from the prefix. Each assignment names its own
+// management group, so where the deployment runs only changes who can run it.
 //
 //   az deployment mg create --management-group-id contoso --location westus2 \
 //     --template-file main.bicep --parameters main.bicepparam
-//
-// Each assignment names its own management group explicitly, so pointing the
-// CLI somewhere else in the tree changes who is allowed to run it and nothing
-// about what gets assigned where.
 
 targetScope = 'managementGroup'
 
@@ -34,23 +20,15 @@ param location string = 'westus2'
 @description('Value the Modify assignment appends as costCenter.')
 param costCenterTagValue string = 'lab'
 
-@description('Full resource ID of the workspace the DeployIfNotExists assignment targets. Empty until bicep/20 creates it, which leaves that assignment out of the deployment. See the README for why this is sequenced that way.')
+@description('Resource ID of the workspace the DeployIfNotExists assignments target. Empty until bicep/20 creates it, which leaves them out.')
 param logAnalyticsWorkspaceId string = ''
 
 @description('Addresses the Service Health alerts in every subscription notify. Empty leaves that assignment out.')
 param alertEmails array = []
 
-// Built in definition IDs, read from the platform rather than typed from
-// memory. Effects and required roles were verified with
-// "az policy definition show" before use, because a definition's allowed
-// effects are not guessable. Notably the subnet NSG definition permits only
-// AuditIfNotExists or Disabled, so it cannot be the Deny example that landing
-// zone write ups often claim it is.
-//
-// Built in definitions are tenant level resources, so tenantResourceId builds
-// the same /providers/Microsoft.Authorization/... string the Terraform version
-// spells out by hand, and will not silently produce a management group scoped
-// ID if this file is ever deployed from somewhere else in the tree.
+// Built in definitions. Effects and required roles checked with
+// "az policy definition show".
+// tenantResourceId, because definitions are tenant level resources.
 var definitions = {
   // AuditIfNotExists. Allowed effects: AuditIfNotExists, Disabled. It reads a
   // Defender for Cloud assessment rather than the subnet, so it only reports
@@ -73,6 +51,9 @@ var definitions = {
   // DeployIfNotExists. Requires Monitoring Policy Contributor. Creates a
   // resource group, an action group and an alert rule in each subscription.
   serviceHealth: tenantResourceId('Microsoft.Authorization/policyDefinitions', '98903777-a9f6-47f5-90a9-acaf62ab01a8')
+
+  // DenyAction. No identity required.
+  noDelete: tenantResourceId('Microsoft.Authorization/policyDefinitions', '78460a36-508a-49a4-b2b2-2f5ec564f4bb')
 }
 
 var roleIds = {
@@ -97,20 +78,15 @@ var roleIds = {
 
 // Modify. Appends costCenter to resources that lack it.
 //
-// Security note worth stating rather than burying: this built in requires its
-// managed identity to hold Contributor, not Tag Contributor. Assigning it here
-// grants a policy created service principal Contributor across the whole
-// hierarchy. Tag Contributor would be sufficient for what the policy actually
-// does, but the required role list belongs to the definition and is not
-// something the assignment can narrow. A custom definition asking only for Tag
-// Contributor is the tighter option.
+// The built in requires Contributor, not Tag Contributor, so its identity gets
+// Contributor across the hierarchy. A custom definition could ask for less.
 module appendCostCenterTag '../modules/policy-assignment/main.bicep' = {
   scope: managementGroup(prefix)
   name: 'assign-append-costcenter'
   params: {
     name: 'append-costcenter'
     displayName: 'Append costCenter tag to resources'
-    policyDescription: 'Every resource in this lab carries costCenter so spend can be attributed and cleanup can find things. Applied at the intermediate root because it has no archetype specific behaviour.'
+    policyDescription: 'Every resource in this lab carries costCenter so spend can be attributed and cleanup can find things. Applied at the intermediate root because it has no archetype specific behavior.'
     policyDefinitionId: definitions.addTag
     location: location
     roleDefinitionIds: [
@@ -143,10 +119,7 @@ module auditSubnetsWithoutNsg '../modules/policy-assignment/main.bicep' = {
 // Corp archetype only: inheritance is scope dependent
 // ---------------------------------------------------------------------------
 
-// Deny, and the archetype is the reason. Corp workloads reach the internet
-// through the hub so that egress can be inspected centrally. A public IP on a
-// network interface bypasses that path, which is why this is enforced here and
-// absent from Online, where direct internet connectivity is the point.
+// Deny at Corp only. Online is meant to have direct internet access.
 module denyPublicIpOnNicCorp '../modules/policy-assignment/main.bicep' = {
   scope: managementGroup('${prefix}-lz-corp')
   name: 'assign-deny-nic-public-ip'
@@ -160,18 +133,34 @@ module denyPublicIpOnNicCorp '../modules/policy-assignment/main.bicep' = {
 }
 
 // ---------------------------------------------------------------------------
+// Platform only: things that must not be deleted
+// ---------------------------------------------------------------------------
+
+// At Platform, so a future platform workspace is covered too. It doesn't stop a
+// resource group delete; the lock in bicep/20 does. ADR 0008 has the reasoning.
+module denyPlatformWorkspaceDelete '../modules/policy-assignment/main.bicep' = {
+  scope: managementGroup('${prefix}-platform')
+  name: 'assign-deny-platform-delete'
+  params: {
+    name: 'deny-platform-delete'
+    displayName: 'Platform Log Analytics workspaces cannot be deleted'
+    policyDescription: 'Every activity log and diagnostic setting in the hierarchy sends to the platform workspace, so deleting it silently breaks log collection everywhere. Assigned at Platform so a workspace added to any platform subscription is covered. Bypassed only by an exemption, which needs rights on this assignment, not just on the subscription.'
+    policyDefinitionId: definitions.noDelete
+    parameters: {
+      effect: 'DenyAction'
+      listOfResourceTypesDisallowedForDeletion: [
+        'Microsoft.OperationalInsights/workspaces'
+      ]
+    }
+    nonComplianceMessage: 'Platform workspaces cannot be deleted. If this really has to go, ask the platform team for a policy exemption with an expiry.'
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Brownfield: the same Deny, evaluated but not enforced
 // ---------------------------------------------------------------------------
 
-// The identical policy assigned to a duplicated Corp management group with
-// enforcementMode DoNotEnforce. Subscriptions being adopted land here first.
-// Compliance is measured against the real target policy with no risk to running
-// workloads, and the subscription moves to Corp once its compliance is
-// acceptable, at which point enforcement takes effect without the policy set
-// changing at all.
-//
-// There is no additional cost. The hierarchy and the assignments are
-// duplicated, the workloads are not. See ADR 0005.
+// The Corp Deny with enforcement off. See ADR 0005.
 module denyPublicIpOnNicCorpAudit '../modules/policy-assignment/main.bicep' = {
   scope: managementGroup('${prefix}-lz-corp-audit')
   name: 'assign-deny-nic-public-ip-audit'
@@ -189,10 +178,8 @@ module denyPublicIpOnNicCorpAudit '../modules/policy-assignment/main.bicep' = {
 // DeployIfNotExists: only once there is a workspace to point at
 // ---------------------------------------------------------------------------
 
-// Left out of the deployment until bicep/20 creates the workspace in the
-// management subscription. A DeployIfNotExists assignment with no target is not
-// a partial configuration, it is a broken one: it would create an identity,
-// grant it two roles across the hierarchy, and remediate nothing.
+// Skipped until bicep/20 creates the workspace. Without a target it would
+// create an identity with two roles and remediate nothing.
 module deployNsgDiagnostics '../modules/policy-assignment/main.bicep' = if (!empty(logAnalyticsWorkspaceId)) {
   scope: managementGroup('${prefix}-platform-management')
   name: 'assign-dine-nsg-diagnostics'
@@ -215,14 +202,10 @@ module deployNsgDiagnostics '../modules/policy-assignment/main.bicep' = if (!emp
 // ---------------------------------------------------------------------------
 // Intermediate root: the subscription baseline
 // ---------------------------------------------------------------------------
-// Both of these configure every subscription under the intermediate root,
-// including ones vended later, which is why they are policy rather than per
-// subscription resources. DeployIfNotExists only acts when a subscription is
-// created or updated, so existing subscriptions need a one off remediation
-// task; the runbook covers it.
+// Policy, so subscriptions vended later get them too. Existing subscriptions
+// need a one off remediation task; the runbook covers it.
 
-// Activity log to the central workspace. Activity log ingestion into Log
-// Analytics is free, as are its first 90 days of retention.
+// Activity log ingestion into Log Analytics is free.
 module deployActivityLog '../modules/policy-assignment/main.bicep' = if (!empty(logAnalyticsWorkspaceId)) {
   scope: managementGroup(prefix)
   name: 'assign-dine-activity-log'
@@ -242,16 +225,14 @@ module deployActivityLog '../modules/policy-assignment/main.bicep' = if (!empty(
   }
 }
 
-// Service Health alerts. Emails whoever is listed when Azure has an incident,
-// planned maintenance or an advisory affecting a subscription. The alert rule
-// is free and so are the first 1,000 emails a month.
+// Free: the alert rule, and the first 1,000 emails a month.
 module deployServiceHealthAlerts '../modules/policy-assignment/main.bicep' = if (!empty(alertEmails)) {
   scope: managementGroup(prefix)
   name: 'assign-dine-service-health'
   params: {
     name: 'dine-service-health'
     displayName: 'Configure Service Health alerts in every subscription'
-    policyDescription: 'Each subscription gets a Service Health alert rule and an action group, so an Azure incident affecting it reaches the platform team rather than being found in the portal afterwards.'
+    policyDescription: 'Each subscription gets a Service Health alert rule and an action group, so an Azure incident affecting it reaches the platform team rather than being found in the portal afterward.'
     policyDefinitionId: definitions.serviceHealth
     location: location
     roleDefinitionIds: [
@@ -280,6 +261,7 @@ output assignmentIds object = union(
     auditSubnetsWithoutNsg: auditSubnetsWithoutNsg.outputs.id
     denyPublicIpOnNicCorp: denyPublicIpOnNicCorp.outputs.id
     denyPublicIpOnNicCorpAudit: denyPublicIpOnNicCorpAudit.outputs.id
+    denyPlatformWorkspaceDelete: denyPlatformWorkspaceDelete.outputs.id
   },
   empty(logAnalyticsWorkspaceId)
     ? {}
@@ -304,6 +286,7 @@ output effectsDemonstrated object = {
   AuditIfNotExists: 'audit-subnet-nsg, at the intermediate root'
   Deny: 'deny-nic-public-ip, at Corp'
   DoNotEnforce: 'deny-nic-public-ip, at Corp (audit only), same definition, enforcement off'
+  DenyAction: 'deny-platform-delete, at Platform'
   DeployIfNotExists: empty(logAnalyticsWorkspaceId)
     ? 'not yet assigned, awaiting the workspace in bicep/20'
     : 'dine-nsg-diagnostics, at Platform Management'

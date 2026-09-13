@@ -1,11 +1,8 @@
 # The hub virtual network and every subnet in docs/ip-plan.md.
 #
-# Every prefix is derived from hub_address_space rather than typed, which is
-# what proves the plan is systematic rather than numbers that happen not to
-# collide. Everything in this file is free to leave running.
+# Every prefix is derived from hub_address_space, not typed. All free.
 #
-# Five of the subnet names are mandatory and case sensitive: Azure will not
-# attach the service to a subnet spelled any other way.
+# Five subnet names are mandatory and case sensitive.
 
 resource "azurerm_resource_group" "hub" {
   provider = azurerm.connectivity
@@ -111,14 +108,11 @@ resource "azurerm_subnet" "hub" {
   }
 }
 
-# The baseline network security group goes on the four subnets that can safely
-# carry one: the two general purpose ones and both DNS resolver endpoints
-# (delegation does not prevent it). The other five cannot. AzureFirewallSubnet,
-# AzureFirewallManagementSubnet and RouteServerSubnet do not support one.
-# AzureBastionSubnet needs a specific rule set that is meaningless until Bastion
-# exists, and GatewaySubnet accepts one but Microsoft advises against it,
-# because a wrong rule breaks the control plane. Each of the five carries a
-# policy exemption, below.
+# The baseline network security group goes on four subnets: the two general
+# purpose ones and both DNS resolver endpoints. The firewall, firewall
+# management and Route Server subnets don't support one, Bastion needs its own
+# rules, and Microsoft advises against one on GatewaySubnet. Those five are
+# exempted below.
 resource "azurerm_network_security_group" "hub_shared" {
   provider = azurerm.connectivity
 
@@ -154,14 +148,9 @@ resource "azurerm_subnet_network_security_group_association" "hub_shared" {
 # ---------------------------------------------------------------------------
 # Policy exemptions
 # ---------------------------------------------------------------------------
-# The audit assignment at the intermediate root flags every subnet without a
-# network security group, and the built in definition makes no exception for
-# the platform subnets above. An exemption records the decision where the
-# compliance report shows it, rather than leaving five permanent findings for
-# someone to rediscover and question.
-#
-# Mitigated, not Waiver: the risk the audit looks for is handled by the service
-# that owns each subnet, so this is not a temporary allowance.
+# The subnet audit flags the five platform subnets above. Exemptions record why
+# in the compliance view. Mitigated, because each owning service protects its
+# subnet.
 locals {
   subnet_nsg_assignment_id = "/providers/Microsoft.Management/managementGroups/${var.prefix}/providers/Microsoft.Authorization/policyAssignments/audit-subnet-nsg"
 

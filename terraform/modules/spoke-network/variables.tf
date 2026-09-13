@@ -73,7 +73,7 @@ variable "subnet_nsg_policy_assignment_id" {
 }
 
 variable "appgw_waiver_expires_on" {
-  description = "When the snet-appgw waiver lapses, as an RFC 3339 timestamp. A waiver with no end date is a finding nobody looks at again."
+  description = "When the snet-appgw waiver lapses, as an RFC 3339 timestamp. The expiry forces a second look."
   type        = string
   default     = "2027-09-12T00:00:00Z"
 }

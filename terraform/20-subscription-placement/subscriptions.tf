@@ -1,21 +1,10 @@
 # Subscription vending.
 #
-# The alias API creates the subscription against a billing scope and the
-# platform team places it. Both steps belong to the platform team, and both are
-# here.
+# Creating a subscription needs a billing role on the invoice section, billing
+# profile or account; Azure RBAC grants nothing there. The onboarding runbook
+# covers it. Placement follows ADR 0003.
 #
-# Billing scope permissions are a separate model from Azure RBAC. Owner on a
-# management group grants nothing here. The caller needs Owner, Contributor or
-# Azure subscription creator on the invoice section, billing profile or billing
-# account. That split is the most common blocker when a team first automates
-# this, and the onboarding runbook calls it out.
-#
-# Placement is the archetype decision from ADR 0003 made concrete: it is what
-# determines the policy set and role assignments each subscription inherits.
-#
-# vend marks which entries actually get created. The map is the whole plan;
-# vend = false keeps a subscription in it, placed and named, without paying for
-# it yet.
+# vend = false keeps a planned subscription in the map without creating it.
 
 locals {
   subscriptions = {

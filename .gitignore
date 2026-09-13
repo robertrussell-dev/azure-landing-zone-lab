@@ -44,3 +44,6 @@ decisions.md
 
 # Command output, which carries tenant and subscription IDs
 *.log
+
+# checkov reports from scripts/scan-security.sh. Regenerated on every run.
+checkov-results/

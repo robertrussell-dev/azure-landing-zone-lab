@@ -1,19 +1,10 @@
 # Checkov configuration.
 #
-# Policy on skips: every entry in skip-check must carry a written justification
-# on the line above it. "It was noisy" is not a justification. If a finding is
-# accepted, the reason is recorded here so a reviewer can judge whether the
-# tradeoff was reasonable, which is the same standard applied to the ADRs.
+# Every skip needs a justification on the line above it, and is only added
+# after a real finding.
 #
-# Skips are added only after a finding has been read and understood, not
-# pre-emptively to make a run green.
-#
-# Two frameworks, because the repository holds the same landing zone twice.
-# Terraform is scanned as written. Bicep is compiled to ARM JSON first and
-# scanned as arm, because checkov's Bicep parser cannot read the lambda
-# expressions in bicep/modules/policy-assignment and reports those files as
-# parsing errors while still exiting 0. scripts/scan-security.sh does the
-# compiling and fails the build on a parsing error for that reason.
+# Terraform is scanned as written and Bicep as compiled ARM JSON; see
+# scripts/scan-security.sh.
 
 framework:
   - terraform
@@ -25,25 +16,22 @@ skip-path:
   - runbooks
 
 skip-check:
-  # Defender for Cloud plans, from modules/subscription-baseline. The baseline
-  # sets the free Foundational CSPM tier on purpose: this lab runs at no
-  # standing cost, and the paid plans bill per protected resource. CKV_AZURE_84
-  # and CKV_AZURE_87 also fire on the CloudPosture pricing resource, which is
-  # neither the Storage plan nor the Key Vault plan they describe.
+  # Defender plans, from modules/subscription-baseline. The free tier is on
+  # purpose; paid plans bill per resource. CKV_AZURE_84 and CKV_AZURE_87 also
+  # misfire on the CloudPosture pricing resource.
   - CKV_AZURE_19
   - CKV_AZURE_84
   - CKV_AZURE_87
   # Security contact, same module. These read the retired securityContacts
   # schema (alertNotifications, alertsToAdmins). The 2023 API the module uses
   # sets the same things through notificationsSources, alerts of High severity,
-  # and notificationsByRole, Owner, which the checks do not recognise.
+  # and notificationsByRole, Owner, which the checks do not recognize.
   - CKV_AZURE_21
   - CKV_AZURE_22
   # Microsoft retired the security contact phone number requirement; its built
   # in policy is marked deprecated.
   - CKV_AZURE_20
 
-# Fail the build on any severity. This lab is small enough that there is no
-# excuse for a backlog of accepted findings.
+# Fail the build on any severity.
 compact: true
 quiet: true

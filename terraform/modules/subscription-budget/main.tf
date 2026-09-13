@@ -1,15 +1,5 @@
-# A subscription budget with two alert thresholds.
-#
-# Two thresholds rather than one, and the distinction matters:
-#
-#   Actual      fires on money already spent. Tells you what happened.
-#   Forecasted  fires on projected spend for the period. Tells you what is
-#               about to happen, which is the only one that leaves time to act.
-#
-# A budget notifies. It does not cap spending and it cannot stop a deployment.
-# Anything that must not be deployed is prevented by Azure Policy, not by a
-# budget. Treating a budget as a control rather than an alarm is how surprise
-# bills happen.
+# A subscription budget with two alerts: actual spend, and forecast spend, which
+# fires early enough to act on. A budget only notifies; it caps nothing.
 
 resource "azurerm_consumption_budget_subscription" "this" {
   name            = var.name
@@ -19,8 +9,7 @@ resource "azurerm_consumption_budget_subscription" "this" {
   time_grain = var.time_grain
 
   time_period {
-    # Budgets must start on the first of a period. Anchoring to the current
-    # month keeps the value stable rather than drifting on every apply.
+    # Budgets start on the first of a period.
     start_date = formatdate("YYYY-MM-01'T'00:00:00Z", timestamp())
   }
 
@@ -41,8 +30,7 @@ resource "azurerm_consumption_budget_subscription" "this" {
   }
 
   lifecycle {
-    # start_date derives from timestamp(), so without this every plan shows a
-    # diff on a value nobody intended to change.
+    # start_date comes from timestamp(), which changes on every plan.
     ignore_changes = [time_period]
   }
 }

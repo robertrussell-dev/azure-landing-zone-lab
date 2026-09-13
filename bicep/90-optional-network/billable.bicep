@@ -1,9 +1,7 @@
-// Everything in this file bills by the hour from the moment it exists.
-//
-// Nothing here is on by default. Each flag names its own price in main.bicep,
-// and standingMonthlyCostUsd adds up whatever is switched on, so the number
-// shows in a what-if rather than on an invoice. Bring a device up, use it,
-// destroy it the same day.
+// Everything in this file bills by the hour. All off by default; each flag's
+// price is in main.bicep, and standingMonthlyCostUsd totals what's on. The
+// deleteAfter tag from main.bicep lets bicep/30-auto-delete remove forgotten
+// devices.
 
 @description('Region.')
 param location string
@@ -88,11 +86,8 @@ resource firewall 'Microsoft.Network/azureFirewalls@2024-05-01' = if (deployFire
       name: 'AZFW_VNet'
       tier: firewallSkuTier
     }
-    // Set here as well as on the policy. With a policy attached the firewall
-    // inherits the setting, so this line changes nothing at runtime, and ARM
-    // accepts both (verified with what-if). It is here because the property is
-    // what a reader and a scanner both look at first, and a firewall whose own
-    // resource says nothing about threat intelligence invites the question.
+    // Also set on the policy, which is what takes effect. Kept here for
+    // readers and scanners; ARM accepts both.
     threatIntelMode: 'Deny'
     firewallPolicy: {
       id: deployFirewall ? firewallPolicy.id : null
@@ -116,8 +111,7 @@ resource firewall 'Microsoft.Network/azureFirewalls@2024-05-01' = if (deployFire
 // ---------------------------------------------------------------------------
 // VPN gateway
 // ---------------------------------------------------------------------------
-// Slow to create and slow to destroy, 30 to 45 minutes each way. That matters
-// more than the money when planning a same day teardown.
+// 30 to 45 minutes to create, and the same to destroy.
 resource vpnPip 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (deployVpnGateway) {
   name: 'pip-vgw-hub'
   location: location
@@ -160,8 +154,8 @@ resource vpnGateway 'Microsoft.Network/virtualNetworkGateways@2024-05-01' = if (
 // ---------------------------------------------------------------------------
 // ExpressRoute gateway
 // ---------------------------------------------------------------------------
-// Shares GatewaySubnet with the VPN gateway, which is why the plan gives that
-// subnet a /26 rather than the /27 minimum: coexistence needs the room.
+// The gateway only; the circuit is a carrier contract. It shares GatewaySubnet
+// with the VPN gateway, which is why that subnet is a /26.
 resource erPip 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (deployExpressRouteGateway) {
   name: 'pip-ergw-hub'
   location: location
@@ -243,9 +237,8 @@ resource bastion 'Microsoft.Network/bastionHosts@2024-05-01' = if (deployBastion
 // ---------------------------------------------------------------------------
 // Azure Route Server
 // ---------------------------------------------------------------------------
-// Modelled in ARM as a virtual hub with an ipConfiguration child, which is why
-// this reads nothing like the portal experience. Only earns its place if a BGP
-// speaking network virtual appliance peers with it, and there is not one here.
+// A virtual hub with an ipConfiguration child in ARM. Only useful with a BGP
+// speaking appliance peering with it, which this lab doesn't have.
 resource routeServerPip 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (deployRouteServer) {
   name: 'pip-rs-hub'
   location: location

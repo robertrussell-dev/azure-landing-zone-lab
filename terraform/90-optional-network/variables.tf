@@ -4,7 +4,7 @@ variable "tenant_id" {
 }
 
 variable "subscription_id" {
-  description = "Subscription used only to initialise the default provider. Nothing is created in it."
+  description = "Subscription used only to initialize the default provider. Nothing is created in it."
   type        = string
 }
 
@@ -31,7 +31,7 @@ variable "hub_address_space" {
 }
 
 variable "spokes" {
-  description = "The spokes to build. One /22 per workload per environment, allocated sequentially. archetype decides routing and gateway transit, which is the real enforcement rather than the name."
+  description = "The spokes to build. One /22 per workload per environment, allocated sequentially. archetype decides routing and gateway transit."
   type = map(object({
     address_space = string
     archetype     = string
@@ -49,7 +49,7 @@ variable "spokes" {
 }
 
 variable "archetype_supernets" {
-  description = "The whole prefix belonging to each archetype. Routes are written against these rather than against individual spokes, which is the entire reason Corp and Online were split by address block instead of by naming convention. One route covers 64 spokes."
+  description = "The whole prefix belonging to each archetype. Routes target these blocks instead of individual spokes, which is why Corp and Online have separate address blocks. One route covers 64 spokes."
   type        = map(string)
   default = {
     corp   = "10.1.0.0/16"
@@ -60,14 +60,8 @@ variable "archetype_supernets" {
 # ---------------------------------------------------------------------------
 # The flags. Everything above this line is free to leave running.
 # ---------------------------------------------------------------------------
-# Retail prices, West US 2, USD, checked against the Azure retail prices API on
-# 2026-09-12. They matched ADR 0004's figures from 2026-09-06 exactly, so they
-# are not moving quickly, but verify before trusting them.
-#
-# Virtual networks, subnets, peerings, network security groups and route tables
-# bill nothing at rest. Every resource these flags control bills by the hour
-# from the moment it exists, whether or not a packet ever crosses it. That is
-# the difference the flags encode.
+# Retail prices, West US 2, USD, from the retail prices API on 2026-09-12.
+# Each of these bills by the hour whether or not traffic crosses it.
 
 variable "deploy_firewall" {
   description = "Azure Firewall in the hub. Standard SKU: 1.25 per hour, about 912 per month, plus 0.016 per GB processed. The single most expensive thing in this repository. Nothing routes through the hub without it, so the spoke route tables stay empty while this is false."
@@ -108,6 +102,17 @@ variable "deploy_route_server" {
   description = "Azure Route Server in the hub. About 0.10 per hour per routing unit, roughly 73 per month at minimum capacity. Only useful if you run a BGP speaking network virtual appliance, and there is not one here."
   type        = bool
   default     = false
+}
+
+variable "billable_ttl_hours" {
+  description = "How long a billable device may exist before terraform/30-auto-delete deletes it. Stamped on each device as its deleteAfter tag when it is created. The default is a working day; the most expensive device here costs about 10 over that window."
+  type        = number
+  default     = 8
+
+  validation {
+    condition     = var.billable_ttl_hours >= 1 && var.billable_ttl_hours <= 72
+    error_message = "billable_ttl_hours must be between 1 and 72."
+  }
 }
 
 variable "budget_alert_emails" {

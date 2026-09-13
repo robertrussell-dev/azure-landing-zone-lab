@@ -7,6 +7,6 @@
 using 'main.bicep'
 
 // The prefix becomes part of each management group ID and cannot be changed
-// afterwards without recreating the hierarchy. Choose it once, deliberately.
+// afterward without recreating the hierarchy. Choose it once.
 param prefix = 'alz'
 param intermediateRootDisplayName = 'ALZ Lab'

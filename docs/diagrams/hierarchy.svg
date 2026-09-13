@@ -40,7 +40,7 @@
   <rect class="bg" x="0" y="0" width="960" height="600"/>
 
   <text class="title" x="20" y="26">Contoso landing zone, management group hierarchy</text>
-  <text class="cap" x="20" y="44">Thirteen groups. DEPLOYED subscriptions exist in the tenant today; planned ones do not. Groups with no subscription are in the tree deliberately, see README.</text>
+  <text class="cap" x="20" y="44">Thirteen groups. DEPLOYED subscriptions exist in the tenant today; planned ones do not. Why some groups have no subscription is in the README.</text>
 
   <!-- Tenant Root Group -->
   <rect class="root" x="20" y="60" width="300" height="30"/>

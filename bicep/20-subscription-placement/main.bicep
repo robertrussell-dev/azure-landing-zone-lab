@@ -1,25 +1,13 @@
 // Subscription placement and cost guardrails.
 //
-// Placement is deliberately separate from creation. Subscriptions created
-// through the alias API land in the tenant root management group and are moved
-// afterwards, so "create" and "place" are always two operations. Modelling them
-// separately matches what actually happens rather than hiding it.
+// The alias API creates a subscription at the tenant root and it's moved
+// afterward, so creation and placement are separate resources here too.
 //
-// Management group scopes are resolved by name for the same reason as
-// bicep/10-policy: the names are derived from the prefix, so nothing needs to
-// be passed between root modules and each directory deploys independently.
-//
-// Scope. Tenant, and not by preference. Microsoft.Subscription/aliases is a
-// tenant scoped resource type, so anything that vends a subscription has to be
-// a tenant deployment:
+// A tenant deployment, because Microsoft.Subscription/aliases is tenant only.
+// That needs more access than the Terraform version; see bicep/README.md.
 //
 //   az deployment tenant create --location westus2 \
 //     --template-file main.bicep --parameters main.bicepparam
-//
-// The Terraform equivalent runs against a subscription scoped provider and
-// reaches tenant level resources through it, so this directory asks for more
-// access than terraform/20-subscription-placement does. README.md has the
-// comparison.
 
 targetScope = 'tenant'
 
@@ -57,15 +45,8 @@ param location string = 'westus2'
 // ---------------------------------------------------------------------------
 // Brownfield placement
 // ---------------------------------------------------------------------------
-// DemoSubscription predates this landing zone. It is the brownfield case, and
-// it is placed under the audit only Corp archetype rather than Corp itself.
-//
-// What this demonstrates, and the reason it is worth doing rather than
-// describing: the subscription is now evaluated against the Corp policy set,
-// including the Deny on public IPs, and none of it is enforced. Compliance is
-// measured with zero risk to whatever is running. Moving this association to
-// the real Corp management group is the single change that turns enforcement
-// on, with no policy rewritten. See ADR 0005.
+// DemoSubscription predates the landing zone, so it goes under Corp (audit
+// only). Moving it to Corp turns enforcement on. See ADR 0005.
 resource corpAudit 'Microsoft.Management/managementGroups@2023-04-01' existing = {
   name: '${prefix}-lz-corp-audit'
 }
@@ -78,9 +59,8 @@ resource brownfieldPlacement 'Microsoft.Management/managementGroups/subscription
 // ---------------------------------------------------------------------------
 // Budget on the adopted subscription
 // ---------------------------------------------------------------------------
-// The subscription already exists, so its ID is a parameter and can be used
-// directly as a module scope. Contrast the vending module, where the same value
-// is produced by the deployment and has to cross a nesting boundary first.
+// The ID is a parameter, so it can be a module scope directly. In vending it
+// comes from the deployment and has to cross a nesting boundary first.
 module brownfieldBudget '../modules/subscription-budget/main.bicep' = {
   scope: subscription(brownfieldSubscriptionId)
   name: 'budget-${brownfieldSubscriptionName}'
@@ -104,22 +84,11 @@ module brownfieldBaseline '../modules/subscription-baseline/main.bicep' = {
 // ---------------------------------------------------------------------------
 // Subscription vending
 // ---------------------------------------------------------------------------
-// The alias API creates the subscription against a billing scope and the
-// platform team places it. Both steps belong to the platform team, and both are
-// in the vending module.
+// Creating a subscription needs a billing role on the invoice section, billing
+// profile or account; Azure RBAC grants nothing there. The onboarding runbook
+// covers it. Placement follows ADR 0003.
 //
-// Billing scope permissions are a separate model from Azure RBAC. Owner on a
-// management group grants nothing here. The caller needs Owner, Contributor or
-// Azure subscription creator on the invoice section, billing profile or billing
-// account. That split is the most common blocker when a team first automates
-// this, and the onboarding runbook calls it out.
-//
-// Placement is the archetype decision from ADR 0003 made concrete: it is what
-// determines the policy set and role assignments each subscription inherits.
-//
-// vend marks which entries actually get created. The list is the whole plan;
-// vend = false keeps a subscription in it, placed and named, without paying for
-// it yet.
+// vend = false keeps a planned subscription in the list without creating it.
 var subscriptions = [
   {
     displayName: 'sub-management'
@@ -163,15 +132,8 @@ module subscriptionVending '../modules/subscription-vending/main.bicep' = [
 // ---------------------------------------------------------------------------
 // Central Log Analytics workspace, in the management subscription
 // ---------------------------------------------------------------------------
-// Skipped while managementSubscriptionId is empty, rather than gated on
-// createSubscriptions the way the Terraform version is. The condition that
-// matters is whether there is a subscription to deploy into, and after the
-// first vending run that is true whether or not the flag is still set.
-//
-// Two files rather than one because the resource group and the workspace sit at
-// different scopes, and a module is how a Bicep deployment changes scope. They
-// stay in this directory rather than in modules/ because there is one caller,
-// which is the rule in modules/README.md.
+// Skipped until managementSubscriptionId is set. The Terraform version gates on
+// createSubscriptions, but what matters is whether the subscription exists.
 module managementLogs 'management-logs.bicep' = if (!empty(managementSubscriptionId)) {
   scope: subscription(managementSubscriptionId)
   name: 'management-logs'

@@ -1,10 +1,8 @@
 // One spoke virtual network, its subnets, its route table and both halves of
 // the peering with the hub.
 //
-// The Bicep counterpart of terraform/modules/spoke-network, and free to leave
-// running. Subnets are derived from the spoke's own prefix rather than listed,
-// so a spoke can never be handed a subnet outside its allocation. cidrSubnet
-// produces the same prefixes as Terraform's cidrsubnet.
+// All free. Subnets are derived from the spoke's prefix with cidrSubnet, which
+// matches Terraform's cidrsubnet.
 
 @description('Short spoke name, for example corp-payments-prod. Used in every resource name.')
 param name string
@@ -37,7 +35,7 @@ param peerPrefixes array = []
 @description('ID of the policy assignment that audits subnets without a network security group. When set, snet-appgw gets a time boxed waiver against it. Empty skips the exemption.')
 param subnetNsgPolicyAssignmentId string = ''
 
-@description('When the snet-appgw waiver lapses. A waiver with no end date is a finding nobody looks at again.')
+@description('When the snet-appgw waiver lapses. The expiry forces a second look.')
 param appgwWaiverExpiresOn string = '2027-09-12T00:00:00Z'
 
 @description('Tags applied to every resource in the spoke.')
@@ -52,7 +50,7 @@ var subnetPrefixes = {
   appgw: cidrSubnet(addressSpace, 26, 12)
 }
 
-// 0.0.0.0/0 to the firewall is forced tunnelling and applies to corp only. An
+// 0.0.0.0/0 to the firewall is forced tunneling and applies to corp only. An
 // online spoke reaching the internet directly is the point of the archetype.
 var wantDefaultRoute = archetype == 'corp' && !empty(firewallPrivateIp)
 
@@ -85,11 +83,8 @@ var peerRoutes = empty(firewallPrivateIp)
       }
     })
 
-// Deliberately empty of custom rules. Azure's defaults already deny inbound
-// from the internet and permit traffic inside the virtual network, so an empty
-// group is a working baseline rather than a placeholder. It mainly exists so
-// every subnet that can carry one does, which is what the AuditIfNotExists
-// assignment at the intermediate root looks for.
+// No custom rules. Azure's defaults already deny inbound internet traffic and
+// allow traffic inside the virtual network.
 resource nsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: 'nsg-${name}'
   location: location
@@ -170,11 +165,9 @@ resource spoke 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         }
       }
       {
-        // No network security group and no route table, both on purpose.
-        // Application Gateway v2 needs inbound 65200-65535 from GatewayManager
-        // to stay manageable, and a default route to a firewall breaks its
-        // control plane. Those rules belong with an actual gateway deployment.
-        // The subnet is reserved and empty until then.
+        // No network security group or route table. Application Gateway v2
+        // needs inbound 65200-65535 from GatewayManager, and a default route to
+        // a firewall breaks its control plane. Empty until a gateway arrives.
         name: 'snet-appgw'
         properties: {
           addressPrefixes: [
@@ -228,9 +221,8 @@ resource hubToSpoke 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@20
 // ---------------------------------------------------------------------------
 // Policy exemption for snet-appgw
 // ---------------------------------------------------------------------------
-// Waiver rather than Mitigated: the subnet is bare because nothing is deployed
-// in it yet, and the network security group belongs with the gateway when one
-// arrives. The expiry forces that to be looked at again.
+// A Waiver with an expiry, because the network security group comes with a
+// future gateway.
 resource appgwSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = {
   parent: spoke
   name: 'snet-appgw'

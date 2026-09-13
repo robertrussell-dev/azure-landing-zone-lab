@@ -1,11 +1,8 @@
 // The hub virtual network and every subnet in docs/ip-plan.md.
 //
-// Every prefix is derived from hubAddressSpace rather than typed, which is what
-// proves the plan is systematic rather than numbers that happen not to collide.
-// Everything in this file is free to leave running.
+// Every prefix is derived from hubAddressSpace, not typed. All free.
 //
-// Five of the subnet names are mandatory and case sensitive: Azure will not
-// attach the service to a subnet spelled any other way.
+// Five subnet names are mandatory and case sensitive.
 
 @description('Region for the hub.')
 param location string
@@ -34,14 +31,11 @@ var subnetPrefixes = {
   sharedServices: cidrSubnet(hubAddressSpace, 24, 3)
 }
 
-// The baseline network security group goes on the four subnets that can safely
-// carry one: the two general purpose ones and both DNS resolver endpoints
-// (delegation does not prevent it). The other five cannot. AzureFirewallSubnet,
-// AzureFirewallManagementSubnet and RouteServerSubnet do not support one.
-// AzureBastionSubnet needs a specific rule set that is meaningless until Bastion
-// exists, and GatewaySubnet accepts one but Microsoft advises against it,
-// because a wrong rule breaks the control plane. Each of the five carries a
-// policy exemption, below.
+// The baseline network security group goes on four subnets: the two general
+// purpose ones and both DNS resolver endpoints. The firewall, firewall
+// management and Route Server subnets don't support one, Bastion needs its own
+// rules, and Microsoft advises against one on GatewaySubnet. Those five are
+// exempted below.
 resource nsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: 'nsg-hub-shared'
   location: location
@@ -173,13 +167,9 @@ resource hub 'Microsoft.Network/virtualNetworks@2024-05-01' = {
 // ---------------------------------------------------------------------------
 // Policy exemptions
 // ---------------------------------------------------------------------------
-// The audit assignment at the intermediate root flags every subnet without a
-// network security group, and the built in definition makes no exception for
-// the platform subnets above. An exemption records the decision where the
-// compliance report shows it, rather than leaving five permanent findings.
-//
-// Mitigated, not Waiver: the risk the audit looks for is handled by the service
-// that owns each subnet, so this is not a temporary allowance.
+// The subnet audit flags the five platform subnets above. Exemptions record why
+// in the compliance view. Mitigated, because each owning service protects its
+// subnet.
 var subnetsWithoutNsg = [
   'GatewaySubnet'
   'AzureFirewallSubnet'

@@ -30,17 +30,15 @@ apply in development, the control is assigned as an **Audit** policy at the
 archetype management group, and the application team implements it in the
 environments where it applies.
 
-## Why, and why not the count argument
+## Why
 
-The usual argument against per environment management groups is arithmetic.
-Thirty workloads, each with a workload group plus one per environment, produces
-one hundred and twenty management groups carrying near identical policy. That
-is true, and it is the weaker argument, because a team comfortable with
-infrastructure as code will reasonably respond that generating one hundred and
-twenty management groups is not hard.
+The usual argument against per environment management groups is the count:
+thirty workloads with a group each plus one per environment is 120 management
+groups with near identical policy. That's the weaker argument, because
+infrastructure as code can generate 120 groups easily.
 
-The stronger argument is that differentiated policy per environment moves
-failure to the most expensive point in the cycle.
+The stronger one is that different policy per environment moves failures to
+the most expensive point in the cycle.
 
 Consider a policy requiring storage accounts to refuse public network ingress
 and use private endpoints. If development does not carry that policy, the team
@@ -49,26 +47,21 @@ works. The failure appears on promotion, when the environment that does enforce
 the policy rejects the deployment. The team then reworks its architecture after
 the effort is already spent.
 
-Loose policy in development does not make developers faster. It defers the
-discovery of a misconfiguration until rework is most costly. Identical policy
-across environments means promotion cannot fail on policy, because there is
-nothing new to fail against.
+Loose policy in development doesn't make developers faster; it delays finding
+the misconfiguration until rework costs most. With identical policy,
+promotion can't fail on policy.
 
 ## The counterargument
 
-Per environment management groups would make differentiated policy easier.
-That is true, and it is not a trivial objection. Application teams have real
-needs that vary by environment. Production may require backup, geo redundancy
+Per environment management groups would make differentiated policy easier, and
+application teams do have needs that vary by environment. Production may require backup, geo redundancy
 and a longer log retention that development has no reason to pay for.
 
-The answer is that the requirement is real but the mechanism is wrong. A
-management group is a policy inheritance boundary, not a place to record that
-production matters more. Assigning the control as an audit policy at the
-archetype gives the platform team the same visibility across every environment,
-while leaving the application team free to satisfy it where it applies.
-
-The platform audits. The application team implements. The policy set stays
-identical, so promotion stays safe.
+The requirement is real, but a management group is the wrong mechanism. It's a
+policy inheritance boundary, not a way to mark production as more important.
+An audit policy at the archetype gives the platform team visibility across
+every environment, and the application team satisfies it where it applies. The
+policy set stays identical, so promotion stays safe.
 
 ## What this costs, and what it does not
 
@@ -76,29 +69,23 @@ The chosen mechanism enforces nothing. An audit policy reports and does not
 block, so a production subscription can sit non compliant with a control the
 platform considers important.
 
-Microsoft does not prescribe what happens next. The guidance offers the shared
-responsibility split, the platform team audits and the application team
-implements, and stops there. The escalation path is an operating model decision
-and this platform makes it explicitly.
+Microsoft's guidance stops at the shared responsibility split and doesn't say
+what happens next. This platform decides that here.
 
-**Escalation.** Non compliance raises a ticket automatically, assigned to the
-owning team's backlog with a remediation date. Governance that depends on
-someone noticing a dashboard is not governance, so the finding has to arrive
-where the team already plans work.
+**Escalation.** Non compliance raises a ticket automatically, in the owning
+team's backlog with a remediation date, so it arrives where the team plans work
+instead of waiting for someone to check a dashboard.
 
 If the date passes, the control is escalated from `Audit` to `Deny` at that
 subscription for new resources, while existing resources are grandfathered. The
 non compliant workload keeps running. The team cannot deploy anything new until
 it is fixed.
 
-Deleting the offending resource is not the lever. In production it is not a
-credible threat, and a consequence nobody will carry out is worse than no
-consequence, because the first time it is not carried out the deadline stops
-meaning anything. Blocking new deployment is credible precisely because it hurts
-without requiring anyone to break a running service.
+Deleting the offending resource isn't the lever. Nobody will do that in
+production, and once a threat isn't carried out the deadline stops meaning
+anything. Blocking new deployments hurts without breaking a running service.
 
-**Expected non compliance is a smaller problem than it first appears.** An
-exempt resource reports a compliance state of `Exempt` rather than
+**Expected non compliance can be told apart from drift.** An exempt resource reports a compliance state of `Exempt` rather than
 `Non-compliant`, and carries a compliance substate recording what its state
 would be without the exemption. Expected non compliance in development is
 therefore distinguishable from real drift in the compliance view, and both are
@@ -111,16 +98,12 @@ category with an `expiresOn` date. Approval is recorded in the exemption's own
 `ticketRef`, so the approval lives on the object rather than beside it. The
 platform team approves.
 
-An exemption renewed twice is a policy defect, not a resource defect. If the
-same waiver keeps being reissued, the control is wrong for that environment and
-the policy should change rather than the exception becoming permanent by
-repetition.
+An exemption renewed twice points at the policy, not the resource: the control
+is wrong for that environment and should change.
 
-One trap, because it is not obvious: when `expiresOn` passes, the
-exemption object is not deleted. It is retained for record keeping and simply
-stops being honoured. Nothing alerts. The resource silently returns to non
-compliant, so expiry is only meaningful if somebody is watching the compliance
-view. Expiry is a review trigger, not a control.
+When `expiresOn` passes, the exemption isn't deleted; it just stops applying,
+and nothing alerts. The resource goes back to non compliant, so expiry only
+works if someone watches the compliance view.
 
 ## The exception
 
@@ -131,8 +114,8 @@ example is Azure App Service, on the grounds that deployment slots live within
 one App Service plan in one subscription, so mandating a subscription per
 environment complicates the deployment lifecycle.
 
-That example does not survive inspection. App Service slots are described in
-the App Service documentation as a release mechanism: validate changes before
+That example doesn't hold up. The App Service documentation describes slots as
+a release mechanism: validate changes before
 swapping into production, warm every instance before the swap so there is no
 downtime, and swap back immediately to recover the last known good site. They
 are a way to move a build safely into production, not a way to hold three
@@ -149,17 +132,16 @@ dev slot and a test slot alongside production on one plan. That is a real
 pattern and this platform does not accommodate it, because it makes environment
 isolation depend on a feature designed for release safety.
 
-The criteria stand. The App Service example is not sufficient to meet them on
-its own, and a request citing it should be asked what specifically breaks.
+The criteria stand, but the App Service example doesn't meet them on its own. A
+request citing it should say what specifically breaks.
 
 **No general criterion for granting the exception has been established.** App
 Service does not qualify on the grounds usually offered. What would qualify is
 not yet defined, so requests are decided individually, and the burden is on the
 requester to identify a platform constraint rather than an inconvenience.
 
-Recording this as undefined is deliberate. A criterion invented to fill the gap
-would be applied inconsistently the first time it met a real request, and a
-written rule nobody believes is worse than an acknowledged judgement call.
+It's left undefined because a criterion invented now would probably be applied
+inconsistently at the first real request.
 
 Where an exception is granted, the workload gets one subscription, separation
 moves down to resource groups, and RBAC with Privileged Identity Management is
@@ -169,7 +151,7 @@ vending time rather than discovered later.
 ## Protecting the mechanism
 
 Because differentiation now happens below the management group, the controls
-that live below the management group have to be hard to quietly remove.
+there have to be hard to remove.
 Subscription scoped policy assignments, exemptions and resource tags can all be
 changed by anyone holding elevated permissions on that subscription.
 
@@ -183,8 +165,7 @@ And the policy authorization actions must not be granted as always active:
 - `Microsoft.Authorization/policySetDefinitions/*`
 
 These are eligible through Privileged Identity Management, activated with
-justification and logged. This is the same argument as ADR 0001: the boundary
-is only worth what the access model behind it is worth.
+justification and logged, for the same reason as in ADR 0001.
 
 ## Consequences
 
@@ -198,8 +179,6 @@ is only worth what the access model behind it is worth.
 - Expected non compliance is carried as exemptions in the `Waiver` category, so
   the compliance view distinguishes `Exempt` from `Non-compliant` rather than
   drowning real drift in known noise.
-- Escalation from audit to enforcement is a documented step with an owner,
-  rather than an implied one that never happens.
-- Sandbox remains the exception to all of this. It is a separate management
-  group with a deliberately looser policy set, because it is not part of any
-  promotion path.
+- Escalation from audit to enforcement is a documented step with an owner.
+- Sandbox is the exception: a separate management group with looser policy,
+  because it isn't part of any promotion path.

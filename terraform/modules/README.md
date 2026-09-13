@@ -5,7 +5,7 @@ these don't meet it.
 
 | Module | Callers | What it does |
 |---|---|---|
-| [`policy-assignment`](policy-assignment/) | 7 | Policy assignment at management group scope, and the role assignments its identity needs. |
+| [`policy-assignment`](policy-assignment/) | 8 | Policy assignment at management group scope, and the role assignments its identity needs. |
 | [`subscription-budget`](subscription-budget/) | 3 | Subscription budget, actual and forecast thresholds. |
 | [`subscription-baseline`](subscription-baseline/) | 2 | Registers the resource providers the platform uses and turns on Defender for Cloud's free tier and a security contact. |
 | [`subscription-vending`](subscription-vending/) | 1 | Creates a subscription against a billing scope, places it, budgets it, baselines it. Calls `subscription-budget` and `subscription-baseline`. |
@@ -56,11 +56,9 @@ perfectly happily and then alerts nobody.
 boolean, because then there are two inputs that can contradict each other and
 an Audit assignment can end up carrying an identity with nothing to do.
 
-Comments say why rather than what. The `time_sleep` in front of the role
-assignment is the one that matters. On its own it reads like something added to
-get a flaky apply to pass, so the comment says it's the `PrincipalNotFound`
-race and roughly how long the wait needs to be. Whoever reads it next can work
-out whether it's still needed.
+Comments say why, not what. The `time_sleep` before the role assignment looks
+like a hack for a flaky apply, so its comment names the `PrincipalNotFound`
+race, and whoever reads it next can judge whether it's still needed.
 
 `subscription-vending` writes down what it can't do, mostly that azurerm can't
 create anything inside the new subscription. You can't configure a provider

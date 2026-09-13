@@ -1,19 +1,11 @@
 # Validation workflow, GitHub Actions.
 #
-# This repository carries two CI definitions that run the same checks: this one
-# and azure-pipelines.yml. That is deliberate, not an accident of migration.
-# The reasoning is in docs/ci-security.md.
+# Runs the same checks as azure-pipelines.yml, by calling the scripts in
+# scripts/. docs/ci-security.md explains why there are two.
 #
-# The checks themselves live in scripts/. Both CI definitions install tools and
-# call those scripts, so the two cannot drift apart in what they actually
-# verify. Everything platform specific stays in the CI file, everything shared
-# stays in the script.
+# No Azure credentials; this never plans or applies.
 #
-# No Azure credentials. This workflow never runs terraform plan or apply.
-#
-# Third party actions are avoided and first party actions are pinned by commit
-# SHA rather than by tag, because a tag is mutable and can be repointed at new
-# code by whoever controls the action repository.
+# First party actions only, pinned by commit SHA because tags can be moved.
 
 name: Validate
 

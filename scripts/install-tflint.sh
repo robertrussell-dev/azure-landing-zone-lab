@@ -4,11 +4,8 @@
 # Shared by both CI definitions. To run the checks locally, install tflint once
 # with a package manager instead; see "Running the checks locally" in README.md.
 #
-# Upstream offers an install script fetched from the master branch and piped to
-# a shell. That is two problems in one line: the build depends on whatever is on
-# master this morning, and it runs unreviewed code as part of the pipeline. A
-# pinned release asset avoids both, and matches how the other tools here are
-# installed.
+# A pinned release asset, not upstream's install script piped from master,
+# which would be unpinned and unreviewed.
 set -euo pipefail
 
 TFLINT_VERSION="${TFLINT_VERSION:-v0.64.0}"

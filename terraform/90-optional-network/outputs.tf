@@ -9,7 +9,7 @@ output "spoke_subnet_prefixes" {
 }
 
 output "archetype_enforcement" {
-  description = "Which spokes can reach on premises through the hub gateway, and which cannot. This is the ADR 0003 decision as the deployment actually implements it, rather than as the names suggest."
+  description = "Which spokes can reach on premises through the hub gateway, and which cannot. ADR 0003 as deployed."
   value = {
     for k, v in var.spokes : k => {
       archetype           = v.archetype
@@ -22,14 +22,9 @@ output "archetype_enforcement" {
 # ---------------------------------------------------------------------------
 # What this currently costs to leave running
 # ---------------------------------------------------------------------------
-# Retail, West US 2, USD, checked against the Azure retail prices API on
-# 2026-09-12. Surfacing it as an output means the number shows up in a plan,
-# before the apply, rather than on an invoice three weeks later.
-#
-# Whole dollars per month rather than an hourly rate times 730, to stay
-# identical to the Bicep tree. ARM's mul and div only accept integers, so the
-# Bicep side cannot do float arithmetic at all, and two trees reporting costs
-# that differ by a couple of dollars would be a wart worth avoiding.
+# Retail, West US 2, USD (retail prices API, 2026-09-12). An output, so the cost
+# shows in the plan. Whole dollars to match the Bicep tree, where ARM arithmetic
+# is integer only.
 locals {
   monthly = {
     firewall = var.deploy_firewall ? lookup({

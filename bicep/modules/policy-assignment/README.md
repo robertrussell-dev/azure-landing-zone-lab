@@ -4,15 +4,14 @@ A policy assignment at management group scope, plus the role assignments its
 managed identity needs.
 
 The Bicep counterpart of
-[`modules/policy-assignment`](../../../terraform/modules/policy-assignment/). Same five
-callers, same interface, one meaningful behavioural difference at the bottom.
+[`modules/policy-assignment`](../../../terraform/modules/policy-assignment/), with the
+same interface and one behavioral difference, described at the bottom.
 
 ## Usage
 
 The management group is the module's scope, not a parameter. That's the one
-signature change from the Terraform module, and it's forced: a Bicep module
-deploys into a scope, so passing the ID as well would be saying the same thing
-twice and allowing the two to disagree.
+signature change from the Terraform module: passing the ID as well would let
+the two disagree.
 
 Audit or Deny effect, no identity needed:
 
@@ -31,8 +30,7 @@ module denyPublicIp '../modules/policy-assignment/main.bicep' = {
 ```
 
 Modify or DeployIfNotExists, which need an identity. **Passing
-`roleDefinitionIds` is what switches identity creation on**, so an Audit
-assignment never grows an identity it has no use for:
+`roleDefinitionIds` switches identity creation on**:
 
 ```bicep
 module appendCostCenter '../modules/policy-assignment/main.bicep' = {
@@ -94,74 +92,45 @@ The scope is set by the caller with `scope:`, not passed as an input.
 
 ## Notes
 
-**Read `roleDefinitionIds` off the definition, do not guess them.** Every
-definition declares what its identity needs:
+**Read `roleDefinitionIds` off the definition.** Every definition declares what
+its identity needs:
 
 ```bash
 az policy definition show --name <guid> \
   --query "policyRule.then.details.roleDefinitionIds"
 ```
 
-Two findings from doing exactly that in this repository. The built-in
-"Add a tag to resources" Modify policy requires **Contributor**, not Tag
-Contributor, so assigning it at an intermediate root grants a policy-created
-principal Contributor across the whole hierarchy. And "Subnets should be
-associated with a Network Security Group" permits only `AuditIfNotExists` or
-`Disabled`, so it cannot be the Deny example it is often presented as. Check
+The built in "Add a tag to resources" Modify policy requires **Contributor**,
+not Tag Contributor. "Subnets should be associated with a Network Security
+Group" only allows `AuditIfNotExists` or `Disabled`. Check
 `parameters.effect.allowedValues` before assuming an effect is available.
 
-**`enforce = false` is `DoNotEnforce`, which the portal labels "Disabled".**
-One mode, two names. Compliance is still evaluated and recorded; only the
-effect stops acting. Note that no Activity log entries are written in this
-mode, so an audit period cannot be measured by counting would-have-been-denied
-events.
+**`enforce = false` is `DoNotEnforce`, which the portal calls "Disabled".**
+Compliance is still evaluated; only the effect stops acting. No Activity log
+entries are written in this mode.
 
-**There is no `time_sleep`, and that is the interesting difference.**
+**There's no `time_sleep`.** The Terraform module waits 30 seconds before
+granting roles to the new identity, because Entra replication lags and the role
+assignment fails with `PrincipalNotFound`. (Once, it took another 32 seconds
+after the wait.) Setting `principalType: 'ServicePrincipal'` makes ARM retry
+instead, which Microsoft's
+[troubleshooting page](https://learn.microsoft.com/azure/role-based-access-control/troubleshooting#azure-role-assignments)
+documents for this error. It needs API version `2018-09-01-preview` or later,
+and this module pins `2022-04-01`.
 
-The Terraform module waits 30 seconds between creating the assignment and
-creating the role assignments for its identity. Microsoft Entra takes time to
-replicate a newly created managed identity, and creating a role assignment
-against a principal that hasn't replicated fails with `PrincipalNotFound`.
-Without the wait, applies fail intermittently and pass on retry. Observed
-there: the role assignment took a further 32 seconds to succeed after a 30
-second wait.
+That isn't Bicep being better. The Terraform module sets `principal_type` too
+and keeps the wait as well; whether it still needs the wait is untested.
 
-ARM handles this itself, if you tell it what kind of principal it is. Setting
-`principalType: 'ServicePrincipal'` on the role assignment is the documented
-fix for exactly this error, and it needs `apiVersion` `2018-09-01-preview` or
-later - `2022-04-01` is the first stable version that carries it, and it's what
-this module pins. Microsoft's own troubleshooting page names the error and
-prescribes the property:
-[Troubleshoot Azure RBAC](https://learn.microsoft.com/azure/role-based-access-control/troubleshooting#azure-role-assignments).
+**`definitionVersion` exists because what-if found it.** Built in definitions
+are versioned, and the assignments Terraform created carry `1.*.*` and `3.*.*`
+even though azurerm never set them, so Azure applied defaults. what-if reports
+`- properties.definitionVersion` because it doesn't model server-side
+defaults. Whether a real deployment would strip the value is untested, since it
+would mean deploying over the Terraform tree, which
+[can't be done](../../README.md#what-if-against-the-deployed-estate). The
+parameter is left empty: setting a version on an unversioned definition is an
+error, and the right value differs per definition.
 
-Worth being precise, because this is easy to tell as a Bicep-is-better story
-and that isn't what it is. The Terraform module sets
-`principal_type = "ServicePrincipal"` too, so the property isn't missing over
-there. It carries the wait *as well as* the property, and whether the wait is
-still earning its place now that the property is set is untested. So the claim
-here is a narrow one: this module doesn't carry a wait, the Terraform one does.
-
-**`definitionVersion` exists because what-if found it.** Built-in definitions
-are versioned, and an assignment records which versions it tracks. Nothing in
-the Terraform configuration sets one - the azurerm provider has no such
-attribute in state - and yet the assignments it created carry `1.*.*` and
-`3.*.*`, so Azure applied them itself at creation.
-
-A what-if of this module against those assignments reports
-`- properties.definitionVersion`, because what-if diffs the literal template
-payload against current state and doesn't model server-side defaults. Whether
-a real deployment would strip the value or Azure would re-apply the same
-default is untested, and testing it means deploying on top of the Terraform
-tree, which
-[isn't possible](../../README.md#what-if-against-the-deployed-estate) for an
-unrelated reason.
-
-So the parameter is here to make the property expressible, and it's left empty.
-Setting a version on a definition that isn't versioned is an error, and the
-right value differs per definition, so guessing one to silence a what-if line
-would be the wrong trade.
-
-**Parameter named `policyDescription`.** A parameter called `description`
-shadows the `@description` decorator for the whole file. Every decorator below
-it then fails with `BCP062: The referenced declaration with name "description"
-is not valid`, which names the decorator and not the cause.
+**`policyDescription`, not `description`.** A parameter called `description`
+shadows the `@description` decorator, and every decorator below it fails with
+`BCP062: The referenced declaration with name "description" is not valid`.

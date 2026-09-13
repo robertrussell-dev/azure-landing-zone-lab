@@ -9,7 +9,7 @@ variable "tenant_id" {
 }
 
 variable "subscription_id" {
-  description = "Subscription used only to initialise the provider. No resources are created in it by this configuration."
+  description = "Subscription used only to initialize the provider. No resources are created in it by this configuration."
   type        = string
 }
 

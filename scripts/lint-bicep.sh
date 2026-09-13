@@ -4,11 +4,8 @@
 # The counterpart of lint-terraform.sh. Rules and the justifications for the two
 # that are turned off are in bicep/bicepconfig.json.
 #
-# Any output at all is a failure, warnings included. bicep lint exits non-zero
-# only on errors, so a rule configured at warning level, or a compiler warning
-# such as BCP335 on a deployment name that may exceed 64 characters, would
-# otherwise pass silently. That matches the stance in .checkov.yml: this lab is
-# small enough that there is no excuse for a backlog of accepted findings.
+# Any output fails, warnings included, because bicep lint exits 0 on warnings
+# such as BCP335.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."

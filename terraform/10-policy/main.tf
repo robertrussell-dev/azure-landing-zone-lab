@@ -1,16 +1,8 @@
-# Policy assignments.
+# Policy assignments. Eight, each one explainable: six show one effect each and
+# two are the subscription baseline.
 #
-# Deliberately a small set. Seven assignments that can each be explained beat
-# the full Azure landing zone default set, which is hundreds of policies nobody
-# in this repo could defend individually. Five each show one policy effect; the
-# last two are the subscription baseline.
-#
-# Scopes are resolved by data source lookup rather than by reading the state of
-# terraform/00-management-groups. The management group names are deterministic,
-# derived from the same prefix, so there is nothing to pass between root
-# modules. That keeps each directory independently appliable and avoids needing
-# a shared remote backend for a lab. The cost is that a wrong prefix fails at
-# apply time rather than plan time.
+# Scopes are looked up by name from the prefix instead of read from another
+# root's state. A wrong prefix fails at apply, not plan.
 
 data "azurerm_management_group" "intermediate_root" {
   name = var.prefix
@@ -24,16 +16,16 @@ data "azurerm_management_group" "corp_audit" {
   name = "${var.prefix}-lz-corp-audit"
 }
 
+data "azurerm_management_group" "platform" {
+  name = "${var.prefix}-platform"
+}
+
 data "azurerm_management_group" "platform_management" {
   name = "${var.prefix}-platform-management"
 }
 
-# Built in definition IDs, read from the platform rather than typed from
-# memory. Effects and required roles were verified with
-# "az policy definition show" before use, because a definition's allowed
-# effects are not guessable. Notably the subnet NSG definition permits only
-# AuditIfNotExists or Disabled, so it cannot be the Deny example that landing
-# zone write ups often claim it is.
+# Built in definitions. Effects and required roles checked with
+# "az policy definition show".
 locals {
   definitions = {
     # AuditIfNotExists. Allowed effects: AuditIfNotExists, Disabled. It reads a
@@ -57,6 +49,9 @@ locals {
     # DeployIfNotExists. Requires Monitoring Policy Contributor. Creates a
     # resource group, an action group and an alert rule in each subscription.
     service_health = "/providers/Microsoft.Authorization/policyDefinitions/98903777-a9f6-47f5-90a9-acaf62ab01a8"
+
+    # DenyAction. No identity required.
+    no_delete = "/providers/Microsoft.Authorization/policyDefinitions/78460a36-508a-49a4-b2b2-2f5ec564f4bb"
   }
 
   role_ids = {
@@ -73,19 +68,14 @@ locals {
 
 # Modify. Appends costCenter to resources that lack it.
 #
-# Security note worth stating rather than burying: this built in requires its
-# managed identity to hold Contributor, not Tag Contributor. Assigning it here
-# grants a policy created service principal Contributor across the whole
-# hierarchy. Tag Contributor would be sufficient for what the policy actually
-# does, but the required role list belongs to the definition and is not
-# something the assignment can narrow. A custom definition asking only for Tag
-# Contributor is the tighter option.
+# The built in requires Contributor, not Tag Contributor, so its identity gets
+# Contributor across the hierarchy. A custom definition could ask for less.
 module "append_cost_center_tag" {
   source = "../modules/policy-assignment"
 
   name                 = "append-costcenter"
   display_name         = "Append costCenter tag to resources"
-  description          = "Every resource in this lab carries costCenter so spend can be attributed and cleanup can find things. Applied at the intermediate root because it has no archetype specific behaviour."
+  description          = "Every resource in this lab carries costCenter so spend can be attributed and cleanup can find things. Applied at the intermediate root because it has no archetype specific behavior."
   management_group_id  = data.azurerm_management_group.intermediate_root.id
   policy_definition_id = local.definitions.add_tag
   location             = var.location
@@ -118,10 +108,7 @@ module "audit_subnets_without_nsg" {
 # Corp archetype only: inheritance is scope dependent
 # ---------------------------------------------------------------------------
 
-# Deny, and the archetype is the reason. Corp workloads reach the internet
-# through the hub so that egress can be inspected centrally. A public IP on a
-# network interface bypasses that path, which is why this is enforced here and
-# absent from Online, where direct internet connectivity is the point.
+# Deny at Corp only. Online is meant to have direct internet access.
 module "deny_public_ip_on_nic_corp" {
   source = "../modules/policy-assignment"
 
@@ -135,18 +122,34 @@ module "deny_public_ip_on_nic_corp" {
 }
 
 # ---------------------------------------------------------------------------
+# Platform only: things that must not be deleted
+# ---------------------------------------------------------------------------
+
+# At Platform, so a future platform workspace is covered too. It doesn't stop a
+# resource group delete; the lock in terraform/20 does. Destroying terraform/20
+# needs this removed first. ADR 0008 has the reasoning.
+module "deny_platform_workspace_delete" {
+  source = "../modules/policy-assignment"
+
+  name                 = "deny-platform-delete"
+  display_name         = "Platform Log Analytics workspaces cannot be deleted"
+  description          = "Every activity log and diagnostic setting in the hierarchy sends to the platform workspace, so deleting it silently breaks log collection everywhere. Assigned at Platform so a workspace added to any platform subscription is covered. Bypassed only by an exemption, which needs rights on this assignment, not just on the subscription."
+  management_group_id  = data.azurerm_management_group.platform.id
+  policy_definition_id = local.definitions.no_delete
+
+  parameters = {
+    effect                                   = "DenyAction"
+    listOfResourceTypesDisallowedForDeletion = ["Microsoft.OperationalInsights/workspaces"]
+  }
+
+  non_compliance_message = "Platform workspaces cannot be deleted. If this really has to go, ask the platform team for a policy exemption with an expiry."
+}
+
+# ---------------------------------------------------------------------------
 # Brownfield: the same Deny, evaluated but not enforced
 # ---------------------------------------------------------------------------
 
-# The identical policy assigned to a duplicated Corp management group with
-# enforcementMode DoNotEnforce. Subscriptions being adopted land here first.
-# Compliance is measured against the real target policy with no risk to running
-# workloads, and the subscription moves to Corp once its compliance is
-# acceptable, at which point enforcement takes effect without the policy set
-# changing at all.
-#
-# There is no additional cost. The hierarchy and the assignments are
-# duplicated, the workloads are not. See ADR 0005.
+# The Corp Deny with enforcement off. See ADR 0005.
 module "deny_public_ip_on_nic_corp_audit" {
   source = "../modules/policy-assignment"
 
@@ -165,10 +168,8 @@ module "deny_public_ip_on_nic_corp_audit" {
 # DeployIfNotExists: only once there is a workspace to point at
 # ---------------------------------------------------------------------------
 
-# Left out of the plan until terraform/20 creates the workspace in the management
-# subscription. A DeployIfNotExists assignment with no target is not a partial
-# configuration, it is a broken one: it would create an identity, grant it two
-# roles across the hierarchy, and remediate nothing.
+# Skipped until terraform/20 creates the workspace. Without a target it would
+# create an identity with two roles and remediate nothing.
 module "deploy_nsg_diagnostics" {
   source = "../modules/policy-assignment"
   count  = var.log_analytics_workspace_id == null ? 0 : 1
@@ -193,14 +194,10 @@ module "deploy_nsg_diagnostics" {
 # ---------------------------------------------------------------------------
 # Intermediate root: the subscription baseline
 # ---------------------------------------------------------------------------
-# Both of these configure every subscription under the intermediate root,
-# including ones vended later, which is why they are policy rather than
-# per subscription resources. DeployIfNotExists only acts when a subscription is
-# created or updated, so existing subscriptions need a one off remediation task;
-# the runbook covers it.
+# Policy, so subscriptions vended later get them too. Existing subscriptions
+# need a one off remediation task; the runbook covers it.
 
-# Activity log to the central workspace. Activity log ingestion into Log
-# Analytics is free, as are its first 90 days of retention.
+# Activity log ingestion into Log Analytics is free.
 module "deploy_activity_log" {
   source = "../modules/policy-assignment"
   count  = var.log_analytics_workspace_id == null ? 0 : 1
@@ -222,16 +219,14 @@ module "deploy_activity_log" {
   }
 }
 
-# Service Health alerts. Emails whoever is listed when Azure has an incident,
-# planned maintenance or an advisory affecting a subscription. The alert rule is
-# free and so are the first 1,000 emails a month.
+# Free: the alert rule, and the first 1,000 emails a month.
 module "deploy_service_health_alerts" {
   source = "../modules/policy-assignment"
   count  = length(var.alert_emails) == 0 ? 0 : 1
 
   name                 = "dine-service-health"
   display_name         = "Configure Service Health alerts in every subscription"
-  description          = "Each subscription gets a Service Health alert rule and an action group, so an Azure incident affecting it reaches the platform team rather than being found in the portal afterwards."
+  description          = "Each subscription gets a Service Health alert rule and an action group, so an Azure incident affecting it reaches the platform team rather than being found in the portal afterward."
   management_group_id  = data.azurerm_management_group.intermediate_root.id
   policy_definition_id = local.definitions.service_health
   location             = var.location

@@ -8,8 +8,7 @@ with the hub.
 
 The Bicep counterpart of
 [`terraform/modules/spoke-network`](../../../terraform/modules/spoke-network/).
-Everything it creates is free to leave running, which is the reason ADR 0004
-picked hub and spoke over Virtual WAN. The billable devices are in
+Everything it creates is free to leave running. The billable devices are in
 [`bicep/90-optional-network/billable.bicep`](../../90-optional-network/billable.bicep),
 behind flags.
 
@@ -63,29 +62,23 @@ The resource group is the module's deployment scope, not a parameter.
 ## Notes
 
 **`cidrSubnet` and Terraform's `cidrsubnet` agree.** Both derive three /24s and
-a /26 from the /22 and produce prefixes identical to
-[docs/ip-plan.md](../../../docs/ip-plan.md). Deriving rather than listing makes
-it impossible to hand a spoke a subnet outside its own allocation.
+a /26 from the /22, matching [docs/ip-plan.md](../../../docs/ip-plan.md), so no
+subnet can fall outside the spoke's allocation.
 
-**Subnets are inline on the virtual network, never child resources.** Mixing the
-two makes alternating deployments overwrite each other, which Microsoft
-documents. That also means the network security group and route table are
-attached inline rather than through separate association resources, which is the
-visible difference from the Terraform module.
+**Subnets are inline on the virtual network.** Mixing inline and child subnets
+makes deployments overwrite each other. So the network security group and route
+table are attached inline too, unlike the Terraform module's association
+resources.
 
 **A for-expression cannot go inside a ternary.** The peer routes only exist when
 there is a firewall, and writing that as `condition ? [] : [for ...]` fails with
 `BCP138`. `map()` with a lambda does the same job and is legal in that position.
 
-**The archetype is enforced by peering, not by the name.** `corp` gets a default
-route to the firewall and `useRemoteGateways`; `online` gets neither and
-therefore cannot reach on premises. ADR 0003 as a deployment rather than a
-convention.
+**The archetype is enforced by peering.** `corp` gets a default route to the
+firewall and `useRemoteGateways`; `online` gets neither, so it can't reach on
+premises.
 
-**Two subnets are deliberately left bare.** The Application Gateway subnet gets
-no network security group and no route table, because Application Gateway v2
-needs inbound 65200-65535 from `GatewayManager` and a default route to a
-firewall breaks its control plane. Both would do harm until a gateway is
-actually deployed there. The subnet carries a Waiver against the NSG audit, with
-an expiry, so the decision shows in the compliance report and comes back up for
-review.
+**The Application Gateway subnet is left bare**, with no network security group
+or route table. Application Gateway v2 needs inbound 65200-65535 from
+`GatewayManager`, and a default route to a firewall breaks its control plane.
+It carries a Waiver against the subnet audit, with an expiry.

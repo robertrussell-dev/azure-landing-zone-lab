@@ -10,15 +10,14 @@ correct answer.
 
 ![Hub and spoke network](diagrams/hub-spoke-network.svg)
 
-The diagram above is what the code actually builds. The rest of this page is the
-reasoning that got there.
+The diagram is what the code builds. The rest of this page is the reasoning.
 
 ---
 
 ## The whole plan on one page
 
 ```
-10.0.0.0/12                 AZURE TOTAL      10.0.0.0 - 10.15.255.255
+10.0.0.0/12                 AZURE TOTAL      10.0.0.0 to 10.15.255.255
 |
 +-- 10.0.0.0/14             REGION 1 (primary)
 |   |
@@ -183,15 +182,15 @@ Hub VNet: `10.0.0.0/20`, which is 10.0.0.0 to 10.0.15.255, 4096 addresses.
 | Shared services | `10.0.3.0/24` | jumpboxes, tooling |
 | Reserved | `10.0.4.0/22` and up | future hub growth |
 
-The four /26s tile `10.0.0.0/24` exactly. That's deliberate, and it's the reason
-the hub subnets can all be derived from one parent prefix in code.
+The four /26s tile `10.0.0.0/24` exactly, so the hub subnets can all be derived
+from one parent prefix in code.
 
 `RouteServerSubnet` is a /26, not a /27. Plenty of older material says /27 and
 Microsoft's own DDoS tutorial still shows one, but the current Route Server
 quickstarts all state /26 minimum and a /27 fails at create time. It matters
 here because a /26 starting at `10.0.1.0` runs to `10.0.1.63`, so anything laid
 out for a /27 there, like resolver /28s at `10.0.1.32` and `10.0.1.48`, would
-silently overlap it. The resolver endpoints start at `10.0.1.64`.
+overlap it. The resolver endpoints start at `10.0.1.64`.
 
 Subnet names in backticks are literal. Azure won't attach the service if they're
 spelled anything else, and the failure is a deployment error rather than a
@@ -236,8 +235,7 @@ than 256, and a /29 gives 3.
 
 ## Step 5: the AKS trap
 
-This is the part that catches people out, and it's worth settling before anyone
-deploys a cluster into a spoke.
+Settle this before anyone deploys a cluster into a spoke.
 
 **Azure CNI** assigns every pod an IP from the node subnet. Sizing is roughly
 `nodes x (maxPods + 1)`. A 50 node cluster at 30 pods per node needs over 1550
@@ -254,9 +252,6 @@ hub. Override it and put the service CIDR outside the whole `10.0.0.0/12`
 allocation, `172.31.0.0/16` for example. It's cluster-internal and never routed,
 so it only has to avoid overlapping anything the cluster needs to reach.
 
-It gets its own step because it's a real production failure rather than a
-theoretical one.
-
 ---
 
 ## Step 6: routing that follows from the plan
@@ -270,8 +265,8 @@ Because Corp is `10.1.0.0/16` and Online is `10.2.0.0/16`, the rules stay short.
   tunneling and inspection.
 * Corp spokes use gateway transit to reach on-prem through the hub's
   ExpressRoute or VPN gateway.
-* Online spokes don't get gateway transit at all, which is the actual
-  enforcement of the archetype rather than a naming convention.
+* Online spokes don't get gateway transit at all, which is what enforces the
+  archetype.
 * On-prem `10.200.0.0/13` and Partner A `172.20.0.0/16` are advertised into the
   hub and reach spokes through the firewall only.
 
@@ -289,6 +284,6 @@ The order this gets built in:
 5. Every spoke is a /22, allocated sequentially, never hand-picked.
 6. Settle the AKS serviceCidr and CNI sizing question early.
 
-The reasoning matters more than the specific numbers. What holds the plan
-together is reserving before allocating, knowing the mandatory subnet names and
-minimum sizes, and remembering that peering doesn't route on its own.
+The specific numbers matter less than reserving before allocating, knowing the
+mandatory subnet names and minimum sizes, and remembering that peering doesn't
+route on its own.

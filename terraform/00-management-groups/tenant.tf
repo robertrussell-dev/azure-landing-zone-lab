@@ -8,18 +8,10 @@ locals {
 # ---------------------------------------------------------------------------
 # Hierarchy settings
 # ---------------------------------------------------------------------------
-# Where a new subscription lands when nobody says otherwise, and who may create
-# management groups.
-#
-# Sandboxes is the default because it is the least trusted placement: a
-# subscription created outside vending starts somewhere with no route to on
-# premises and no platform connectivity until someone decides where it belongs.
-# Vended subscriptions are moved to their archetype straight away, so this only
-# catches the ones that were not.
-#
-# Without requireAuthorizationForGroupCreation any user in the tenant can
-# create management groups under the tenant root. With it, that needs write
-# permission on the tenant root group.
+# New subscriptions land in Sandboxes, the least trusted placement, until
+# someone places them. Vending places its own, so this only catches the rest.
+# Creating management groups needs write access on the tenant root group; by
+# default any user can.
 #
 # azapi because azurerm has no resource for these settings.
 resource "azapi_resource" "hierarchy_settings" {
@@ -29,8 +21,8 @@ resource "azapi_resource" "hierarchy_settings" {
 
   body = {
     properties = {
-      # The name, not the resource ID. The API accepts either but stores and
-      # returns the name, so an ID here reads as a change on every plan.
+      # The name, not the ID. The API stores the name, so an ID shows as a
+      # change on every plan.
       defaultManagementGroup               = azurerm_management_group.sandboxes.name
       requireAuthorizationForGroupCreation = true
     }
@@ -40,18 +32,11 @@ resource "azapi_resource" "hierarchy_settings" {
 # ---------------------------------------------------------------------------
 # A least privilege role for the hierarchy
 # ---------------------------------------------------------------------------
-# This lab runs with Owner at the root scope "/", and "/" accepts built in roles
-# only, so the narrowest grant there is Contributor over the whole tenant. The
-# tenant root group is an ordinary scope that accepts custom roles, so the
-# narrow alternative can be a real role rather than a paragraph: enough to
-# create, move and delete management groups and write the deployment records
-# that go with them, and nothing else. It covers the groups, which is the part
-# that changes over time. The hierarchy settings and the role itself are one off
-# setup, and need broader access than the role grants.
-#
-# Defined, not assigned. The action list covers what this directory creates; it
-# has not been exercised through an assignment. The role definition ID is fixed
-# so that the Bicep tree describes the same role rather than a second copy.
+# "/" only takes built in roles, so the narrowest grant there is Contributor
+# over the tenant. The tenant root group takes custom roles, so this one can
+# manage the groups and nothing else. It doesn't cover the settings above or
+# itself. Defined, not assigned or tested. The ID is fixed so the Bicep tree
+# defines the same role.
 resource "azurerm_role_definition" "hierarchy_deployer" {
   role_definition_id = "9eeae106-cb05-4621-8e59-1f2bea524ec3"
   name               = "${var.prefix} hierarchy deployer"

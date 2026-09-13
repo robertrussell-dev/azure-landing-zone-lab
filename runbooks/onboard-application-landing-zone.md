@@ -9,8 +9,7 @@ that are easy to hit and hard to diagnose.
 ## 1. What the workload team supplies
 
 Requested before anything is provisioned. A request missing any of these goes
-back rather than forward, because every one of them changes a platform decision
-that is expensive to reverse.
+back, because each one feeds a platform decision that's expensive to reverse.
 
 | Input | Why the platform team needs it |
 |---|---|
@@ -69,11 +68,9 @@ Subscriptions are not regional, and sizing is the workload team's business.
    part of vending rather than leaving the first deployment to discover it.
 
    **Register `Microsoft.PolicyInsights` even though no deployment asks for
-   it.** Without it the subscription reports no policy compliance at all: not
-   compliant, not non compliant, simply no records. Nothing fails, and the
-   silence is indistinguishable from a scan that has not run yet, which is a
-   very easy hour to lose. The error only surfaces if you trigger a scan
-   explicitly:
+   it.** Without it the subscription reports no compliance records at all.
+   Nothing fails, and it looks like a scan that hasn't run yet, which is an easy
+   hour to lose. The error only shows if you trigger a scan:
 
    ```bash
    az provider register --namespace Microsoft.PolicyInsights --subscription <id>
@@ -109,8 +106,8 @@ on. See ADR 0005.
 
 ## 4. Billing scope permissions are a separate model
 
-This is the most common blocker and it does not look like a permissions problem
-when you hit it.
+This is the most common blocker, and it doesn't look like a permissions
+problem when you hit it.
 
 Creating a subscription requires permission at the **billing scope**, which is
 a different system from Azure RBAC. Owner on the tenant root management group
@@ -145,9 +142,9 @@ new tenant, and the failure it produces does not mention registration:
 az provider register --namespace Microsoft.Subscription
 ```
 
-## 5. Azure Pipelines will not run until the organisation has billing
+## 5. Azure Pipelines will not run until the organization has billing
 
-A new Azure DevOps organisation gets **zero** Microsoft hosted parallel jobs.
+A new Azure DevOps organization gets **zero** Microsoft hosted parallel jobs.
 Microsoft made that change to stop free CI compute being used for crypto
 mining, and it applies to private projects as well as public ones.
 
@@ -155,7 +152,7 @@ The symptom is not an error. The run queues against the hosted pool, reports
 `notStarted`, has no validation results, and never begins. Nothing fails and
 nothing explains why.
 
-The fix is to link the organisation to an Azure subscription under
+The fix is to link the organization to an Azure subscription under
 **Organization settings, Billing**. The free grant is applied automatically
 once billing is configured: one parallel job, sixty minutes per run, 1,800
 minutes a month for private projects. Linking associates billing identity only
@@ -180,7 +177,7 @@ action 'Microsoft.Resources/subscriptions/resourcegroups/write' ...
 If access was recently granted, please refresh your credentials.
 ```
 
-The role assignment is genuinely there. `az role assignment list` shows Owner
+The role assignment is there. `az role assignment list` shows Owner
 at subscription scope, and the portal shows the same. The error's closing
 sentence about refreshing credentials is misleading: refreshing them does not
 help, and neither does waiting.
@@ -193,34 +190,22 @@ What to do, in order:
 2. `az login` to obtain a token issued after the role assignment.
 3. **Place the subscription in the management group hierarchy, then retry.**
 
-Step 3 is the one that actually works, and it is not obvious.
-
-On a subscription created through the alias API, the creator's Owner assignment
-is visible in `az role assignment list` and in the portal, and Resource Manager
-still refuses every write. Waiting does not fix it: this was observed to persist
-for over forty minutes, well past any normal propagation window, and a fresh
-`az login` did not change it either. The portal agreed with the CLI, omitting
-the subscription from the Create Resource Group picker while showing the user
-as Owner on it elsewhere.
-
-Moving the subscription under a management group where the operator holds Owner
-resolved it immediately. Authorization inherited from the management group is
-honoured where the subscription's own assignment was not.
+Step 3 is the one that works. I saw the refusal last over forty minutes, well
+past normal propagation, and a fresh `az login` didn't change it. The portal
+agreed, leaving the subscription out of the Create Resource Group picker while
+showing me as Owner elsewhere. Moving the subscription under a management group
+where I held Owner fixed it immediately.
 
 ```bash
-az account management-group subscription add   --name <management-group> --subscription <id>
+az account management-group subscription add \
+  --name <management-group> --subscription <id>
 ```
 
-Since placement is a required vending step anyway, the practical guidance is to
-**place the subscription before attempting to deploy into it**, rather than
-treating placement as something tidied up afterwards.
+So **place the subscription before deploying into it.** For automation, that
+means creating a subscription and configuring it aren't one atomic operation,
+and a pipeline that deploys straight after creating will fail intermittently.
 
-The practical consequence for automation: **creating a subscription and
-configuring it are not one atomic operation.** A pipeline that creates a
-subscription and immediately deploys into it will fail intermittently.
-
-Terraform makes this worse in a specific way. When a create fails partway, the
-resource is marked tainted, and the next plan proposes replacing it. For a
-subscription, replacement means cancellation. This is why
-`azurerm_subscription` in this repository carries `prevent_destroy`, and why
-recovering from a partial create is `terraform untaint` rather than a rerun.
+Terraform makes this worse. When a create fails partway, the resource is marked
+tainted and the next plan proposes replacing it, which for a subscription means
+cancellation. That's why `azurerm_subscription` here has `prevent_destroy`, and
+why recovering from a partial create is `terraform untaint`, not a rerun.

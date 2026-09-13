@@ -4,7 +4,7 @@ variable "tenant_id" {
 }
 
 variable "subscription_id" {
-  description = "Subscription used only to initialise the provider."
+  description = "Subscription used only to initialize the provider."
   type        = string
 }
 

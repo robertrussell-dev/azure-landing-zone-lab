@@ -1,11 +1,5 @@
-// The resource group that holds the central workspace, in the management
-// subscription.
-//
-// This file exists to change scope. main.bicep is a tenant deployment and a
-// resource group is a subscription level resource, so the resource group is
-// created here and the workspace inside it is created one scope further down,
-// in log-analytics-workspace.bicep. Passing the resource group symbol as the
-// module scope is what carries the dependency.
+// The resource group for the central workspace. A separate file because
+// main.bicep is tenant scoped and a resource group is a subscription resource.
 
 targetScope = 'subscription'
 
@@ -20,7 +14,7 @@ resource managementLogs 'Microsoft.Resources/resourceGroups@2025-04-01' = {
   location: location
   tags: {
     costCenter: 'lab'
-    autoDelete: 'true'
+    autoDelete: 'false'
   }
 }
 

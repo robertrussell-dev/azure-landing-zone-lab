@@ -10,36 +10,30 @@ is the maintained Terraform pattern module for it. Either would deploy this
 management group hierarchy, plus several hundred policy definitions and
 assignments, in a single apply.
 
-This platform does not use them. Anyone arriving later will want to know
-whether that was deliberate.
+This platform doesn't use them, and this records why.
 
 ## Decision
 
 **Hand roll the hierarchy, the policy assignments and the subscription
 vending.**
 
-This is not a judgement that the accelerator is wrong. For an estate that needs
-governance breadth, it is the correct choice and hand rolling is not.
+The accelerator isn't wrong. For an estate that needs governance breadth, it's
+the right choice and hand rolling isn't.
 
 ## Why
 
-This platform was built to develop operational understanding of the mechanics
-before adopting a prebuilt set of them. Introduce too much prebuilt template
-before understanding it and the result is harder to reason about and harder to
-debug, not easier.
+I built this to understand the mechanics before adopting a prebuilt set of
+them.
 
-The principle underneath that: **you cannot operate what you cannot debug.**
-The accelerator assigns several hundred policies. When one of them blocks a
-release, someone has to know why it exists, at what scope it is assigned, and
-whether the correct response is an exemption, a scope change, or refusing the
-request. Deploying that set without understanding the mechanics produces an
-estate nobody can reason about, and the first time that matters is during an
-incident.
+The accelerator assigns several hundred policies. When one blocks a release,
+someone has to know why it exists, where it's assigned, and whether the answer
+is an exemption, a scope change, or refusing the request. Without understanding
+the mechanics, that first comes up during an incident.
 
 ## What building it surfaced
 
-These appeared only because something failed. A successful accelerator run
-produces none of them:
+Each of these turned up because something failed, which an accelerator run
+wouldn't have shown:
 
 - The built in "Subnets should be associated with a Network Security Group"
   permits only `AuditIfNotExists` or `Disabled`. It cannot be used as a Deny,
@@ -53,27 +47,25 @@ produces none of them:
 - A newly vended subscription refuses every write, despite showing its creator
   as Owner, until it is placed in a management group.
 - `Microsoft.PolicyInsights` is unregistered by default. Without it a
-  subscription reports no policy compliance at all, and the silence is
-  indistinguishable from a scan that has not run.
+  subscription reports no policy compliance, which looks the same as a scan
+  that hasn't run.
 - A Modify policy and Terraform will contend over the same tag indefinitely
   unless an owner for that field is declared.
 
-Each is knowledge required to operate an accelerator deployed estate.
+Operating an accelerator deployed estate needs all of these.
 
 ## What it costs
 
-**Five policy assignments against the accelerator's several hundred.** This is
-a demonstration of policy mechanics, not a governance baseline. An estate that
-needs breadth should take it from the accelerator rather than reproduce it by
-hand.
+**Eight policy assignments against the accelerator's several hundred.** This
+shows policy mechanics, not a governance baseline. An estate that needs breadth
+should take it from the accelerator.
 
 **Maintenance.** The accelerator tracks Azure as services are added. This
 configuration does not, and will drift within months.
 
 ADR 0006 recommends `Deploy-Private-DNS-Zones`, an accelerator initiative, as
-the right implementation of centralised private DNS. That is the shape of the
-position: take breadth from the maintained thing, and understand it well enough
-to explain any part of it.
+the right implementation of centralized private DNS: take breadth from the
+maintained thing, and understand it well enough to explain any part of it.
 
 ## Consequences
 
@@ -82,8 +74,6 @@ to explain any part of it.
 - The policy set is not a governance baseline, and the README says so.
 - Operating the accelerator is a separate skill, with substantial configuration
   surface of its own, and building these parts by hand does not exercise it.
-- Adopting the accelerator later is the expected path rather than a reversal.
-  The trigger is demonstrated proficiency operating what is here, plus a real
-  need for the breadth and standardisation it provides. This decision would
-  then be revised, and the mechanics learned here are what make its output
-  reviewable.
+- Adopting the accelerator later is the expected path, not a reversal. The
+  trigger is a real need for its breadth, and what's learned here is what makes
+  its output reviewable.

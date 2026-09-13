@@ -12,31 +12,28 @@ hosts the Log Analytics workspace and automation. Connectivity hosts the hub,
 private DNS zones and any gateways. Security hosts Microsoft Sentinel and SIEM
 tooling.
 
-Microsoft's position on this is not a preference. The subscriptions design area
-states it as a prohibition:
+Microsoft states this as a rule, in the subscriptions design area:
 
 > Establish a separate dedicated platform subscriptions for `management`,
 > `security`, `connectivity`, and `identity`. Do not combine platform
 > responsibilities into a single subscription.
 
-The pressure to ignore that is real and it comes from operations, not
-architecture. Every platform subscription is another thing to run.
+The pressure to ignore it comes from operations: every platform subscription
+is another thing to run.
 
 ## Decision
 
 Keep all four. Do not collapse Security into Management, and do not collapse
 the platform into a single subscription.
 
-The reason is organisational before it is technical. At enterprise scale these
-areas have dedicated people: a network team, an identity team, a security
-operations function. Separate subscriptions let access be granted along those
-lines rather than across them, and let one area be locked down or audited
-without touching the others.
+The reason is mostly organizational. At enterprise scale these areas have
+dedicated people: a network team, an identity team, a security operations
+function. Separate subscriptions let access follow those lines, and let one
+area be locked down or audited without touching the others.
 
 ## The trade-off
 
-Four subscriptions costs administrative surface area, and the cost is
-concrete rather than vague:
+Four subscriptions cost administrative effort:
 
 - Four sets of RBAC assignments, and four sets of PIM eligible role
   configurations if privileged access is time bound.
@@ -54,24 +51,20 @@ concrete rather than vague:
   grouping. This is the cost the platform team actually feels day to day.
 
 Collapsing Security into Management costs something narrower and worse. The
-Security subscription holds Sentinel, which is the record of what the platform
-team did. Move it into the subscription the platform team owns, and the team
-being monitored controls the monitoring of itself. That is not a theoretical
-separation of duties argument. It means an incident review depends on evidence
-held by a party with an interest in it.
+Security subscription holds Sentinel, which records what the platform team did.
+Move it into the platform team's own subscription and an incident review
+depends on evidence held by the team being reviewed.
 
 If the same three people run the platform and the security tooling, nothing is
-lost, because the separation was never real. The question is not whether the
-subscriptions are separate. It is whether the people are.
+lost, because the separation was never real. What matters is whether the people
+are separate, not the subscriptions.
 
 ## What separation does not buy
 
-The obvious objection to this decision is that the platform team holds Owner on
-all four subscriptions anyway, and any Global Administrator can grant themselves
-User Access Administrator at tenant root scope at any time. If the boundary can
-be crossed at will, it is reasonable to ask what it is for.
-
-Three things, and one clear limit.
+The obvious objection is that the platform team holds Owner on all four
+subscriptions anyway, and any Global Administrator can grant themselves User
+Access Administrator at tenant root at any time. So what is the boundary for?
+It buys three things, with one limit.
 
 **The boundary becomes expressible.** A security team can be granted the
 Security subscription without being granted the hub, the gateways or the domain
@@ -79,7 +72,7 @@ controllers. That grant is only possible if those things are in different
 subscriptions. Merging subscriptions later is cheap. Separating them costs the
 migration described above, so the cost of getting this wrong is asymmetric.
 
-**Privileged access becomes an event rather than a standing condition.** With
+**Privileged access becomes an event, not a standing condition.** With
 Privileged Identity Management, Owner on the Security subscription is eligible
 rather than active: time bound, requiring justification, optionally requiring
 approval, and logged on activation. The question stops being "can the platform
@@ -89,8 +82,8 @@ team reach Sentinel" and becomes "can they reach it without leaving a record."
 Security subscription is a meaningful signal. Activity inside a subscription
 somebody works in every day is not.
 
-The limit, stated plainly: none of this defends against a Global Administrator
-who elevates to tenant root. That path exists by design, and it is how this
+The limit: none of this defends against a Global Administrator who elevates to
+tenant root. That path exists by design, and it is how this
 hierarchy was created in the first place. Subscription layout is not the control
 for that threat. The controls are a small number of Global Administrators, PIM
 on the role itself, monitored break glass accounts, and exporting logs to
@@ -101,12 +94,11 @@ record. It does not make it impossible.
 
 ## What splitting back out actually costs
 
-"We can separate them later" is true and not free. Moving a Log Analytics
-workspace between subscriptions has verified constraints:
+"We can separate them later" is true, but not free. Moving a Log Analytics
+workspace between subscriptions has these constraints:
 
-- The move works only within the same region and the same Entra tenant. A
-  cross region move is not a move, it is a rebuild, because workspace data does
-  not travel across regions.
+- The move works only within the same region and Entra tenant. Workspace data
+  doesn't cross regions, so a region change is a rebuild.
 - Sentinel is offboarded from the workspace immediately. The workspace must be
   re-onboarded within 90 days to preserve existing Sentinel data.
 - Alerts must be recreated. Alert permissions are keyed to the workspace
@@ -119,10 +111,9 @@ workspace between subscriptions has verified constraints:
 - The operation can take Azure Resource Manager several hours, during which
   solutions may be unresponsive.
 
-The honest summary is that this is a weekend of planned work, not a barrier.
-It is a reason to decide deliberately rather than drift into a layout, but an
-ADR that presented it as a blocker would be overstating it. Any organisation
-that has grown enough to need the split can afford the weekend.
+That's a weekend of planned work, not a barrier. It's a reason to choose the
+layout on purpose, but any organization big enough to need the split can
+afford the weekend.
 
 ## Alternatives considered
 
@@ -137,8 +128,7 @@ notional anyway: the same individual holds both sets of rights whichever way
 the subscriptions are drawn.
 
 It stops being defensible at the first hire whose job is to review what the
-platform team did. At that point the separation is the job, and the migration
-cost below becomes due.
+platform team did. At that point the migration cost above becomes due.
 
 **Collapse all four into one platform subscription.** Rejected. Beyond the
 audit argument, it puts domain controllers, the hub and the SIEM inside one
@@ -160,5 +150,5 @@ trigger.
   dependency rather than an implicit one.
 - This repo runs on a personal billing account. Connectivity and Management get
   real subscriptions. Identity and Security exist as management groups with no
-  subscription beneath them. That is a funding limit of the lab, not a
-  revision of this decision. See the README.
+  subscription beneath them. That's a limit of the lab's budget, not a change
+  to this decision. See the README.

@@ -11,21 +11,19 @@ peerings, the route tables and any network virtual appliance. Virtual WAN means
 Microsoft operates regional hubs for you, with any to any transitive routing
 between connected virtual networks and branches.
 
-The choice is not primarily technical. Both carry traffic. The difference is
-who does the routing work and what it costs to have the capability sitting
-there.
+Both carry traffic. The difference is who does the routing work, and what it
+costs to have the capability sitting there.
 
 ## Decision
 
 **Hub and spoke, for this platform.**
 
-The reasons are specific to a lab and do not generalise. The criteria that
-would apply to a production estate are set out below, separately.
+The reason is specific to a lab and doesn't generalize. The criteria a
+production estate should use are set out separately below.
 
-## The cost difference is real and measurable
+## The cost difference
 
-Retail prices, West US 2, USD, checked against the Azure retail prices API on
-2026-09-06. Verify before reusing these, they move.
+Retail prices, West US 2, USD, from the Azure retail prices API on 2026-09-06.
 
 | Item | Price | Standing monthly cost |
 |---|---|---|
@@ -36,26 +34,21 @@ Retail prices, West US 2, USD, checked against the Azure retail prices API on
 | Azure Firewall Standard, secured virtual hub | 1.25 per hour | about 912 |
 | VPN Gateway VpnGw5 | 3.65 per hour | about 2,665 |
 
-The line that decides it here: **a Virtual WAN hub bills by the
-hour for existing, and a hub and spoke topology built from virtual networks and
-peerings bills nothing at rest.** Virtual networks, subnets, peerings and
-private DNS zones can be left deployed indefinitely on a personal card. A
-Virtual WAN hub cannot.
+What decides it here: **a Virtual WAN hub bills by the hour just for existing,
+and virtual networks and peerings bill nothing at rest.** The hub and spoke
+networks can stay deployed on a personal card, with only the billable devices
+brought up on demand. A Virtual WAN hub can't.
 
-That is what makes the deploy, screenshot, destroy approach in Phase 4 possible
-at all, and it is why the network stack here is not left running.
+## Why that reason does not generalize
 
-## Why that reason does not generalise
-
-About 182 dollars a month is a rounding error to any organisation with a
-platform team. Presenting a lab's cost constraint as the enterprise argument
-would be dishonest. The lab reason is set aside here, and the decision is
-examined on the criteria that would apply to a production estate.
+About 182 dollars a month is a rounding error to any organization with a
+platform team, so the lab's reason is set aside and the criteria below are the
+ones a production estate would use.
 
 ## Microsoft's selection criteria
 
-Microsoft does not name a default. It gives conditions for each, and the
-numeric threshold is the useful part.
+Microsoft doesn't name a default. It gives conditions for each, including a
+numeric threshold.
 
 **Virtual WAN** when any of these apply:
 
@@ -65,7 +58,7 @@ numeric threshold is the useful part.
   **more than 30 branch sites** needing native IPSec termination.
 - Transitive routing required between VPN and ExpressRoute, for example remote
   branches on site to site VPN needing to reach an ExpressRoute connected
-  datacentre through Azure.
+  datacenter through Azure.
 
 **Traditional hub and spoke** when any of these apply:
 
@@ -76,57 +69,50 @@ numeric threshold is the useful part.
 - A requirement for full control and granularity to configure Azure network
   routing policy manually.
 
-Thirty site to site tunnels is the practical dividing line, and it is a
-question a platform team can answer at design time rather than a matter of
-taste.
+Thirty site to site tunnels is the practical dividing line, and a platform
+team can answer that at design time.
 
 ## What the choice actually trades
 
-Underneath the criteria the trade is operational effort against control, and
-cost sits on top of it.
+Underneath the criteria, the trade is operational effort against control, plus
+cost.
 
 Hub and spoke means the platform team owns routing. Route tables and user
 defined routes on every spoke, next hop to the inspection appliance, route
 propagation on the gateway subnet, and non transitive peering that has to be
-arranged deliberately for every path. That is a standing operational load and
-it fails in ways that need someone who understands it.
+arranged for every path. That's a standing operational load, and when it fails
+it needs someone who understands it.
 
 Virtual WAN removes most of that. Regional hubs are managed, any to any
 transitive routing between connected networks is the default rather than
 something constructed, and branch connectivity scales without a design per
-site. In exchange you work inside its routing model, so a requirement it does
-not express becomes a problem rather than a configuration.
+site. In exchange you work inside its routing model, and a requirement it can't
+express becomes a problem.
 
-Neither is the sophisticated choice. The organisation with 200 branches
-choosing hub and spoke and the organisation with three spokes in one region
-paying for a managed hub are both getting it wrong, in opposite directions.
+An organization with 200 branches choosing hub and spoke and one with three
+spokes in one region paying for a managed hub are both wrong, in opposite
+directions.
 
 ## No spoke to spoke peering
 
-Independent of the topology choice, and the part people get wrong.
+This applies whichever topology is chosen.
 
-Spokes are peered to the hub and never to each other. Virtual network peering
-is not transitive, so this is not merely a convention: without a route table
-sending spoke to spoke traffic through the hub, that traffic does not flow at
-all.
+Spokes are peered to the hub and never to each other. Peering isn't
+transitive, so without a route table sending spoke to spoke traffic through the
+hub, it doesn't flow at all. Direct spoke peering would make it flow and skip
+central inspection. Routing every path through the hub means one place sees
+east west traffic.
 
-Direct spoke to spoke peering would make it flow, and would bypass central
-inspection. Every path between workloads crosses the hub deliberately, so that
-one place sees east west traffic. The peering topology is the enforcement
-mechanism, not a diagram convention.
-
-The cost is a latency hop and a dependency on the hub appliance being
-available, which becomes a single point of failure that has to be designed for.
-That is the trade being made, and it is made on purpose.
+The cost is a latency hop, and the hub appliance becomes a single point of
+failure that has to be designed for.
 
 ## Consequences
 
-- The network stack is deployed on demand and destroyed the same day. Nothing
-  about the topology choice would survive a move to Virtual WAN unexamined.
+- The free network layer stays deployed; billable devices are brought up on
+  demand and taken down the same day.
 - Route tables and user defined routes are the platform team's responsibility
   and the main source of routing incidents.
-- Adding a second region means designing inter hub connectivity by hand, which
-  is precisely the work Virtual WAN would have absorbed. A second region is
-  the trigger to reopen this decision.
-- The criteria above are what a production estate should apply. The answer
-  reached here follows from a constraint a production estate does not have.
+- A second region means designing inter hub connectivity by hand, which is the
+  work Virtual WAN would absorb. A second region is the trigger to revisit this.
+- A production estate should apply the criteria above. The answer here follows
+  from a constraint it doesn't have.

@@ -4,9 +4,7 @@
 # Shared by both CI definitions. The pipelines install Bicep and call this; they
 # do not reimplement it. See docs/ci-security.md for why there are two.
 #
-# The Terraform equivalent is validate-terraform.sh, and this deliberately
-# mirrors it: format first, then a check that every root actually compiles, then
-# the parameter files against the templates they claim to configure.
+# Mirrors validate-terraform.sh: format, compile, then the parameter files.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -16,16 +14,8 @@ if ! command -v bicep > /dev/null 2>&1; then
   exit 1
 fi
 
-# Format check runs over git tracked files only, for the same reason
-# validate-terraform.sh does. main.bicepparam is gitignored and holds one
-# operator's tenant and subscription IDs, so a check that walked the working
-# tree would fail locally and pass in CI on a file that is not in the
-# repository. A check that only fails on the developer's machine is a check
-# people learn to ignore.
-#
-# There is no "bicep format --check". Formatting to stdout and comparing is the
-# equivalent, and the file list is small enough that the extra process per file
-# costs nothing.
+# Tracked files only, so the gitignored main.bicepparam can't fail it locally.
+# There's no "bicep format --check", so this formats to stdout and compares.
 echo "==> bicep format check, tracked files only"
 mapfile -t bicep_files < <(git ls-files 'bicep/*.bicep' 'bicep/*.bicepparam')
 
@@ -48,24 +38,16 @@ fi
 
 failed=0
 
-# Every .bicep file, not only the four roots. A module is compiled anyway when
-# a root that calls it is compiled, but compiling it on its own is what catches
-# a module nothing calls yet, which is exactly the state a half finished
-# refactor leaves behind.
-#
-# Compilation needs no Azure credentials and reaches no Azure API. Resource type
-# schemas are embedded in the CLI, which is the reason the pinned version in
-# install-bicep.sh matters.
+# Every .bicep file, so a module nothing calls yet still gets compiled. This is
+# offline; the schemas ship with the pinned CLI.
 echo "==> bicep build"
 while IFS= read -r f; do
   echo "  ${f}"
   bicep build "$f" --stdout > /dev/null || failed=1
 done < <(git ls-files 'bicep/*.bicep')
 
-# Parameter files are compiled against the template their "using" statement
-# names, so a parameter that was renamed in the template fails here rather than
-# at deployment time. Only the committed examples exist to check; a real
-# main.bicepparam is gitignored.
+# Each committed example against its template, so a renamed parameter fails
+# here.
 echo "==> bicep build-params"
 while IFS= read -r f; do
   echo "  ${f}"

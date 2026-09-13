@@ -1,27 +1,12 @@
-// Management group hierarchy, composed by hand.
+// Management group hierarchy, the Bicep counterpart of
+// terraform/00-management-groups.
 //
-// The Bicep counterpart of terraform/00-management-groups: same tree, same
-// reasons. ALZ-Bicep would generate this and a great deal more; ADR 0007 records
-// why it is not used.
-//
-// Scope. Management groups are tenant level resources, but this runs at the
-// tenant root management group and creates each group with scope: tenant():
+// A management group deployment at the tenant root group, with scope: tenant()
+// on every group, so it doesn't need a role at "/". bicep/README.md explains.
 //
 //   az deployment mg create --management-group-id <tenantId> \
 //     --location westus2 --template-file main.bicep \
 //     --parameters main.bicepparam
-//
-// The groups land in the same place either way. What changes is the access the
-// operator needs. A tenant deployment needs a role at "/", which takes built in
-// roles only, so the narrowest grant there is Contributor over the whole
-// tenant. The tenant root management group accepts custom roles, so the grant
-// can be limited to deployments and management groups. Microsoft documents this
-// shape for principals that cannot deploy at the tenant:
-// https://learn.microsoft.com/azure/azure-resource-manager/bicep/deploy-to-management-group#management-group
-//
-// The cost is that every group below has to state scope: tenant() explicitly.
-// 20-subscription-placement has no such option, because subscription aliases
-// are tenant scoped.
 
 targetScope = 'managementGroup'
 
@@ -36,19 +21,12 @@ param intermediateRootDisplayName string
 // ---------------------------------------------------------------------------
 // Intermediate root
 // ---------------------------------------------------------------------------
-// Everything hangs off this, not off the tenant root group directly. Building
-// under an intermediate root is what allows existing subscriptions to be moved
-// in, and the structure below to be reorganised, without ever touching the
-// tenant root group.
+// Everything hangs off this, so subscriptions can be moved in and the tree
+// reorganized without touching the tenant root group.
 //
-// The parent is stated rather than left to the default. Omitting details.parent
-// does place a new group under the tenant root, and that is what the Terraform
-// version relies on, but it reads as an omission rather than a decision and it
-// is not free: against the deployed hierarchy, what-if reports this as removing
-// properties.details from the one group in the tree whose placement the ADRs
-// argue about. Naming it costs a line and the diff goes away.
-//
-// The tenant root management group's ID is the tenant ID.
+// The parent is explicit. Omitting it also lands under the tenant root, but
+// what-if reads the omission as removing the parent. The tenant root management
+// group's ID is the tenant ID.
 resource intermediateRoot 'Microsoft.Management/managementGroups@2023-04-01' = {
   scope: tenant()
   name: prefix
@@ -67,10 +45,6 @@ resource intermediateRoot 'Microsoft.Management/managementGroups@2023-04-01' = {
 // ---------------------------------------------------------------------------
 // Written as explicit resources rather than a loop. There are only four, they
 // are not interchangeable, and each one exists for a different reason.
-//
-// Referencing intermediateRoot.id is also what orders the deployment. Bicep
-// infers the dependency from the reference, so there is no dependsOn to keep in
-// step with the tree.
 
 // Platform holds the subscriptions that serve every other landing zone.
 resource platform 'Microsoft.Management/managementGroups@2023-04-01' = {
@@ -100,9 +74,8 @@ resource landingZones 'Microsoft.Management/managementGroups@2023-04-01' = {
   }
 }
 
-// Sandboxes are deliberately loose. Subscriptions here are for experimentation
-// and are isolated from the hub, so policy here is permissive by design rather
-// than by neglect.
+// Sandboxes are for experimentation, isolated from the hub, with permissive
+// policy.
 resource sandboxes 'Microsoft.Management/managementGroups@2023-04-01' = {
   scope: tenant()
   name: '${prefix}-sandboxes'
@@ -116,9 +89,8 @@ resource sandboxes 'Microsoft.Management/managementGroups@2023-04-01' = {
   }
 }
 
-// Decommissioned holds subscriptions on their way out. Cancelled subscriptions
-// are moved here so that policy can keep them locked down during the retention
-// window before deletion becomes permanent.
+// Decommissioned holds canceled subscriptions, locked down by policy until their
+// retention window ends.
 resource decommissioned 'Microsoft.Management/managementGroups@2023-04-01' = {
   scope: tenant()
   name: '${prefix}-decommissioned'
@@ -135,19 +107,11 @@ resource decommissioned 'Microsoft.Management/managementGroups@2023-04-01' = {
 // ---------------------------------------------------------------------------
 // Tier 2: platform children
 // ---------------------------------------------------------------------------
-// Each of these is a management group that will contain a subscription, not a
-// subscription placed directly under Platform. Microsoft describes Connectivity
-// as "dedicated subscriptions, commonly a single subscription for most
-// organizations". The management group layer exists so a second connectivity
-// subscription can be added later without restructuring the tree or reassigning
-// policy.
+// Groups, not subscriptions placed directly under Platform, so a second
+// connectivity subscription can be added later without reassigning policy.
 //
-// These four are structurally identical, so they are written as a loop. The
-// array keeps the data separate from the resource shape.
-//
-// Bicep loops are positional where Terraform's for_each is keyed, but nothing
-// here depends on position: ARM addresses a resource by its name, so reordering
-// this array changes the order of deployment and nothing else.
+// These four are identical in shape, so they're a loop. Position doesn't
+// matter; ARM addresses each group by name.
 var platformChildren = [
   {
     key: 'identity'
@@ -226,17 +190,8 @@ resource landingZoneArchetype 'Microsoft.Management/managementGroups@2023-04-01'
 // ---------------------------------------------------------------------------
 // Brownfield adoption target
 // ---------------------------------------------------------------------------
-// A duplicate of the Corp archetype carrying the same policy assignments with
-// enforcementMode set to DoNotEnforce.
-//
-// Subscriptions being adopted from an existing estate are placed here first.
-// They are evaluated against the policies they will eventually be held to,
-// and nothing is blocked while that assessment happens. When compliance is
-// acceptable the subscription moves to Corp, and enforcement begins without
-// any policy being rewritten.
-//
-// This duplicates the hierarchy and the assignments. It does not duplicate any
-// workload, so it costs nothing. See ADR 0005.
+// A copy of Corp with the same policy assignments set to DoNotEnforce. Adopted
+// subscriptions start here and move to Corp once compliant. See ADR 0005.
 resource landingZoneCorpAudit 'Microsoft.Management/managementGroups@2023-04-01' = {
   scope: tenant()
   name: '${prefix}-lz-corp-audit'
@@ -253,23 +208,17 @@ resource landingZoneCorpAudit 'Microsoft.Management/managementGroups@2023-04-01'
 // ---------------------------------------------------------------------------
 // Tenant wide settings on the tenant root group
 // ---------------------------------------------------------------------------
-// Both belong on the tenant root group, so this file runs there rather than at
-// any management group: the role is created at the deployment's own scope, and
-// hierarchy settings only exist on the tenant root group. Both are free.
+// Both belong on the tenant root group, which is why this file deploys there.
 
-// Named from the tenant ID rather than the deployment scope, so the settings
-// can only ever land on the tenant root group.
+// Named from the tenant ID, so the settings can only land on the tenant root.
 resource tenantRootGroup 'Microsoft.Management/managementGroups@2023-04-01' existing = {
   scope: tenant()
   name: tenant().tenantId
 }
 
-// Where a new subscription lands when nobody says otherwise, and who may create
-// management groups. Sandboxes is the least trusted placement, so a
-// subscription created outside vending starts with no route to on premises
-// until someone decides where it belongs. Without
-// requireAuthorizationForGroupCreation any user in the tenant can create
-// management groups under the tenant root.
+// New subscriptions land in Sandboxes, the least trusted placement, until
+// someone places them. Creating management groups needs write access on the
+// tenant root group; by default any user can.
 resource hierarchySettings 'Microsoft.Management/managementGroups/settings@2023-04-01' = {
   parent: tenantRootGroup
   name: 'default'
@@ -280,17 +229,9 @@ resource hierarchySettings 'Microsoft.Management/managementGroups/settings@2023-
   }
 }
 
-// A least privilege role for the hierarchy. The root scope "/" accepts built in
-// roles only, so the narrowest grant there is Contributor over the whole tenant.
-// The tenant root group accepts custom roles, so the narrow alternative can be
-// a real role: enough to create, move and delete management groups and run the
-// deployments that do it. It covers the groups, which is the part that changes
-// over time; the hierarchy settings and the role itself are one off setup that
-// needs broader access.
-//
-// Defined, not assigned. The action list covers what this file creates; it has
-// not been exercised through an assignment. The ID matches the Terraform tree so
-// both describe the same role.
+// Enough to manage the groups and nothing else, as an alternative to
+// Contributor at "/". Defined, not assigned or tested. The ID matches the
+// Terraform tree.
 resource hierarchyDeployer 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   name: '9eeae106-cb05-4621-8e59-1f2bea524ec3'
   properties: {
@@ -316,10 +257,8 @@ resource hierarchyDeployer 'Microsoft.Authorization/roleDefinitions@2022-04-01' 
 @description('Resource ID of the intermediate root management group.')
 output intermediateRootId string = intermediateRoot.id
 
-// The looped groups are named rather than indexed here. A Bicep resource loop
-// has no keyed collection to project, so reaching them by symbolic name would
-// mean mapping over range(0, length(...)) and indexing back. tenantResourceId
-// builds the same IDs from the same data with less ceremony.
+// Built with tenantResourceId, because a resource loop has no keyed collection
+// to project.
 @description('Every management group in the hierarchy, keyed by short name.')
 output managementGroupIds object = union(
   {
@@ -342,13 +281,7 @@ output managementGroupIds object = union(
   )
 )
 
-// The tenant this actually deployed to.
-//
-// The azurerm provider pins tenant_id and subscription_id in configuration, so
-// a stray "az account set" cannot send an apply to the wrong tenant. A Bicep
-// deployment has no equivalent: the scope comes from the CLI context, and
-// nothing in the file can constrain it. Emitting it means "az deployment tenant
-// what-if" shows which tenant is about to be written to, which is the closest
-// this gets to the same guard. Check it before applying.
+// Bicep can't pin a tenant the way the azurerm provider does, so what-if shows
+// this instead. Check it before the first deployment.
 @description('Tenant the deployment ran against. Compare with az account show --query tenantId before applying.')
 output deployedToTenantId string = tenant().tenantId

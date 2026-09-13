@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
 # Install the lychee link checker on a Linux CI runner.
 #
-# Shared by both CI definitions. Tool installation that is genuinely identical
-# belongs in a script for the same reason the checks themselves do. To run the
-# checks locally, install the tools once with a package manager instead; see
-# "Running the checks locally" in README.md.
+# Shared by both CI definitions. To run the checks locally, install the tools
+# with a package manager instead; see "Running the checks locally" in README.md.
 #
-# The version is pinned. "latest" makes the build depend on whatever was
-# released this morning, which turns an unrelated upstream change into a broken
-# pipeline on a day nobody touched this repository.
+# Pinned, so an upstream release can't break the build on its own.
 set -euo pipefail
 
 # The release tag carries the project name: "lychee-v0.24.2", not "v0.24.2".

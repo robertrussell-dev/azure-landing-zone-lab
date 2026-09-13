@@ -44,13 +44,10 @@ The subscription is the module's deployment scope, not a parameter.
 
 ## Notes
 
-**No resource provider registration, unlike the Terraform module.** A Bicep
-deployment registers the providers for the resource types it declares, so
-deploying these two resources registers `Microsoft.Security` on its own.
-Terraform has to register it explicitly. Nothing here declares a
-`Microsoft.PolicyInsights` type, though, so a subscription deployed only from
-the Bicep tree has to have that registered separately before it reports policy
-compliance.
+**No resource provider registration, unlike the Terraform module.** Deploying
+these resources registers `Microsoft.Security` automatically. Nothing declares
+a `Microsoft.PolicyInsights` type, so a subscription deployed only from the
+Bicep tree needs that registered separately before it reports compliance.
 
 **`Free`, never `Standard`.** `CloudPosture` at `Free` is Foundational CSPM,
 which costs nothing. `Standard` is the paid Defender CSPM plan, billed per

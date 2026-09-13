@@ -8,9 +8,8 @@ more expensive as you go down.
 
 ### 1. Check the virtual network's DNS servers first
 
-Do this before anything else. It decides which of two entirely different
-failure modes you are in, and skipping it is why this problem gets
-misdiagnosed.
+Do this first. It tells you which of two different failure modes you're in, and
+skipping it is how this gets misdiagnosed.
 
 ```bash
 az network vnet show -g <rg> -n <vnet> --query dhcpOptions.dnsServers
@@ -45,11 +44,10 @@ DNS is working. The problem is elsewhere. Move on to:
   Public network access set to Disabled rejects the connection at the front
   door regardless of how it was resolved
 
-Worth knowing: **DNS resolution and access control are independent.** The
-public CNAME chain for `privatelink.<service>...` is deliberately resolvable
-from anywhere on the internet so hybrid and migration scenarios keep working.
-A successful lookup proves a resource with that name exists. It proves nothing
-about whether you can reach it.
+**DNS resolution and access control are independent.** The public CNAME chain
+for `privatelink.<service>...` resolves from anywhere on the internet, so that
+hybrid and migration scenarios keep working. A successful lookup proves the
+resource exists, not that you can reach it.
 
 ### 4. A public IP came back
 
@@ -57,9 +55,9 @@ The private DNS zone is not being consulted for this query. Either:
 
 - The zone is not linked to the virtual network the client is in. A zone linked
   to the hub does not serve a spoke. **Resolution follows the virtual network
-  link, not the peering.** This is the single most common misunderstanding
-  here: peering carries traffic, links carry name resolution, and they are
-  configured separately.
+  link, not the peering.** This is the most common misunderstanding: peering
+  carries traffic, links carry name resolution, and they're configured
+  separately.
 - The zone is linked but has no A record for this resource, which happens when
   the private endpoint was created without the automatic zone group, or the
   zone name does not match the required name for that service exactly.
@@ -69,8 +67,8 @@ The private DNS zone is not being consulted for this query. Either:
 The zone is authoritative for the namespace and has no matching record. Two
 causes, and they need different fixes.
 
-**The record is genuinely missing.** Check the private endpoint's DNS zone
-group actually created it.
+**The record is missing.** Check that the private endpoint's DNS zone group
+created it.
 
 **The name resolves to a public resource that has no private endpoint.** Once a
 private DNS zone for a namespace is linked to a virtual network, that zone is
@@ -94,9 +92,8 @@ consults private DNS zones linked to that virtual network before anything else.
 
 Setting a custom DNS server on the virtual network replaces that resolver for
 every machine in it. The custom server has no knowledge of Azure private DNS
-zones, so linked zones stop being consulted. Nothing is misconfigured about the
-zone, and the link is still there. The queries simply never reach the resolver
-that would use it.
+zones, so linked zones stop being consulted. The zone and the link are fine; the
+queries just never reach the resolver that would use them.
 
 Two fixes:
 
@@ -105,7 +102,7 @@ Two fixes:
 - **Azure DNS Private Resolver** in a linked virtual network, with the custom
   server forwarding to its inbound endpoint.
 
-### The constraint that catches people
+### The on premises constraint
 
 `168.63.129.16` is a virtual public IP address reachable **only from inside an
 Azure virtual network.** An on premises DNS server cannot forward to it
@@ -114,7 +111,7 @@ directly, and no amount of firewall or VPN configuration changes that.
 So for on premises clients resolving private endpoints, a conditional forwarder
 to `168.63.129.16` is not an available design. You need either a DNS server
 running inside a virtual network that on premises forwards to, or an Azure DNS
-Private Resolver inbound endpoint, which exists precisely for this.
+Private Resolver inbound endpoint, which exists for this.
 
 ## Quick reference
 

@@ -1,14 +1,9 @@
 {
   // Bicep linter configuration.
   //
-  // Same policy as .checkov.yml: a rule that is turned off carries a written
-  // justification here, so a reviewer can judge the tradeoff. "It was noisy"
-  // is not a justification.
-  //
-  // scripts/validate-bicep.sh fails on any diagnostic output at all, warnings
-  // included, so there is no separate severity to configure for the rules that
-  // are on by default. The entries below are rules that ship disabled and are
-  // worth having, plus the two worth explaining.
+  // A rule turned off says why, as in .checkov.yml. lint-bicep.sh fails on any
+  // output, so severities don't matter. Below: rules that ship disabled and are
+  // turned on, and two left off.
   "analyzers": {
     "core": {
       "enabled": true,
@@ -41,23 +36,14 @@
           "level": "error"
         }
 
-        // Left off deliberately:
+        // Left off:
         //
-        // explicit-values-for-loc-params. It fires on every call to
-        // modules/policy-assignment that does not pass a location, which is
-        // every Audit and Deny assignment. That module only creates a managed
-        // identity when roleDefinitionIds is non empty, and location is
-        // ignored otherwise, so passing a region there would be stating
-        // something untrue to satisfy a linter.
+        // explicit-values-for-loc-params. It fires on every Audit and Deny call
+        // to modules/policy-assignment, where location is unused.
         //
-        // use-recent-api-versions. Every API version in this tree passes it
-        // today, checked with the rule temporarily enabled. It stays off
-        // because it fails on the calendar rather than on a change: a version
-        // pinned here becomes an error 730 days later with nobody having
-        // touched the repository, which is the same failure mode
-        // scripts/install-lychee.sh pins a version to avoid. Run
-        // "bicep lint" with it enabled when reviewing this tree, not on
-        // every pull request.
+        // use-recent-api-versions. Everything passes it today, but it would fail
+        // the build 730 days after a version was pinned, with no change made.
+        // Run it by hand when reviewing.
       }
     }
   }

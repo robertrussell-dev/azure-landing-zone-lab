@@ -4,12 +4,12 @@ variable "tenant_id" {
 }
 
 variable "subscription_id" {
-  description = "Subscription used only to initialise the default provider. Nothing is created in it."
+  description = "Subscription used only to initialize the default provider. Nothing is created in it."
   type        = string
 }
 
 variable "brownfield_subscription_id" {
-  description = "The adopted subscription that these deliberately non compliant resources are created in."
+  description = "The adopted subscription the noncompliant seed resources go in."
   type        = string
 }
 

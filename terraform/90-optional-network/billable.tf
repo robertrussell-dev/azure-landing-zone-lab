@@ -1,9 +1,13 @@
-# Everything in this file bills by the hour from the moment it exists.
+# Everything in this file bills by the hour. All off by default; each flag's
+# price is in variables.tf, and standing_monthly_cost_usd totals what's on.
 #
-# Nothing here is on by default. Each flag names its own price in
-# variables.tf, and the standing_monthly_cost_usd output adds up whatever is
-# switched on, so the number shows in a plan rather than on an invoice. Bring a
-# device up, use it, destroy it the same day.
+# Each resource is tagged deleteAfter, billable_ttl_hours after creation, and
+# terraform/30-auto-delete removes it after that. ignore_changes keeps the first
+# value, so the window doesn't move on later plans.
+
+locals {
+  delete_after = timeadd(plantimestamp(), "${var.billable_ttl_hours}h")
+}
 
 # ---------------------------------------------------------------------------
 # Azure Firewall
@@ -21,11 +25,12 @@ resource "azurerm_public_ip" "firewall" {
   sku               = "Standard"
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
@@ -38,22 +43,18 @@ resource "azurerm_firewall_policy" "hub" {
   location            = azurerm_resource_group.hub.location
   sku                 = var.firewall_sku_tier
 
-  # Deny rather than the Alert default. With a policy attached the firewall
-  # inherits threat intelligence settings from it, so this is where the setting
-  # takes effect.
-  #
-  # The Bicep tree also sets threatIntelMode on the firewall resource itself.
-  # This one does not, because azurerm conflicts threat_intel_mode with
-  # firewall_policy_id and setting both is a apply time error rather than a
-  # redundancy. Same outcome, different place to write it.
+  # Deny instead of the Alert default. The firewall inherits it from the policy.
+  # azurerm rejects threat_intel_mode on the firewall alongside a policy, so
+  # unlike the Bicep tree it's only set here.
   threat_intelligence_mode = "Deny"
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
@@ -75,19 +76,19 @@ resource "azurerm_firewall" "hub" {
   }
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
 # ---------------------------------------------------------------------------
 # VPN gateway
 # ---------------------------------------------------------------------------
-# Slow to create and slow to destroy, 30 to 45 minutes each way. That is worth
-# knowing before planning a same day teardown around it.
+# 30 to 45 minutes to create, and the same to destroy.
 resource "azurerm_public_ip" "vpn" {
   provider = azurerm.connectivity
   count    = var.deploy_vpn_gateway ? 1 : 0
@@ -99,11 +100,12 @@ resource "azurerm_public_ip" "vpn" {
   sku                 = "Standard"
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
@@ -126,22 +128,20 @@ resource "azurerm_virtual_network_gateway" "vpn" {
   }
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
 # ---------------------------------------------------------------------------
 # ExpressRoute gateway
 # ---------------------------------------------------------------------------
-# The gateway only. The circuit is a carrier contract and is not something this
-# repository can or should create.
-#
-# It shares GatewaySubnet with the VPN gateway, which is why the plan gives
-# that subnet a /26 rather than the /27 minimum: coexistence needs the room.
+# The gateway only; the circuit is a carrier contract. It shares GatewaySubnet
+# with the VPN gateway, which is why that subnet is a /26.
 resource "azurerm_virtual_network_gateway" "expressroute" {
   provider = azurerm.connectivity
   count    = var.deploy_expressroute_gateway ? 1 : 0
@@ -163,11 +163,12 @@ resource "azurerm_virtual_network_gateway" "expressroute" {
   }
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
@@ -182,11 +183,12 @@ resource "azurerm_public_ip" "expressroute" {
   sku                 = "Standard"
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
@@ -204,11 +206,12 @@ resource "azurerm_public_ip" "bastion" {
   sku                 = "Standard"
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
@@ -228,20 +231,20 @@ resource "azurerm_bastion_host" "hub" {
   }
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
 # ---------------------------------------------------------------------------
 # Azure Route Server
 # ---------------------------------------------------------------------------
-# Only earns its place if a BGP speaking network virtual appliance is peering
-# with it, and there is not one here. It exists so the subnet in the address
-# plan has something to justify it.
+# Only useful with a BGP speaking appliance peering with it, which this lab
+# doesn't have. It's here because the address plan has its subnet.
 resource "azurerm_public_ip" "route_server" {
   provider = azurerm.connectivity
   count    = var.deploy_route_server ? 1 : 0
@@ -253,11 +256,12 @@ resource "azurerm_public_ip" "route_server" {
   sku                 = "Standard"
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
@@ -274,19 +278,19 @@ resource "azurerm_route_server" "hub" {
   branch_to_branch_traffic_enabled = false
 
   tags = {
-    autoDelete = "true"
+    autoDelete  = "true"
+    deleteAfter = local.delete_after
   }
 
   lifecycle {
-    ignore_changes = [tags["costCenter"]]
+    ignore_changes = [tags["costCenter"], tags["deleteAfter"]]
   }
 }
 
 # ---------------------------------------------------------------------------
 # A budget on the subscription that holds all of this
 # ---------------------------------------------------------------------------
-# Created whether or not anything billable is switched on, because the point of
-# it is to catch the case where something was switched on and forgotten.
+# Always created, since its job is catching a device someone forgot.
 module "budget" {
   source = "../modules/subscription-budget"
   count  = length(var.budget_alert_emails) > 0 ? 1 : 0

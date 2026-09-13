@@ -12,13 +12,8 @@ if ! command -v terraform > /dev/null 2>&1; then
   exit 1
 fi
 
-# Format check runs over git tracked files only, not over the working tree.
-#
-# "terraform fmt -recursive" walks everything on disk, which includes
-# terraform.tfvars. Those are gitignored and CI never sees them, so a recursive
-# check fails locally and passes in CI for files that are not in the
-# repository. A check that only fails on the developer's machine is a check
-# people learn to ignore.
+# Tracked files only. "terraform fmt -recursive" would also check the
+# gitignored terraform.tfvars, which CI never sees.
 echo "==> terraform fmt -check, tracked files only"
 mapfile -t tf_files < <(git ls-files '*.tf' '*.tfvars')
 if [ "${#tf_files[@]}" -eq 0 ]; then
@@ -36,21 +31,16 @@ else
 fi
 
 failed=0
-# The glob matches the numbered roots only. terraform/modules/ has no .tf at
-# its top level and is validated through the roots that call it, so including it
-# would print a SKIP line claiming it is a placeholder for a later phase.
+# Numbered roots only; modules are validated through their callers.
 for dir in terraform/[0-9]*/; do
-  # A directory with no .tf files yet is a placeholder for a later phase, not a
-  # failure. Without this, scaffolding a phase breaks the build.
+  # An empty directory is a placeholder, not a failure.
   if ! compgen -G "${dir}*.tf" > /dev/null; then
     echo "SKIP  ${dir} (no .tf files yet)"
     continue
   fi
 
   echo "==> ${dir}"
-  # -backend=false installs providers so that validate can check resource
-  # schemas, without configuring state or authenticating to Azure. This is what
-  # allows validation to run with no credentials present.
+  # -backend=false installs providers without state or Azure credentials.
   if ! terraform -chdir="${dir}" init -backend=false -input=false -no-color; then
     failed=1
     continue
