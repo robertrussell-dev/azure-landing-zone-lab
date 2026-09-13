@@ -146,7 +146,7 @@ own; the platform team keeps audit and policy across the namespace. Microsoft
 notes that a monolithic zone tends to require broad permissions across teams,
 which is its own risk.
 
-Not chosen because this estate has one operator and no scale problem. The
+Not chosen because this lab has one operator and no scale problem. The
 triggers would be: multiple teams in one tenant,
 frequent automated DNS change, a need to reduce change blast radius, or a zone
 growing past tens of thousands of records.
@@ -163,5 +163,5 @@ growing past tens of thousands of records.
   and are not.
 - Workload IaC must anticipate resources it did not declare, or accept
   permanent drift.
-- If this estate grew multiple independent teams, sharded zones with delegated
+- If this lab grew multiple independent teams, sharded zones with delegated
   RBAC would be the next design, not a return to workload ownership.

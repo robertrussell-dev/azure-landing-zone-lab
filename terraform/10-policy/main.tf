@@ -93,7 +93,7 @@ module "audit_subnets_without_nsg" {
 
   name                 = "audit-subnet-nsg"
   display_name         = "Subnets should be associated with a network security group"
-  description          = "Reported across the whole hierarchy so the platform team can see the shape of the estate. Audit rather than deny at this scope, because a subnet without a network security group is a finding to investigate, not always a mistake."
+  description          = "Reported across the whole hierarchy so the platform team can see the shape of the environment. Audit rather than deny at this scope, because a subnet without a network security group is a finding to investigate, not always a mistake."
   management_group_id  = data.azurerm_management_group.intermediate_root.id
   policy_definition_id = local.definitions.subnets_need_nsg
 

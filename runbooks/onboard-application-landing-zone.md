@@ -97,7 +97,7 @@ Subscriptions are not regional, and sizing is the workload team's business.
 
 ### Brownfield variant
 
-A subscription being adopted from an existing estate is placed under the audit
+A subscription adopted from an existing environment is placed under the audit
 only duplicate of its archetype first, not the archetype itself. It is
 evaluated against the target policy set with `enforcementMode` set to
 `DoNotEnforce`, so nothing is blocked while compliance is assessed. Moving the

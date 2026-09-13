@@ -106,7 +106,7 @@ module auditSubnetsWithoutNsg '../modules/policy-assignment/main.bicep' = {
   params: {
     name: 'audit-subnet-nsg'
     displayName: 'Subnets should be associated with a network security group'
-    policyDescription: 'Reported across the whole hierarchy so the platform team can see the shape of the estate. Audit rather than deny at this scope, because a subnet without a network security group is a finding to investigate, not always a mistake.'
+    policyDescription: 'Reported across the whole hierarchy so the platform team can see the shape of the environment. Audit rather than deny at this scope, because a subnet without a network security group is a finding to investigate, not always a mistake.'
     policyDefinitionId: definitions.subnetsNeedNsg
     parameters: {
       effect: 'AuditIfNotExists'

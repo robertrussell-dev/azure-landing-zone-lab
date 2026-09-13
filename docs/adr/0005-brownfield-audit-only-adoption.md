@@ -76,9 +76,9 @@ Enforcement is turned on when all of the following hold:
    to wait.
 4. **One full change cycle observed.** At least one real deployment by the
    workload team has occurred while the audit assignment was in place, and its
-   resources evaluated compliant. A static estate proves the resources are
-   fine, not that the team's pipeline produces compliant ones, and the pipeline
-   is what will hit the Deny.
+   resources evaluated compliant. A static subscription proves the resources
+   are fine, not that the team's pipeline produces compliant ones, and the
+   pipeline is what will hit the Deny.
 
 Point four is the one most likely to be skipped, and it adds about a sprint to
 every adoption. It's kept because it's the only one that tests the pipeline.
@@ -101,8 +101,8 @@ enrollment resources. At this size that's worth more than the saved management
 groups.
 
 With enough adoptions in flight at once, that reverses. I don't know the
-number, but the count of concurrent adoptions, not the size of the estate,
-should trigger the review.
+number, but the count of concurrent adoptions, not the size of the
+environment, should trigger the review.
 
 **Resource selectors for gradual rollout.** An assignment can carry
 `resourceSelectors` that narrow evaluation by resource location or type, so

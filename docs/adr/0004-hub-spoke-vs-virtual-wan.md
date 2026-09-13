@@ -19,7 +19,7 @@ costs to have the capability sitting there.
 **Hub and spoke, for this platform.**
 
 The reason is specific to a lab and doesn't generalize. The criteria a
-production estate should use are set out separately below.
+production environment should use are set out separately below.
 
 ## The cost difference
 
@@ -43,7 +43,7 @@ brought up on demand. A Virtual WAN hub can't.
 
 About 182 dollars a month is a rounding error to any organization with a
 platform team, so the lab's reason is set aside and the criteria below are the
-ones a production estate would use.
+ones a production environment would use.
 
 ## Microsoft's selection criteria
 
@@ -114,5 +114,5 @@ failure that has to be designed for.
   and the main source of routing incidents.
 - A second region means designing inter hub connectivity by hand, which is the
   work Virtual WAN would absorb. A second region is the trigger to revisit this.
-- A production estate should apply the criteria above. The answer here follows
-  from a constraint it doesn't have.
+- A production environment should apply the criteria above. The answer here
+  follows from a constraint it doesn't have.

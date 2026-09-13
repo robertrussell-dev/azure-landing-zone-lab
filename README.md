@@ -12,10 +12,11 @@ that turned out to be the second kind.
 
 The Terraform is the copy that's deployed. The Bicep compiles, lints and scans
 in CI but has never been applied. Instead, all six of its roots have been run
-through `what-if` against the live estate, and for the four with a deployed
-Terraform counterpart the hierarchy comes back identical and every deployed
-policy assignment matches. The four defects that turned up, and every remaining
-difference, are in [bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate).
+through `what-if` against the live environment, and for the four with a
+deployed Terraform counterpart the hierarchy comes back identical and every
+deployed policy assignment matches. The four defects that turned up, and every
+remaining difference, are in
+[bicep/README.md](bicep/README.md#what-if-against-the-deployed-environment).
 
 ## Layout
 
@@ -51,9 +52,9 @@ check I actually deployed what I described.
 | 0001 Platform subscription split | Four platform subscriptions, kept. What that costs to operate, and the trigger that would make collapsing Security into Management defensible. |
 | 0002 Environments as subscriptions | Dev, test and production are subscriptions inside one archetype management group. Per environment policy gets handled with Audit at the archetype instead of separate management groups. |
 | 0003 Archetype placement criteria | It comes down to one question: does the workload need routed connectivity to on premises through the hub. Internet exposure isn't that question. |
-| 0004 Hub and spoke versus Virtual WAN | Hub and spoke here, for a cost reason that doesn't generalize. Microsoft's selection criteria, including the 30 tunnel threshold, are recorded as what a real estate should apply instead. |
+| 0004 Hub and spoke versus Virtual WAN | Hub and spoke here, for a cost reason that doesn't generalize. Microsoft's selection criteria, including the 30 tunnel threshold, are recorded as what a production environment should apply instead. |
 | 0005 Brownfield adoption, audit only | Adopted subscriptions land in a duplicated archetype with enforcement off, and move across when compliance is good enough. Defines what "good enough" means, since Microsoft leaves that open. |
-| 0006 Private DNS ownership | Platform owned, in the Connectivity subscription. Untangles a real contradiction inside one Microsoft article, and lists the five questions that settle it for a given estate. |
+| 0006 Private DNS ownership | Platform owned, in the Connectivity subscription. Untangles a real contradiction inside one Microsoft article, and lists the five questions that settle it for a given organization. |
 | 0007 Not using the accelerator | Why this repo hand rolls what the landing zone accelerator would generate, and what that costs. |
 | 0008 Delete protection | `prevent_destroy`, locks, `DenyAction` and deployment stacks stop different people. Which one guards the workspace, the janitor and the subscriptions, and why the hub network gets none. |
 
@@ -168,7 +169,7 @@ The policy screenshot is from 7 September 2026. The hierarchy one is from 12
 September and matches the [diagram above](#hierarchy): 13 groups under the
 tenant root and all four subscriptions placed, with the IDs blacked out. The
 Bicep what-if in
-[bicep/README.md](bicep/README.md#what-if-against-the-deployed-estate)
+[bicep/README.md](bicep/README.md#what-if-against-the-deployed-environment)
 confirms the same tree independently.
 
 ## Constraints

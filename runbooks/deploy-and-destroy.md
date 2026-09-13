@@ -9,7 +9,7 @@ build the same management groups with the same names. The Bicep role
 assignments also get a different GUID for a name than the ones Terraform
 created, so a second deployment on top of the first fails partway through with
 `RoleAssignmentExists`. A what-if showed this; details are in
-[bicep/README.md](../bicep/README.md#what-if-against-the-deployed-estate).
+[bicep/README.md](../bicep/README.md#what-if-against-the-deployed-environment).
 
 ## 1. Before you start
 

@@ -11,6 +11,11 @@ variable "subscription_id" {
 variable "prefix" {
   description = "Same prefix used by terraform/00-management-groups."
   type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9]{2,10}$", var.prefix))
+    error_message = "prefix must be 2 to 10 lowercase alphanumeric characters, the same value as terraform/00-management-groups."
+  }
 }
 
 variable "brownfield_subscription_id" {

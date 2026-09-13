@@ -127,9 +127,9 @@ even though azurerm never set them, so Azure applied defaults. what-if reports
 `- properties.definitionVersion` because it doesn't model server-side
 defaults. Whether a real deployment would strip the value is untested, since it
 would mean deploying over the Terraform tree, which
-[can't be done](../../README.md#what-if-against-the-deployed-estate). The
-parameter is left empty: setting a version on an unversioned definition is an
-error, and the right value differs per definition.
+[can't be done](../../README.md#what-if-against-the-deployed-environment).
+The parameter is left empty: setting a version on an unversioned definition is
+an error, and the right value differs per definition.
 
 **`policyDescription`, not `description`.** A parameter called `description`
 shadows the `@description` decorator, and every decorator below it fails with

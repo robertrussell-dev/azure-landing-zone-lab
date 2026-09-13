@@ -16,6 +16,8 @@ targetScope = 'subscription'
 param location string = 'westus2'
 
 @description('Management group prefix used by bicep/00-management-groups. The exemptions name the subnet network security group assignment at the intermediate root, whose ID is built from it.')
+@minLength(2)
+@maxLength(10)
 param prefix string
 
 @description('The hub prefix. A /20 out of the platform /16, per docs/ip-plan.md. The subnet layout is derived from it.')

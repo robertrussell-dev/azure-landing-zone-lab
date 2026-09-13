@@ -275,13 +275,13 @@ parse error. Scanning the compiled JSON avoids the parser and covers 46
 resources instead of 24. `scan-security.sh` also fails on any parse error, since
 an unreadable file otherwise looks clean.
 
-## What-if against the deployed estate
+## What-if against the deployed environment
 
 The Terraform tree is deployed with `prefix = "contoso"`. Pointed at the same
 prefix, what-if compares the Bicep with what Terraform built. That's as close as
 this gets to proving the translation without deploying it. All six roots have
 been run: five against what Terraform deployed, and `30-auto-delete` against the
-estate it would deploy into.
+environment it would deploy into.
 
 | Root | Result |
 |---|---|
@@ -367,7 +367,7 @@ holds Owner at `/`, which would hide whether the narrower role is enough.
 `20-subscription-placement` has no equivalent route and still needs it.
 
 **The lab operator holds Owner at `/` and elevated access, permanently.** In a
-real estate neither would be acceptable: Microsoft's guidance is that elevated
+production tenant neither would be acceptable: Microsoft's guidance is that elevated
 access is temporary. This is a single user tenant where the alternative is
 re-elevating for every preview, and I'd rather it be written down than found.
 The restructure fixed one root out of two.

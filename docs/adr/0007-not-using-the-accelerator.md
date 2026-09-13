@@ -17,8 +17,8 @@ This platform doesn't use them, and this records why.
 **Hand roll the hierarchy, the policy assignments and the subscription
 vending.**
 
-The accelerator isn't wrong. For an estate that needs governance breadth, it's
-the right choice and hand rolling isn't.
+The accelerator isn't wrong. For an organization that needs governance breadth,
+it's the right choice and hand rolling isn't.
 
 ## Why
 
@@ -52,13 +52,13 @@ wouldn't have shown:
 - A Modify policy and Terraform will contend over the same tag indefinitely
   unless an owner for that field is declared.
 
-Operating an accelerator deployed estate needs all of these.
+Operating an environment the accelerator deployed needs all of these.
 
 ## What it costs
 
 **Eight policy assignments against the accelerator's several hundred.** This
-shows policy mechanics, not a governance baseline. An estate that needs breadth
-should take it from the accelerator.
+shows policy mechanics, not a governance baseline. An organization that needs
+breadth should take it from the accelerator.
 
 **Maintenance.** The accelerator tracks Azure as services are added. This
 configuration does not, and will drift within months.

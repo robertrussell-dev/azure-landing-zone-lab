@@ -113,7 +113,7 @@ OUTSIDE the Azure allocation
 
 Collect the existing on-prem ranges, any other cloud ranges, and anything a
 partner might advertise in. Overlap is the one mistake that can't be fixed later
-without renumbering, and renumbering a live estate is a project rather than a
+without renumbering, and renumbering a live network is a project rather than a
 change.
 
 This example assumes:
@@ -140,7 +140,7 @@ reserved first.
 | `10.8.0.0/14` | 10.8.0.0 to 10.11.255.255 | Reserved, region 3 |
 | `10.12.0.0/14` | 10.12.0.0 to 10.15.255.255 | Reserved, region 4 |
 
-Each /14 is 262,144 addresses, which is absurd for most estates. That's fine.
+Each /14 is 262,144 addresses, which is absurd for most organizations. That's fine.
 RFC1918 space costs nothing and running out of it costs a lot.
 
 If this were Azure Government the regions would be USGov Virginia, USGov
