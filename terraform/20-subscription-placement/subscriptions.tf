@@ -47,21 +47,3 @@ module "subscription" {
     autoDelete = "false"
   }
 }
-
-# The management subscription predates the move to for_each. Without these the
-# refactor reads as destroy and create, and destroying azurerm_subscription
-# cancels a live subscription.
-moved {
-  from = module.management_subscription[0].azurerm_subscription.this
-  to   = module.subscription["management"].azurerm_subscription.this
-}
-
-moved {
-  from = module.management_subscription[0].azurerm_management_group_subscription_association.this
-  to   = module.subscription["management"].azurerm_management_group_subscription_association.this
-}
-
-moved {
-  from = module.management_subscription[0].module.budget.azurerm_consumption_budget_subscription.this
-  to   = module.subscription["management"].module.budget.azurerm_consumption_budget_subscription.this
-}

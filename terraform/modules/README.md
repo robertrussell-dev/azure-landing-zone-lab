@@ -77,3 +77,8 @@ this.
 
 `terraform state mv` would get to the same place. I used `moved` blocks because
 they sit in the config and turn up in the plan, so there's something to review.
+
+Once the state was applied at the new addresses the blocks matched nothing, so
+they were deleted. This is a root with one state file, so no other copy is left
+at the old addresses. A module other people call would keep them, since there's
+no telling when every caller will apply. `git log -S "moved {"` finds them.
